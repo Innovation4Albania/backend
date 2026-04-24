@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: innovation4albania-backend
+    runtime: dotnet
+    plan: free
+    rootDir: .
+    buildCommand: dotnet publish Innovation4Albania.DashboardBackend.Api/Innovation4Albania.DashboardBackend.Api.csproj -c Release -o out
+    startCommand: dotnet out/Innovation4Albania.DashboardBackend.Api.dll
+    envVars:
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:10000
+      - key: ALLOWED_ORIGINS
+        sync: false
