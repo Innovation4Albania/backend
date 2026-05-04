@@ -15,6 +15,10 @@ public sealed record UserResponse(
     string? Ministry,
     string RoleLabel);
 
+public sealed record ReferenceOptionResponse(string Value, string Label);
+
+public sealed record StatusReferenceResponse(string Value, string Label, string Color);
+
 public sealed record ProjectOkr(
     int Deadlines,
     int Quality,
