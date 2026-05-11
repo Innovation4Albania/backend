@@ -10,6 +10,7 @@ public sealed class ProjectService(IInnovationDashboardRepository repository) : 
     public ProjectResponse? GetProjectById(string id, UserContext context) => repository.GetProjectById(id, context);
     public bool TryCreateProject(UserContext context, CreateProjectRequest request, out ProjectResponse? response, out string? error) => repository.TryCreateProject(context, request, out response, out error);
     public bool TryUpdateProject(UserContext context, string id, CreateProjectRequest request, out ProjectResponse? response, out string? error) => repository.TryUpdateProject(context, id, request, out response, out error);
+    public bool TryDeleteProject(UserContext context, string id, out string? error) => repository.TryDeleteProject(context, id, out error);
     public IReadOnlyList<ProjectEventResponse> GetProjectEvents(string id, UserContext context) => repository.GetEventsForProject(id, context);
     public Task<AiInsightResponse?> GetProjectAiInsights(string id, UserContext context, string apiKey) => repository.GetProjectAiInsights(id, context, apiKey);
 }

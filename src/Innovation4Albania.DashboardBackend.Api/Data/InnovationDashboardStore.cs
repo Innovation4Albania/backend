@@ -319,6 +319,31 @@ public sealed class InnovationDashboardStore
         return true;
     }
 
+    public bool TryDeleteProject(UserContext context, string id, out string? error)
+    {
+        if (!ApplicationRoles.CanCreateProjects(context.Role))
+        {
+            error = "Vetëm Drejtori i Agjencisë dhe Drejtori i Inovacionit Publik mund të fshijnë projekte.";
+            return false;
+        }
+
+        var project = GetVisibleProjects(context)
+            .FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
+
+        if (project is null)
+        {
+            error = "Projekti nuk u gjet.";
+            return false;
+        }
+
+        _updates.RemoveAll(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase));
+        _changeProposals.RemoveAll(proposal => string.Equals(proposal.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase));
+        _projects.Remove(project);
+
+        error = null;
+        return true;
+    }
+
     private static bool TryValidateProjectRequest(CreateProjectRequest request, out string? error)
     {
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Code))

@@ -18,6 +18,7 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
     public ProjectResponse? GetProjectById(string id, UserContext context) => store.GetProjectById(id, context);
     public bool TryCreateProject(UserContext context, CreateProjectRequest request, out ProjectResponse? response, out string? error) => store.TryCreateProject(context, request, out response, out error);
     public bool TryUpdateProject(UserContext context, string id, CreateProjectRequest request, out ProjectResponse? response, out string? error) => store.TryUpdateProject(context, id, request, out response, out error);
+    public bool TryDeleteProject(UserContext context, string id, out string? error) => store.TryDeleteProject(context, id, out error);
     public IReadOnlyList<ProjectEventResponse> GetEventsForProject(string projectId, UserContext context) => store.GetEventsForProject(projectId, context);
 
     public Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context, string apiKey)

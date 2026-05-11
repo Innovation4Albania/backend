@@ -1,3 +1,4 @@
+using Innovation4Albania.DashboardBackend.Api.Constants;
 using Innovation4Albania.DashboardBackend.Api.Models;
 using Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
 
@@ -49,6 +50,23 @@ public static class ProjectEndpoints
             return service.TryUpdateProject(context, id, request, out var project, out var error)
                 ? Results.Ok(project)
                 : Results.BadRequest(new ApiErrorResponse("project_update_failed", error!));
+        });
+
+        api.MapDelete("/projects/{id}", (string id, string role, string? ministry, IUserContextService contextService, IProjectService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            if (!ApplicationRoles.CanCreateProjects(context.Role))
+            {
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            }
+
+            return service.TryDeleteProject(context, id, out var error)
+                ? Results.NoContent()
+                : Results.BadRequest(new ApiErrorResponse("project_delete_failed", error!));
         });
 
         api.MapGet("/projects/{id}/events", (string id, string role, string? ministry, IUserContextService contextService, IProjectService service) =>

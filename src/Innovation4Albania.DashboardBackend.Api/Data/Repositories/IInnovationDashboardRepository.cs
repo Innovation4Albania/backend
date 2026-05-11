@@ -18,6 +18,7 @@ public interface IInnovationDashboardRepository
     ProjectResponse? GetProjectById(string id, UserContext context);
     bool TryCreateProject(UserContext context, CreateProjectRequest request, out ProjectResponse? response, out string? error);
     bool TryUpdateProject(UserContext context, string id, CreateProjectRequest request, out ProjectResponse? response, out string? error);
+    bool TryDeleteProject(UserContext context, string id, out string? error);
     IReadOnlyList<ProjectEventResponse> GetEventsForProject(string projectId, UserContext context);
     Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context, string apiKey);
     IReadOnlyList<PerformanceBoardColumnResponse> GetPerformanceBoard(UserContext context);
