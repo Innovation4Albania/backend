@@ -1,6 +1,7 @@
 using Innovation4Albania.DashboardBackend.Api.Constants;
 using Innovation4Albania.DashboardBackend.Api.Models;
 using Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
+using System.Security.Claims;
 
 namespace Innovation4Albania.DashboardBackend.Api.Endpoints;
 
@@ -8,16 +9,16 @@ public static class ProjectEndpoints
 {
     public static RouteGroupBuilder MapProjectEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/projects", (string role, string? ministry, string? status, string? query, IUserContextService contextService, IProjectService service) =>
+        api.MapGet("/projects", (ClaimsPrincipal user, string? status, string? query, IUserContextService contextService, IProjectService service) =>
         {
-            return EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult)
+            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
                 ? Results.Ok(service.GetProjects(context, status, query))
                 : errorResult!;
         });
 
-        api.MapGet("/projects/{id}", (string id, string role, string? ministry, IUserContextService contextService, IProjectService service) =>
+        api.MapGet("/projects/{id}", (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
         {
-            if (!EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult))
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
@@ -28,9 +29,9 @@ public static class ProjectEndpoints
                 : Results.Ok(project);
         });
 
-        api.MapPost("/projects", (string role, string? ministry, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
+        api.MapPost("/projects", (ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
         {
-            if (!EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult))
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
@@ -40,9 +41,9 @@ public static class ProjectEndpoints
                 : Results.BadRequest(new ApiErrorResponse("project_create_failed", error!));
         });
 
-        api.MapPut("/projects/{id}", (string id, string role, string? ministry, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
+        api.MapPut("/projects/{id}", (string id, ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
         {
-            if (!EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult))
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
@@ -52,9 +53,9 @@ public static class ProjectEndpoints
                 : Results.BadRequest(new ApiErrorResponse("project_update_failed", error!));
         });
 
-        api.MapDelete("/projects/{id}", (string id, string role, string? ministry, IUserContextService contextService, IProjectService service) =>
+        api.MapDelete("/projects/{id}", (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
         {
-            if (!EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult))
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
@@ -69,9 +70,9 @@ public static class ProjectEndpoints
                 : Results.BadRequest(new ApiErrorResponse("project_delete_failed", error!));
         });
 
-        api.MapGet("/projects/{id}/events", (string id, string role, string? ministry, IUserContextService contextService, IProjectService service) =>
+        api.MapGet("/projects/{id}/events", (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
         {
-            if (!EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult))
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
@@ -84,10 +85,10 @@ public static class ProjectEndpoints
             return Results.Ok(service.GetProjectEvents(id, context));
         });
 
-        api.MapGet("/projects/{id}/ai-insights", async (string id, string role, string? ministry,
+        api.MapGet("/projects/{id}/ai-insights", async (string id, ClaimsPrincipal user,
             IUserContextService contextService, IProjectService service, IConfiguration configuration) =>
         {
-            if (!EndpointContextResolver.TryResolve(role, ministry, contextService, out var context, out var errorResult))
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
                 return errorResult!;
 
             var apiKey = configuration["Gemini:ApiKey"] ?? string.Empty;

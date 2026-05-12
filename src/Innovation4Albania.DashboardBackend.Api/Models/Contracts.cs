@@ -15,6 +15,8 @@ public sealed record UserResponse(
     string? Ministry,
     string RoleLabel);
 
+public sealed record AuthResponse(string Token, UserResponse User);
+
 public sealed record ReferenceOptionResponse(string Value, string Label);
 
 public sealed record StatusReferenceResponse(string Value, string Label, string Color);

@@ -5,5 +5,5 @@ namespace Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
 public interface IAuthService
 {
     string? ValidateLogin(LoginRequest request);
-    UserResponse Login(LoginRequest request);
+    AuthResponse Login(LoginRequest request);
 }
