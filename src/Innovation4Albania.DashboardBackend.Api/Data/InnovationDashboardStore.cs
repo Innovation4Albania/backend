@@ -1535,7 +1535,7 @@ public sealed class InnovationDashboardStore
             startDate,
             endDate,
             10,
-            new ProjectOkr(20, 25, 30, 35, 25, 30, 20),
+            new ProjectOkr(20, 25, 30, 35, 25),
             RiskLevels.Medium,
             teamMembers.Select(member => member.Name).ToList(),
             teamMembers,

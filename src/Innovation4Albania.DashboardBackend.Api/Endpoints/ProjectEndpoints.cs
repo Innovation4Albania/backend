@@ -36,6 +36,13 @@ public static class ProjectEndpoints
                 return errorResult!;
             }
 
+            if (!ApplicationRoles.CanCreateProjects(context.Role))
+            {
+                return Results.Json(
+                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje të krijojë projekte."),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
             return service.TryCreateProject(context, request, out var project, out var error)
                 ? Results.Ok(project)
                 : Results.BadRequest(new ApiErrorResponse("project_create_failed", error!));
@@ -46,6 +53,13 @@ public static class ProjectEndpoints
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
+            }
+
+            if (!ApplicationRoles.CanCreateProjects(context.Role))
+            {
+                return Results.Json(
+                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje të editojë projekte."),
+                    statusCode: StatusCodes.Status403Forbidden);
             }
 
             return service.TryUpdateProject(context, id, request, out var project, out var error)
@@ -62,7 +76,9 @@ public static class ProjectEndpoints
 
             if (!ApplicationRoles.CanCreateProjects(context.Role))
             {
-                return Results.StatusCode(StatusCodes.Status403Forbidden);
+                return Results.Json(
+                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje të fshijë projekte."),
+                    statusCode: StatusCodes.Status403Forbidden);
             }
 
             return service.TryDeleteProject(context, id, out var error)
