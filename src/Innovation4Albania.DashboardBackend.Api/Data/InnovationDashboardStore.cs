@@ -13,8 +13,10 @@ public sealed class InnovationDashboardStore
     private readonly IReadOnlyList<string> _ministries =
     [
         "Ministria e Infrastrukturës dhe Energjisë",
+        "Ministria e Ekonomisë dhe Financave",
         "Ministria e Ekonomisë, Kulturës dhe Inovacionit",
         "Ministria e Financave",
+        "Ministria e Kulturës, Arsimit dhe Sportit",
         "Ministria e Arsimit, Sportit dhe Rinisë",
         "Ministria e Shëndetësisë dhe Mbrojtjes Sociale",
         "Ministria e Bujqësisë dhe Zhvillimit Rural",
@@ -22,6 +24,7 @@ public sealed class InnovationDashboardStore
         "Ministria e Brendshme",
         "Ministria për Evropën dhe Punët e Jashtme",
         "Ministria e Mbrojtjes",
+        "Ministria e Turizmit, Bujqësisë dhe Mjedisit",
         "Ministria e Turizmit dhe Mjedisit",
         "Ministria e Shtetit për Pushtetin Vendor"
     ];
@@ -1438,18 +1441,125 @@ public sealed class InnovationDashboardStore
                     new KeyResultState("obj-1-kr-2", "Digjitalizimi i dosjeve prioritare", 68, 100, "%")
                 ])
             ]),
-        CreateSampleProject(2, 1, _ministries[0], ProjectStatuses.Planning, 24, RiskLevels.Low, IsoOffset(-2)),
-        CreateSampleProject(3, 2, _ministries[1], ProjectStatuses.Active, 33, RiskLevels.High, IsoOffset(-22)),
-        CreateSampleProject(4, 3, _ministries[2], ProjectStatuses.Active, 84, RiskLevels.Low, IsoOffset(-3)),
-        CreateSampleProject(5, 4, _ministries[3], ProjectStatuses.Blocked, 41, RiskLevels.High, IsoOffset(-16)),
-        CreateSampleProject(6, 5, _ministries[4], ProjectStatuses.AtRisk, 58, RiskLevels.Medium, IsoOffset(-16)),
-        CreateSampleProject(7, 6, _ministries[5], ProjectStatuses.Completed, 100, RiskLevels.Low, IsoOffset(-19)),
-        CreateSampleProject(8, 7, _ministries[6], ProjectStatuses.Cancelled, 12, RiskLevels.Critical, IsoOffset(-28)),
-        CreateSampleProject(9, 8, _ministries[7], ProjectStatuses.Active, 63, RiskLevels.Medium, IsoOffset(-6)),
-        CreateSampleProject(10, 9, _ministries[8], ProjectStatuses.Planning, 18, RiskLevels.Low, IsoOffset(-4)),
-        CreateSampleProject(11, 10, _ministries[9], ProjectStatuses.Active, 52, RiskLevels.Medium, IsoOffset(-7)),
-        CreateSampleProject(12, 11, _ministries[10], ProjectStatuses.Active, 47, RiskLevels.High, IsoOffset(-10)),
-        CreateSampleProject(13, 12, _ministries[11], ProjectStatuses.Completed, 100, RiskLevels.Low, IsoOffset(-12))
+        CreateActualProject(
+            2,
+            "CASHLESS-2026",
+            "Cashless Albania",
+            "Rritja e pagesave elektronike nga 16% në 60% dhe pranimi i metodave elektronike nga 100% e institucioneve publike.",
+            "Ministria e Ekonomisë dhe Financave",
+            ProjectSectors.Governance,
+            FixedDate(2026, 4, 28),
+            FixedDate(2026, 12, 31),
+            ["Eralda Alhysa", "Leah Hamiti", "Eneida Koci", "Artjola Ganellari", "Oraldo Hoxhallari", "Ardit Hysko", "Elird Kospiri"],
+            "Albi Hoxha"),
+        CreateActualProject(
+            3,
+            "ROAD-ZERO-2026",
+            "Reduktimi drejt 0 i fataliteteve në rrugë",
+            "Reduktimi i fataliteteve rrugore dhe aksidenteve nëpërmjet aplikimit të sistemeve inteligjente.",
+            "Ministria e Infrastrukturës dhe Energjisë",
+            ProjectSectors.Infrastructure,
+            FixedDate(2026, 4, 23),
+            FixedDate(2026, 12, 31),
+            ["Evjenia Gjici", "Indrit Allaraj", "Evisildo Tosku", "Endrit Hoxha", "Dirseo Pasha"]),
+        CreateActualProject(
+            4,
+            "CULTURE-REVENUE-2026",
+            "Rritja e të ardhurave në objektet kulturore",
+            "Rritja e të ardhurave në objektet kulturore.",
+            "Ministria e Kulturës, Arsimit dhe Sportit",
+            ProjectSectors.PublicServices,
+            FixedDate(2026, 4, 22),
+            FixedDate(2026, 12, 31),
+            ["Angjeliqi Karamano", "Blerta Zenelaj", "Kevin Ciko", "Ralf Cimbi", "Enton Spahiu", "Anxhela Alliaj"]),
+        CreateActualProject(
+            5,
+            "SCHOOL-FOOD-2026",
+            "Furnizimi me ushqim në shkolla",
+            "Furnizimi me ushqim në shkolla.",
+            "Ministria e Kulturës, Arsimit dhe Sportit",
+            ProjectSectors.PublicServices,
+            FixedDate(2026, 4, 22),
+            FixedDate(2026, 12, 31),
+            ["Angjeliqi Karamano", "Blerta Zenelaj", "Kevin Ciko", "Ralf Cimbi", "Enton Spahiu", "Anxhela Alliaj"]),
+        CreateActualProject(
+            6,
+            "SPORT-COMMUNITY-2026",
+            "Kthimi i ambienteve sportive në qendra komunitare",
+            "Kthimi i ambienteve sportive në qendra komunitare.",
+            "Ministria e Kulturës, Arsimit dhe Sportit",
+            ProjectSectors.PublicServices,
+            FixedDate(2026, 4, 22),
+            FixedDate(2026, 12, 31),
+            ["Angjeliqi Karamano", "Blerta Zenelaj", "Kevin Ciko", "Ralf Cimbi", "Enton Spahiu", "Anxhela Alliaj"]),
+        CreateActualProject(
+            7,
+            "DIGITAL-TOOLS-2026",
+            "Rritja e përdorimit të mjeteve digjitale me 80% në turizëm, bujqësi dhe mjedis",
+            "Rritja e përdorimit të mjeteve digjitale me 80% në turizëm, bujqësi dhe mjedis.",
+            "Ministria e Turizmit, Bujqësisë dhe Mjedisit",
+            ProjectSectors.PublicServices,
+            FixedDate(2026, 4, 22),
+            FixedDate(2026, 12, 31),
+            ["Olsi Buna", "Nensi Ahmetbeja", "Basanja Shtylla", "Blerta Zenelaj", "Mustafa Llani"])
+    ];
+
+    private static ProjectState CreateActualProject(
+        int idNumber,
+        string code,
+        string name,
+        string description,
+        string ministry,
+        string sector,
+        DateTimeOffset startDate,
+        DateTimeOffset endDate,
+        IReadOnlyList<string> innovationExperts,
+        string? specialist = null)
+    {
+        var teamMembers = innovationExperts
+            .Select((member, index) => new WorkgroupMemberState($"team-{idNumber}-{index + 1}", member, WorkgroupRoles.InnovationExpert, "Drejtoria e Inovacionit", 80))
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(specialist))
+        {
+            teamMembers.Add(new WorkgroupMemberState($"team-{idNumber}-{teamMembers.Count + 1}", specialist, WorkgroupRoles.Specialist, "Drejtoria e Inovacionit", 70));
+        }
+
+        return new ProjectState(
+            $"p{idNumber}",
+            code,
+            name,
+            description,
+            [ministry],
+            null,
+            ProjectStatuses.Active,
+            ProjectPriorities.High,
+            sector,
+            6,
+            1,
+            startDate,
+            endDate,
+            10,
+            new ProjectOkr(20, 25, 30, 35, 25, 30, 20),
+            RiskLevels.Medium,
+            teamMembers.Select(member => member.Name).ToList(),
+            teamMembers,
+            teamMembers[0].Name,
+            14,
+            DateTimeOffset.UtcNow,
+            BuildActualObjectives($"obj-{idNumber}", name, description));
+    }
+
+    private static DateTimeOffset FixedDate(int year, int month, int day) =>
+        new(new DateTime(year, month, day, 9, 0, 0, DateTimeKind.Utc), TimeSpan.Zero);
+
+    private static List<ObjectiveState> BuildActualObjectives(string idPrefix, string title, string description) =>
+    [
+        new($"{idPrefix}-1", title,
+        "Drejtoria e Inovacionit",
+        [
+            new KeyResultState($"{idPrefix}-kr-1", description, 10, 100, "%")
+        ])
     ];
 
     private static ProjectState CreateSampleProject(int idNumber, int projectNumber, string ministry, string status, int progress, string risk, DateTimeOffset lastUpdated)
