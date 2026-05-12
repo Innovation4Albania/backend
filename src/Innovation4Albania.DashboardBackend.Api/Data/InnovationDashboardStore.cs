@@ -13,20 +13,19 @@ public sealed class InnovationDashboardStore
     private readonly IReadOnlyList<string> _ministries =
     [
         "Ministria e Infrastrukturës dhe Energjisë",
-        "Ministria e Ekonomisë dhe Financave",
-        "Ministria e Ekonomisë, Kulturës dhe Inovacionit",
-        "Ministria e Financave",
-        "Ministria e Kulturës, Arsimit dhe Sportit",
-        "Ministria e Arsimit, Sportit dhe Rinisë",
-        "Ministria e Shëndetësisë dhe Mbrojtjes Sociale",
-        "Ministria e Bujqësisë dhe Zhvillimit Rural",
-        "Ministria e Drejtësisë",
-        "Ministria e Brendshme",
+        "Ministria e Punëve të Brendshme",
         "Ministria për Evropën dhe Punët e Jashtme",
+        "Ministria e Financave",
+        "Ministria e Kulturës dhe Turizmit",
+        "Ministria e Mjedisit",
+        "Ministria e Shëndetësisë dhe Mirëqenies Sociale",
+        "Ministria e Ekonomisë dhe Inovacionit",
+        "Ministria e Drejtësisë",
         "Ministria e Mbrojtjes",
-        "Ministria e Turizmit, Bujqësisë dhe Mjedisit",
-        "Ministria e Turizmit dhe Mjedisit",
-        "Ministria e Shtetit për Pushtetin Vendor"
+        "Ministria e Bujqësisë dhe Zhvillimit Rural",
+        "Ministria e Shtetit për Pushtetin Vendor",
+        "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin",
+        "Ministria për Marrëdhëniet me Parlamentin"
     ];
 
     private readonly List<ProjectState> _projects;
@@ -930,22 +929,24 @@ public sealed class InnovationDashboardStore
     private static string ShortMinistryName(string ministry) => ministry switch
     {
         "Ministria e Infrastrukturës dhe Energjisë" => "M. e Infrastrukturës dhe Energjisë",
-        "Ministria e Ekonomisë, Kulturës dhe Inovacionit" => "M. e Ekonomisë, Kulturës dhe Inovacionit",
-        "Ministria e Financave" => "M. e Financave",
-        "Ministria e Arsimit, Sportit dhe Rinisë" => "M. e Arsimit, Sportit dhe Rinisë",
-        "Ministria e Shëndetësisë dhe Mbrojtjes Sociale" => "M. e Shëndetësisë dhe Mbrojtjes Sociale",
-        "Ministria e Bujqësisë dhe Zhvillimit Rural" => "M. e Bujqësisë dhe Zhvillimit Rural",
-        "Ministria e Drejtësisë" => "M. e Drejtësisë",
-        "Ministria e Brendshme" => "M. e Brendshme",
+        "Ministria e Punëve të Brendshme" => "M. e Punëve të Brendshme",
         "Ministria për Evropën dhe Punët e Jashtme" => "M. për Evropën dhe Punët e Jashtme",
+        "Ministria e Financave" => "M. e Financave",
+        "Ministria e Kulturës dhe Turizmit" => "M. e Kulturës dhe Turizmit",
+        "Ministria e Mjedisit" => "M. e Mjedisit",
+        "Ministria e Shëndetësisë dhe Mirëqenies Sociale" => "M. e Shëndetësisë dhe Mirëqenies Sociale",
+        "Ministria e Ekonomisë dhe Inovacionit" => "M. e Ekonomisë dhe Inovacionit",
+        "Ministria e Drejtësisë" => "M. e Drejtësisë",
         "Ministria e Mbrojtjes" => "M. e Mbrojtjes",
-        "Ministria e Turizmit dhe Mjedisit" => "M. e Turizmit dhe Mjedisit",
+        "Ministria e Bujqësisë dhe Zhvillimit Rural" => "M. e Bujqësisë dhe Zhvillimit Rural",
         "Ministria e Shtetit për Pushtetin Vendor" => "M. e Shtetit për Pushtetin Vendor",
+        "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin" => "M. e Administratës Publike dhe Antikorrupsionit",
+        "Ministria për Marrëdhëniet me Parlamentin" => "M. për Marrëdhëniet me Parlamentin",
         _ => ministry
     };
 
     private static int CalculateOkrAverage(ProjectOkr okr) =>
-        (int)Math.Round((okr.Deadlines + okr.Quality + okr.Impact + okr.Collaboration + okr.Dynamics + okr.Capacity + okr.Rhythm) / 7d);
+        (int)Math.Round((okr.Deadlines + okr.Quality + okr.Impact + okr.Dynamics + okr.Capacity) / 5d);
 
     private static int CalculateExpectedProgress(DateTimeOffset startDate, DateTimeOffset endDate)
     {
@@ -1412,7 +1413,7 @@ public sealed class InnovationDashboardStore
             "ASHSH-2024",
             "ASHSH - Agjencia Shtetërore për Shpronësimin",
             "Projekt real demonstrues për transformimin e proceseve të shpronësimit dhe koordinimit ndërinstitucional.",
-            ["Ministria e Infrastrukturës dhe Energjisë", "Ministria e Ekonomisë, Kulturës dhe Inovacionit"],
+            ["Ministria e Infrastrukturës dhe Energjisë", "Ministria e Ekonomisë dhe Inovacionit"],
             "Agjencia Shtetërore për Shpronësimin",
             ProjectStatuses.Active,
             ProjectPriorities.Critical,
@@ -1429,7 +1430,7 @@ public sealed class InnovationDashboardStore
                 new WorkgroupMemberState("team-1-1", "Erblin Malkurti", WorkgroupRoles.ProjectLead, "ASHSH", 90),
                 new WorkgroupMemberState("team-1-2", "Evilsidio Tosku", WorkgroupRoles.BusinessAnalyst, "ASHSH", 70),
                 new WorkgroupMemberState("team-1-3", "Nensi Ahmetbeja", WorkgroupRoles.MinistryRepresentative, "Ministria e Infrastrukturës dhe Energjisë", 60),
-                new WorkgroupMemberState("team-1-4", "Ina Peleshka", WorkgroupRoles.OkrOwner, "Ministria e Ekonomisë, Kulturës dhe Inovacionit", 55)
+                new WorkgroupMemberState("team-1-4", "Ina Peleshka", WorkgroupRoles.OkrOwner, "Ministria e Ekonomisë dhe Inovacionit", 55)
             ],
             "Erblin Malkurti",
             14,
@@ -1446,7 +1447,7 @@ public sealed class InnovationDashboardStore
             "CASHLESS-2026",
             "Cashless Albania",
             "Rritja e pagesave elektronike nga 16% në 60% dhe pranimi i metodave elektronike nga 100% e institucioneve publike.",
-            "Ministria e Ekonomisë dhe Financave",
+            ["Ministria e Financave", "Ministria e Ekonomisë dhe Inovacionit"],
             ProjectSectors.Governance,
             FixedDate(2026, 4, 28),
             FixedDate(2026, 12, 31),
@@ -1457,7 +1458,7 @@ public sealed class InnovationDashboardStore
             "ROAD-ZERO-2026",
             "Reduktimi drejt 0 i fataliteteve në rrugë",
             "Reduktimi i fataliteteve rrugore dhe aksidenteve nëpërmjet aplikimit të sistemeve inteligjente.",
-            "Ministria e Infrastrukturës dhe Energjisë",
+            ["Ministria e Infrastrukturës dhe Energjisë"],
             ProjectSectors.Infrastructure,
             FixedDate(2026, 4, 23),
             FixedDate(2026, 12, 31),
@@ -1467,7 +1468,7 @@ public sealed class InnovationDashboardStore
             "CULTURE-REVENUE-2026",
             "Rritja e të ardhurave në objektet kulturore",
             "Rritja e të ardhurave në objektet kulturore.",
-            "Ministria e Kulturës, Arsimit dhe Sportit",
+            ["Ministria e Kulturës dhe Turizmit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -1477,7 +1478,7 @@ public sealed class InnovationDashboardStore
             "SCHOOL-FOOD-2026",
             "Furnizimi me ushqim në shkolla",
             "Furnizimi me ushqim në shkolla.",
-            "Ministria e Kulturës, Arsimit dhe Sportit",
+            ["Ministria e Kulturës dhe Turizmit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -1487,7 +1488,7 @@ public sealed class InnovationDashboardStore
             "SPORT-COMMUNITY-2026",
             "Kthimi i ambienteve sportive në qendra komunitare",
             "Kthimi i ambienteve sportive në qendra komunitare.",
-            "Ministria e Kulturës, Arsimit dhe Sportit",
+            ["Ministria e Kulturës dhe Turizmit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -1497,7 +1498,7 @@ public sealed class InnovationDashboardStore
             "DIGITAL-TOOLS-2026",
             "Rritja e përdorimit të mjeteve digjitale me 80% në turizëm, bujqësi dhe mjedis",
             "Rritja e përdorimit të mjeteve digjitale me 80% në turizëm, bujqësi dhe mjedis.",
-            "Ministria e Turizmit, Bujqësisë dhe Mjedisit",
+            ["Ministria e Kulturës dhe Turizmit", "Ministria e Bujqësisë dhe Zhvillimit Rural", "Ministria e Mjedisit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -1509,7 +1510,7 @@ public sealed class InnovationDashboardStore
         string code,
         string name,
         string description,
-        string ministry,
+        IReadOnlyList<string> ministries,
         string sector,
         DateTimeOffset startDate,
         DateTimeOffset endDate,
@@ -1530,7 +1531,7 @@ public sealed class InnovationDashboardStore
             code,
             name,
             description,
-            [ministry],
+            ministries.ToList(),
             null,
             ProjectStatuses.Active,
             ProjectPriorities.High,
