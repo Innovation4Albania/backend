@@ -33,10 +33,12 @@ public sealed class InnovationDashboardStore
     private readonly List<WeeklyUpdateState> _updates;
     private readonly List<ProjectChangeProposalState> _changeProposals;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<InnovationDashboardStore> _logger;
 
-    public InnovationDashboardStore(IHttpClientFactory httpClientFactory)
+    public InnovationDashboardStore(IHttpClientFactory httpClientFactory, ILogger<InnovationDashboardStore> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
         _projects = BuildProjects();
         _portfolioObjectives = BuildPortfolioObjectives();
         _updates = BuildUpdates();
@@ -864,7 +866,7 @@ public sealed class InnovationDashboardStore
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"GEMINI CHAT ERROR: {ex.Message}");
+            _logger.LogError(ex, "Gemini chat request failed");
             return BuildAiChatFallback(context, request);
         }
     }
@@ -1207,7 +1209,7 @@ public sealed class InnovationDashboardStore
                     .GetProperty("text")
                     .GetString() ?? "{}";
 
-                Console.WriteLine($"GEMINI RAW: {rawText}");
+                _logger.LogDebug("Gemini raw insights response: {RawText}", rawText);
 
                 // Pastro markdown nëse Gemini kthen ```json ... ```
                 var cleanJson = rawText
@@ -1215,7 +1217,7 @@ public sealed class InnovationDashboardStore
                 .Replace("```", "")
                 .Trim();
 
-                Console.WriteLine($"CLEAN JSON: {cleanJson}");
+                _logger.LogDebug("Gemini cleaned insights JSON: {CleanJson}", cleanJson);
                 var parsed = JsonDocument.Parse(cleanJson).RootElement;
 
                 var summary = parsed.TryGetProperty("summary", out var s) ? s.GetString() ?? "" : "";
@@ -1257,7 +1259,7 @@ public sealed class InnovationDashboardStore
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"GEMINI INSIGHTS ERROR: {ex.Message}");
+            _logger.LogError(ex, "Gemini insights request failed for project {ProjectId}", project.Id);
         }
 
         // Fallback nese Gemini deshton
