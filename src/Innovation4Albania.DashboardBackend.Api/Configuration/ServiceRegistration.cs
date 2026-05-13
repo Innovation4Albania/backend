@@ -9,6 +9,7 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddHttpClient();
         services.AddSingleton<InnovationDashboardStore>();
         services.AddSingleton<IInnovationDashboardRepository, InnovationDashboardRepository>();
 
@@ -25,3 +26,4 @@ public static class ServiceRegistration
         return services;
     }
 }
+
