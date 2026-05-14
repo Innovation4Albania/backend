@@ -29,6 +29,8 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
 
     public PortfolioOkrResponse GetPortfolioOkr(UserContext context) => store.GetPortfolioOkr(context);
     public bool TryCreatePortfolioObjective(UserContext context, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error) => store.TryCreatePortfolioObjective(context, request, out response, out error);
+    public bool TryUpdatePortfolioObjective(UserContext context, string id, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error) => store.TryUpdatePortfolioObjective(context, id, request, out response, out error);
+    public bool TryDeletePortfolioObjective(UserContext context, string id, out string? error) => store.TryDeletePortfolioObjective(context, id, out error);
     public IReadOnlyList<RiskDeviationResponse> GetRiskDeviations(UserContext context) => store.GetRiskDeviations(context);
     public IReadOnlyList<WeeklyUpdateResponse> GetWeeklyUpdates(UserContext context, string? projectId) => store.GetWeeklyUpdates(context, projectId);
     public bool TryCreateWeeklyUpdate(UserContext context, CreateWeeklyUpdateRequest request, out WeeklyUpdateResponse? response, out string? error) => store.TryCreateWeeklyUpdate(context, request, out response, out error);

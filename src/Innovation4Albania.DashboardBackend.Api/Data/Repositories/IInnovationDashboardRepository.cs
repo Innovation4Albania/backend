@@ -24,6 +24,8 @@ public interface IInnovationDashboardRepository
     IReadOnlyList<PerformanceBoardColumnResponse> GetPerformanceBoard(UserContext context);
     PortfolioOkrResponse GetPortfolioOkr(UserContext context);
     bool TryCreatePortfolioObjective(UserContext context, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error);
+    bool TryUpdatePortfolioObjective(UserContext context, string id, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error);
+    bool TryDeletePortfolioObjective(UserContext context, string id, out string? error);
     IReadOnlyList<RiskDeviationResponse> GetRiskDeviations(UserContext context);
     IReadOnlyList<WeeklyUpdateResponse> GetWeeklyUpdates(UserContext context, string? projectId);
     bool TryCreateWeeklyUpdate(UserContext context, CreateWeeklyUpdateRequest request, out WeeklyUpdateResponse? response, out string? error);

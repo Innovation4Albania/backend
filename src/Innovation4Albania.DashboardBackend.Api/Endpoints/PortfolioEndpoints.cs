@@ -27,6 +27,30 @@ public static class PortfolioEndpoints
                 : Results.BadRequest(new ApiErrorResponse("portfolio_create_failed", error!));
         });
 
+        api.MapPut("/portfolio/okr/{id}", (string id, ClaimsPrincipal user, CreatePortfolioObjectiveRequest request, IUserContextService contextService, IPortfolioService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            return service.TryUpdatePortfolioObjective(context, id, request, out var objective, out var error)
+                ? Results.Ok(objective)
+                : Results.BadRequest(new ApiErrorResponse("portfolio_update_failed", error!));
+        });
+
+        api.MapDelete("/portfolio/okr/{id}", (string id, ClaimsPrincipal user, IUserContextService contextService, IPortfolioService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            return service.TryDeletePortfolioObjective(context, id, out var error)
+                ? Results.NoContent()
+                : Results.BadRequest(new ApiErrorResponse("portfolio_delete_failed", error!));
+        });
+
         return api;
     }
 }

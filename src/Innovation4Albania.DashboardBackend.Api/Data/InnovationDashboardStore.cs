@@ -620,9 +620,8 @@ public sealed class InnovationDashboardStore
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(request.Title) || request.KeyResults.Count == 0)
+        if (!TryValidatePortfolioObjectiveRequest(request, out error))
         {
-            error = "Objektivi dhe të paktën një KR janë të detyrueshme.";
             return false;
         }
 
@@ -631,6 +630,73 @@ public sealed class InnovationDashboardStore
         response = ToObjectiveResponse(state);
         error = null;
         PersistSnapshot();
+        return true;
+    }
+    public bool TryUpdatePortfolioObjective(UserContext context, string id, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error)
+    {
+        response = null;
+
+        if (!ApplicationRoles.CanManagePortfolio(context.Role))
+        {
+            error = "Vetëm Drejtori i Inovacionit mund të editojë OKR të portofolit.";
+            return false;
+        }
+
+        if (!TryValidatePortfolioObjectiveRequest(request, out error))
+        {
+            return false;
+        }
+
+        var index = _portfolioObjectives.FindIndex(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (index < 0)
+        {
+            error = "Objektivi nuk u gjet.";
+            return false;
+        }
+
+        var state = ToObjectiveState(_portfolioObjectives[index].Id, new ObjectiveInput(request.Title, request.Owner, request.KeyResults));
+        _portfolioObjectives[index] = state;
+        response = ToObjectiveResponse(state);
+        error = null;
+        PersistSnapshot();
+        return true;
+    }
+
+    public bool TryDeletePortfolioObjective(UserContext context, string id, out string? error)
+    {
+        if (!ApplicationRoles.CanManagePortfolio(context.Role))
+        {
+            error = "Vetëm Drejtori i Inovacionit mund të fshijë OKR të portofolit.";
+            return false;
+        }
+
+        var removed = _portfolioObjectives.RemoveAll(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
+        if (removed == 0)
+        {
+            error = "Objektivi nuk u gjet.";
+            return false;
+        }
+
+        error = null;
+        PersistSnapshot();
+        return true;
+    }
+
+    private static bool TryValidatePortfolioObjectiveRequest(CreatePortfolioObjectiveRequest request, out string? error)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title) || request.KeyResults.Count == 0)
+        {
+            error = "Objektivi dhe të paktën një KR janë të detyrueshme.";
+            return false;
+        }
+
+        if (request.KeyResults.All(kr => string.IsNullOrWhiteSpace(kr.Title)))
+        {
+            error = "Të paktën një KR duhet të ketë titull.";
+            return false;
+        }
+
+        error = null;
         return true;
     }
 
