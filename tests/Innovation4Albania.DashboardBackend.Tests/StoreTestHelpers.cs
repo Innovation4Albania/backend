@@ -8,7 +8,7 @@ namespace Innovation4Albania.DashboardBackend.Tests;
 internal static class StoreTestHelpers
 {
     public static InnovationDashboardStore CreateStore() =>
-        new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>());
+        new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>(), new TestDashboardStorePersistence());
 
     public static UserContext DirectorContext() => UserContext.From(ApplicationRoles.DrejtorAgjencie, null);
 
@@ -53,5 +53,14 @@ internal static class StoreTestHelpers
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
         public bool IsEnabled(LogLevel logLevel) => false;
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
+    }
+
+    private sealed class TestDashboardStorePersistence : IDashboardStorePersistence
+    {
+        public bool IsConfigured => false;
+
+        public Task<string?> LoadSnapshotAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+
+        public Task SaveSnapshotAsync(string payload, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 }

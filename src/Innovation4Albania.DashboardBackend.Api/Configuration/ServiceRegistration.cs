@@ -10,6 +10,7 @@ public static class ServiceRegistration
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddHttpClient();
+        services.AddSingleton<IDashboardStorePersistence, PostgresDashboardStorePersistence>();
         services.AddSingleton<InnovationDashboardStore>();
         services.AddSingleton<IInnovationDashboardRepository, InnovationDashboardRepository>();
 

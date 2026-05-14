@@ -9,6 +9,7 @@ namespace Innovation4Albania.DashboardBackend.Api.Data;
 public sealed class InnovationDashboardStore
 {
     private static readonly CultureInfo AlbanianCulture = CultureInfo.GetCultureInfo("sq-AL");
+    private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly IReadOnlyList<string> _ministries =
     [
@@ -34,15 +35,133 @@ public sealed class InnovationDashboardStore
     private readonly List<ProjectChangeProposalState> _changeProposals;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<InnovationDashboardStore> _logger;
+    private readonly IDashboardStorePersistence _persistence;
 
-    public InnovationDashboardStore(IHttpClientFactory httpClientFactory, ILogger<InnovationDashboardStore> logger)
+    public InnovationDashboardStore(
+        IHttpClientFactory httpClientFactory,
+        ILogger<InnovationDashboardStore> logger,
+        IDashboardStorePersistence persistence)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _persistence = persistence;
         _projects = BuildProjects();
         _portfolioObjectives = BuildPortfolioObjectives();
         _updates = BuildUpdates();
         _changeProposals = [];
+        LoadPersistedSnapshot();
+    }
+
+    private void LoadPersistedSnapshot()
+    {
+        if (!_persistence.IsConfigured)
+        {
+            _logger.LogInformation("PostgreSQL persistence is not configured. Using in-memory dashboard seed data.");
+            return;
+        }
+
+        try
+        {
+            var payload = _persistence.LoadSnapshotAsync().GetAwaiter().GetResult();
+            if (string.IsNullOrWhiteSpace(payload))
+            {
+                PersistSnapshot();
+                return;
+            }
+
+            var snapshot = JsonSerializer.Deserialize<DashboardStoreSnapshot>(payload, SnapshotJsonOptions);
+            if (snapshot is not null)
+            {
+                RestoreSnapshot(snapshot);
+                _logger.LogInformation("Dashboard state loaded from PostgreSQL.");
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Dashboard state could not be loaded from PostgreSQL. Falling back to seed data.");
+        }
+    }
+
+    private void PersistSnapshot()
+    {
+        if (!_persistence.IsConfigured)
+        {
+            return;
+        }
+
+        try
+        {
+            var payload = JsonSerializer.Serialize(BuildSnapshot(), SnapshotJsonOptions);
+            _persistence.SaveSnapshotAsync(payload).GetAwaiter().GetResult();
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Dashboard state could not be saved to PostgreSQL.");
+        }
+    }
+
+    private DashboardStoreSnapshot BuildSnapshot() =>
+        new(
+            _projects.Select(ToResponse).ToList(),
+            _portfolioObjectives.Select(ToObjectiveResponse).ToList(),
+            _updates.Select(update => new WeeklyUpdateSnapshot(
+                update.Id,
+                update.ProjectId,
+                update.SubmittedBy,
+                update.SubmittedRole,
+                update.SubmittedAt,
+                update.Progress,
+                update.Status,
+                update.Okr,
+                update.Risk,
+                update.Blockers,
+                update.Comments)).ToList(),
+            _changeProposals.Select(proposal => new ProjectChangeProposalSnapshot(
+                proposal.Id,
+                proposal.ProjectId,
+                proposal.SubmittedBy,
+                proposal.SubmittedRole,
+                proposal.SubmittedAt,
+                proposal.Type,
+                proposal.CurrentValue,
+                proposal.ProposedValue,
+                proposal.Reason,
+                proposal.Status)).ToList());
+
+    private void RestoreSnapshot(DashboardStoreSnapshot snapshot)
+    {
+        _projects.Clear();
+        _projects.AddRange(snapshot.Projects.Select(ToProjectState));
+
+        _portfolioObjectives.Clear();
+        _portfolioObjectives.AddRange(snapshot.PortfolioObjectives.Select(ToObjectiveState));
+
+        _updates.Clear();
+        _updates.AddRange(snapshot.Updates.Select(update => new WeeklyUpdateState(
+            update.Id,
+            update.ProjectId,
+            update.SubmittedBy,
+            update.SubmittedRole,
+            update.SubmittedAt,
+            update.Progress,
+            update.Status,
+            update.Okr,
+            update.Risk,
+            update.Blockers,
+            update.Comments)));
+
+        _changeProposals.Clear();
+        _changeProposals.AddRange(snapshot.ChangeProposals.Select(proposal => new ProjectChangeProposalState(
+            proposal.Id,
+            proposal.ProjectId,
+            proposal.SubmittedBy,
+            proposal.SubmittedRole,
+            proposal.SubmittedAt,
+            proposal.Type,
+            proposal.CurrentValue,
+            proposal.ProposedValue,
+            proposal.Reason,
+            proposal.Status)));
     }
 
     public IReadOnlyList<string> GetMinistries() => _ministries;
@@ -291,6 +410,7 @@ public sealed class InnovationDashboardStore
         _projects.Add(project);
         response = ToResponse(project);
         error = null;
+        PersistSnapshot();
         return true;
     }
 
@@ -323,6 +443,7 @@ public sealed class InnovationDashboardStore
 
         response = ToResponse(project);
         error = null;
+        PersistSnapshot();
         return true;
     }
 
@@ -348,6 +469,7 @@ public sealed class InnovationDashboardStore
         _projects.Remove(project);
 
         error = null;
+        PersistSnapshot();
         return true;
     }
 
@@ -511,6 +633,7 @@ public sealed class InnovationDashboardStore
         _portfolioObjectives.Add(state);
         response = ToObjectiveResponse(state);
         error = null;
+        PersistSnapshot();
         return true;
     }
 
@@ -614,6 +737,7 @@ public sealed class InnovationDashboardStore
             update.Blockers,
             update.Comments);
         error = null;
+        PersistSnapshot();
         return true;
     }
 
@@ -674,6 +798,7 @@ public sealed class InnovationDashboardStore
         _changeProposals.Add(proposal);
         response = ToChangeProposalResponse(proposal);
         error = null;
+        PersistSnapshot();
         return true;
     }
 
@@ -731,6 +856,7 @@ public sealed class InnovationDashboardStore
 
         response = ToChangeProposalResponse(proposal);
         error = null;
+        PersistSnapshot();
         return true;
     }
 
@@ -1084,6 +1210,53 @@ public sealed class InnovationDashboardStore
             input.Title.Trim(),
             string.IsNullOrWhiteSpace(input.Owner) ? "Drejtoria e Inovacionit" : input.Owner.Trim(),
             input.KeyResults.Select((kr, index) => new KeyResultState($"{id}-kr-{index + 1}", kr.Title.Trim(), kr.Progress, kr.Target, kr.Unit.Trim())).ToList());
+
+    private static ObjectiveState ToObjectiveState(ObjectiveResponse response) =>
+        new(
+            response.Id,
+            response.Title,
+            response.Owner,
+            response.KeyResults.Select(kr => new KeyResultState(kr.Id, kr.Title, kr.Progress, kr.Target, kr.Unit)).ToList());
+
+    private static ProjectState ToProjectState(ProjectResponse response)
+    {
+        var teamMembers = response.TeamMembers.Select(ToTeamMemberState).ToList();
+        var team = response.Team.Count > 0
+            ? response.Team.ToList()
+            : teamMembers.Select(member => member.Name).ToList();
+
+        return new ProjectState(
+            response.Id,
+            response.Code,
+            response.Name,
+            response.Description,
+            response.Ministries.ToList(),
+            response.Agency,
+            response.Status,
+            response.Priority,
+            response.Sector,
+            response.TotalPhases,
+            response.CurrentPhase,
+            response.StartDate,
+            response.EndDate,
+            response.Progress,
+            response.Okr,
+            response.Risk,
+            team,
+            teamMembers,
+            response.Lead,
+            response.UpdateCadenceDays,
+            response.LastUpdated,
+            response.Objectives.Select(ToObjectiveState).ToList());
+    }
+
+    private static WorkgroupMemberState ToTeamMemberState(WorkgroupMemberResponse response) =>
+        new(
+            response.Id,
+            response.Name,
+            response.Role,
+            response.Unit,
+            response.AllocationPercent);
 
     private static List<WorkgroupMemberState> BuildTeamMembersForRequest(int projectNumber, CreateProjectRequest request)
     {
@@ -1700,6 +1873,37 @@ public sealed class InnovationDashboardStore
             new KeyResultState($"{prefix}-kr-2", "KR 2", 48, 100, "%")
         ])
     ];
+
+    private sealed record DashboardStoreSnapshot(
+        IReadOnlyList<ProjectResponse> Projects,
+        IReadOnlyList<ObjectiveResponse> PortfolioObjectives,
+        IReadOnlyList<WeeklyUpdateSnapshot> Updates,
+        IReadOnlyList<ProjectChangeProposalSnapshot> ChangeProposals);
+
+    private sealed record WeeklyUpdateSnapshot(
+        string Id,
+        string ProjectId,
+        string SubmittedBy,
+        string SubmittedRole,
+        DateTimeOffset SubmittedAt,
+        int Progress,
+        string Status,
+        ProjectOkr Okr,
+        string Risk,
+        string Blockers,
+        string Comments);
+
+    private sealed record ProjectChangeProposalSnapshot(
+        string Id,
+        string ProjectId,
+        string SubmittedBy,
+        string SubmittedRole,
+        DateTimeOffset SubmittedAt,
+        string Type,
+        string CurrentValue,
+        string ProposedValue,
+        string Reason,
+        string Status);
 
     private sealed class ProjectState(
         string id,
