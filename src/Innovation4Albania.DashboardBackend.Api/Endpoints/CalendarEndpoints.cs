@@ -21,6 +21,13 @@ public static class CalendarEndpoints
                 : errorResult!;
         });
 
+        api.MapGet("/calendar/past", (ClaimsPrincipal user, int? limit, IUserContextService contextService, ICalendarService service) =>
+        {
+            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
+                ? Results.Ok(service.GetPastEvents(context, Math.Clamp(limit.GetValueOrDefault(12), 1, 50)))
+                : errorResult!;
+        });
+
         return api;
     }
 }

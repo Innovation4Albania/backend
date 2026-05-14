@@ -987,6 +987,30 @@ public sealed class InnovationDashboardStore
             .ToList();
     }
 
+    public IReadOnlyList<UpcomingEventResponse> GetPastEvents(UserContext context, int limit)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return GetVisibleProjects(context)
+            .SelectMany(BuildProjectEvents)
+            .Where(item => DateOnly.FromDateTime(item.Date.LocalDateTime) < today)
+            .OrderByDescending(item => item.Date)
+            .Take(limit)
+            .Select(item =>
+            {
+                var project = _projects.First(projectState => projectState.Id == item.ProjectId);
+                return new UpcomingEventResponse(
+                    item.Id,
+                    item.ProjectId,
+                    item.Date,
+                    item.Type,
+                    EventTypes.ToLabel(item.Type),
+                    item.Title,
+                    project.Code,
+                    project.Name);
+            })
+            .ToList();
+    }
+
     public async Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request, string apiKey)
     {
         if (string.IsNullOrWhiteSpace(apiKey))

@@ -8,4 +8,5 @@ public sealed class CalendarService(IInnovationDashboardRepository repository) :
 {
     public CalendarMonthResponse GetCalendarMonth(UserContext context, DateOnly month) => repository.GetCalendarMonth(context, month);
     public IReadOnlyList<UpcomingEventResponse> GetUpcomingEvents(UserContext context, int limit) => repository.GetUpcomingEvents(context, limit);
+    public IReadOnlyList<UpcomingEventResponse> GetPastEvents(UserContext context, int limit) => repository.GetPastEvents(context, limit);
 }

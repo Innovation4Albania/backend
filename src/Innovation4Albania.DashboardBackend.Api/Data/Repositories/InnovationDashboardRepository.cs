@@ -39,6 +39,7 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
     public bool TryResolveChangeProposal(UserContext context, string id, string action, out ProjectChangeProposalResponse? response, out string? error) => store.TryResolveChangeProposal(context, id, action, out response, out error);
     public CalendarMonthResponse GetCalendarMonth(UserContext context, DateOnly month) => store.GetCalendarMonth(context, month);
     public IReadOnlyList<UpcomingEventResponse> GetUpcomingEvents(UserContext context, int limit) => store.GetUpcomingEvents(context, limit);
+    public IReadOnlyList<UpcomingEventResponse> GetPastEvents(UserContext context, int limit) => store.GetPastEvents(context, limit);
     public Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request, string apiKey)
         => store.GetAiChatReply(context, request, apiKey);
 }

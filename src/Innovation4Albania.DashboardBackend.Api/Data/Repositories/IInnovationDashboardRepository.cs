@@ -34,5 +34,6 @@ public interface IInnovationDashboardRepository
     bool TryResolveChangeProposal(UserContext context, string id, string action, out ProjectChangeProposalResponse? response, out string? error);
     CalendarMonthResponse GetCalendarMonth(UserContext context, DateOnly month);
     IReadOnlyList<UpcomingEventResponse> GetUpcomingEvents(UserContext context, int limit);
+    IReadOnlyList<UpcomingEventResponse> GetPastEvents(UserContext context, int limit);
     Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request, string apiKey);
 }

@@ -6,4 +6,5 @@ public interface ICalendarService
 {
     CalendarMonthResponse GetCalendarMonth(UserContext context, DateOnly month);
     IReadOnlyList<UpcomingEventResponse> GetUpcomingEvents(UserContext context, int limit);
+    IReadOnlyList<UpcomingEventResponse> GetPastEvents(UserContext context, int limit);
 }
