@@ -271,7 +271,6 @@ public sealed record CreateProjectRequest(
     DateTimeOffset StartDate,
     DateTimeOffset EndDate,
     int Progress,
-    ProjectOkr Okr,
     string Risk,
     IReadOnlyList<string> Team,
     IReadOnlyList<WorkgroupMemberInput> TeamMembers,
@@ -288,7 +287,6 @@ public sealed record CreateWeeklyUpdateRequest(
     string ProjectId,
     int Progress,
     string Status,
-    ProjectOkr Okr,
     string Risk,
     string Blockers,
     string Comments);

@@ -35,7 +35,6 @@ internal static class StoreTestHelpers
             startDate ?? DateTimeOffset.UtcNow.AddDays(-10),
             endDate ?? DateTimeOffset.UtcNow.AddDays(20),
             35,
-            new ProjectOkr(70, 75, 80, 65, 60),
             risk,
             ["Test Lead"],
             [new WorkgroupMemberInput("Test Lead", WorkgroupRoles.ProjectLead, "Njesi test", 80)],

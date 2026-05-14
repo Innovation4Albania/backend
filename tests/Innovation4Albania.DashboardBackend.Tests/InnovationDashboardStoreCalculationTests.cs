@@ -46,7 +46,7 @@ public sealed class InnovationDashboardStoreCalculationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var project = GetProjectState(store, "p1");
-        var response = InvokeToResponse(project);
+        var response = InvokeToResponse(store, project);
 
         var actualScore = InvokeCalculateRiskScore(project, response);
         var expectedScore = CalculateExpectedRiskScore(project, response);
@@ -72,11 +72,11 @@ public sealed class InnovationDashboardStoreCalculationTests
             string.Equals(GetProperty<string>(project, "Id"), projectId, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static ProjectResponse InvokeToResponse(object project)
+    private static ProjectResponse InvokeToResponse(InnovationDashboardStore store, object project)
     {
-        var method = typeof(InnovationDashboardStore).GetMethod("ToResponse", BindingFlags.NonPublic | BindingFlags.Static)
+        var method = typeof(InnovationDashboardStore).GetMethod("ToResponse", BindingFlags.NonPublic | BindingFlags.Instance)
             ?? throw new MissingMethodException(nameof(InnovationDashboardStore), "ToResponse");
-        return (ProjectResponse)method.Invoke(null, [project])!;
+        return (ProjectResponse)method.Invoke(store, [project])!;
     }
 
     private static int InvokeCalculateRiskScore(object project, ProjectResponse response)

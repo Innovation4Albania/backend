@@ -102,7 +102,7 @@ public sealed class InnovationDashboardStore
 
     private DashboardStoreSnapshot BuildSnapshot() =>
         new(
-            _projects.Select(ToResponse).ToList(),
+            _projects.Select(ToProjectSnapshot).ToList(),
             _portfolioObjectives.Select(ToObjectiveResponse).ToList(),
             _updates.Select(update => new WeeklyUpdateSnapshot(
                 update.Id,
@@ -112,7 +112,6 @@ public sealed class InnovationDashboardStore
                 update.SubmittedAt,
                 update.Progress,
                 update.Status,
-                update.Okr,
                 update.Risk,
                 update.Blockers,
                 update.Comments)).ToList(),
@@ -145,7 +144,6 @@ public sealed class InnovationDashboardStore
             update.SubmittedAt,
             update.Progress,
             update.Status,
-            update.Okr,
             update.Risk,
             update.Blockers,
             update.Comments)));
@@ -307,8 +305,8 @@ public sealed class InnovationDashboardStore
 
     public IReadOnlyList<PerformanceScoreItem> GetPerformanceScores(UserContext context) =>
         GetVisibleProjects(context)
-            .OrderByDescending(project => project.OkrAverage)
-            .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, project.OkrAverage, project.Progress, project.Risk))
+            .OrderByDescending(GetOkrAverage)
+            .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project), project.Progress, project.Risk))
             .ToList();
 
     public IReadOnlyList<TrendPointResponse> GetTrend(int months)
@@ -398,7 +396,7 @@ public sealed class InnovationDashboardStore
             request.StartDate,
             request.EndDate,
             Math.Clamp(request.Progress, 0, 100),
-            request.Okr,
+            NeutralOkr(),
             request.Risk,
             teamMembers.Select(member => member.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
             teamMembers,
@@ -532,7 +530,6 @@ public sealed class InnovationDashboardStore
         project.StartDate = request.StartDate;
         project.EndDate = request.EndDate;
         project.Progress = Math.Clamp(request.Progress, 0, 100);
-        project.Okr = request.Okr;
         project.Risk = request.Risk;
         project.Lead = request.Lead.Trim();
         project.UpdateCadenceDays = 14;
@@ -574,7 +571,7 @@ public sealed class InnovationDashboardStore
     public IReadOnlyList<PerformanceBoardColumnResponse> GetPerformanceBoard(UserContext context)
     {
         var scored = GetVisibleProjects(context)
-            .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, project.OkrAverage, project.Progress, project.Risk))
+            .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project), project.Progress, project.Risk))
             .ToList();
 
         return
@@ -600,8 +597,8 @@ public sealed class InnovationDashboardStore
                 "Statusi: Përfunduara",
                 GetVisibleProjects(context)
                     .Where(project => project.Status == ProjectStatuses.Completed)
-                    .OrderByDescending(project => project.OkrAverage)
-                    .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, project.OkrAverage, project.Progress, project.Risk))
+                    .OrderByDescending(GetOkrAverage)
+                    .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project), project.Progress, project.Risk))
                     .ToList())
         ];
     }
@@ -676,7 +673,7 @@ public sealed class InnovationDashboardStore
                     update.SubmittedAt,
                     update.Progress,
                     ProjectStatuses.ToLabel(update.Status),
-                    CalculateOkrAverage(update.Okr),
+                    GetOkrAverage(project),
                     RiskLevels.ToLabel(update.Risk),
                     update.Blockers,
                     update.Comments);
@@ -709,7 +706,6 @@ public sealed class InnovationDashboardStore
             DateTimeOffset.UtcNow,
             request.Progress,
             request.Status,
-            request.Okr,
             request.Risk,
             request.Blockers.Trim(),
             request.Comments.Trim());
@@ -718,7 +714,6 @@ public sealed class InnovationDashboardStore
 
         project.Progress = request.Progress;
         project.Status = request.Status;
-        project.Okr = request.Okr;
         project.Risk = request.Risk;
         project.LastUpdated = update.SubmittedAt;
 
@@ -732,7 +727,7 @@ public sealed class InnovationDashboardStore
             update.SubmittedAt,
             update.Progress,
             ProjectStatuses.ToLabel(update.Status),
-            CalculateOkrAverage(update.Okr),
+            GetOkrAverage(project),
             RiskLevels.ToLabel(update.Risk),
             update.Blockers,
             update.Comments);
@@ -935,7 +930,7 @@ public sealed class InnovationDashboardStore
             var delayed = visible.Where(p => p.DelayDays > 0)
                                  .OrderByDescending(p => p.DelayDays)
                                  .Take(3).ToList();
-            var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(p => p.OkrAverage));
+            var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(GetOkrAverage));
             var highRisk = visible
                 .Where(p => p.Risk is RiskLevels.High or RiskLevels.Critical)
                 .Select(p => $"{p.Code} ({p.Name})")
@@ -1006,7 +1001,7 @@ public sealed class InnovationDashboardStore
             .OrderByDescending(project => project.DelayDays)
             .Take(3)
             .ToList();
-        var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(project => project.OkrAverage));
+        var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(GetOkrAverage));
         var highRisk = visible
             .Where(project => project.Risk is RiskLevels.High or RiskLevels.Critical)
             .OrderByDescending(project => project.DeviationPercent)
@@ -1128,8 +1123,112 @@ public sealed class InnovationDashboardStore
         _ => ministry
     };
 
+    private int GetOkrAverage(ProjectState project) => CalculateOkrAverage(CalculateOkr(project));
+
     private static int CalculateOkrAverage(ProjectOkr okr) =>
-        (int)Math.Round((okr.Deadlines + okr.Quality + okr.Impact + okr.Dynamics + okr.Capacity) / 5d);
+        ClampPercent((okr.Deadlines * 0.25)
+            + (okr.Quality * 0.25)
+            + (okr.Impact * 0.25)
+            + (okr.Dynamics * 0.15)
+            + (okr.Capacity * 0.10));
+
+    private ProjectOkr CalculateOkr(ProjectState project)
+    {
+        var projectUpdates = _updates
+            .Where(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(update => update.SubmittedAt)
+            .ToList();
+
+        var deadline = CalculateDeadlineOkr(project);
+        var quality = CalculateQualityOkr(projectUpdates);
+        var impact = CalculateImpactOkr(project);
+        var dynamics = CalculateDynamicsOkr(project, projectUpdates);
+        var capacity = project.TeamMembers.Count == 0
+            ? 50
+            : ClampPercent(project.TeamMembers.Average(member => member.AllocationPercent));
+
+        return new ProjectOkr(
+            ClampPercent(deadline),
+            ClampPercent(quality),
+            ClampPercent(impact),
+            ClampPercent(dynamics),
+            ClampPercent(capacity));
+    }
+
+    private static int CalculateDeadlineOkr(ProjectState project)
+    {
+        if (project.Status == ProjectStatuses.Completed && project.LastUpdated <= project.EndDate)
+        {
+            return 100;
+        }
+
+        if (DateTimeOffset.UtcNow > project.EndDate)
+        {
+            return 0;
+        }
+
+        return CalculateExpectedProgress(project.StartDate, project.EndDate);
+    }
+
+    private static int CalculateQualityOkr(IReadOnlyList<WeeklyUpdateState> updates)
+    {
+        if (updates.Count == 0)
+        {
+            return 50;
+        }
+
+        var updatesWithoutBlockers = updates.Count(update =>
+            string.IsNullOrWhiteSpace(update.Blockers) ||
+            string.Equals(update.Blockers.Trim(), "Asnjë", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(update.Blockers.Trim(), "Asnje", StringComparison.OrdinalIgnoreCase));
+
+        return ClampPercent(updatesWithoutBlockers * 100d / updates.Count);
+    }
+
+    private static int CalculateImpactOkr(ProjectState project)
+    {
+        var totalDays = Math.Max(1, (project.EndDate - project.StartDate).TotalDays);
+        var elapsedDays = (DateTimeOffset.UtcNow - project.StartDate).TotalDays;
+
+        if (elapsedDays <= 0)
+        {
+            return 50;
+        }
+
+        var expectedProgress = Math.Clamp((elapsedDays / totalDays) * 100d, 0, 100);
+        if (expectedProgress <= 0)
+        {
+            return 50;
+        }
+
+        return ClampPercent(Math.Min(100, project.Progress / expectedProgress * 100d));
+    }
+
+    private static int CalculateDynamicsOkr(ProjectState project, IReadOnlyList<WeeklyUpdateState> updates)
+    {
+        if (updates.Count == 0)
+        {
+            return 50;
+        }
+
+        var updatesOnTime = 0;
+        var previousDate = project.StartDate;
+        foreach (var update in updates)
+        {
+            if ((update.SubmittedAt - previousDate).TotalDays <= project.UpdateCadenceDays)
+            {
+                updatesOnTime++;
+            }
+
+            previousDate = update.SubmittedAt;
+        }
+
+        return ClampPercent(updatesOnTime * 100d / updates.Count);
+    }
+
+    private static ProjectOkr NeutralOkr() => new(50, 50, 50, 50, 50);
+
+    private static int ClampPercent(double value) => (int)Math.Round(Math.Clamp(value, 0, 100));
 
     private static int CalculateExpectedProgress(DateTimeOffset startDate, DateTimeOffset endDate)
     {
@@ -1154,13 +1253,14 @@ public sealed class InnovationDashboardStore
         return (DateTimeOffset.UtcNow - project.LastUpdated).TotalDays > project.UpdateCadenceDays;
     }
 
-    private static ProjectResponse ToResponse(ProjectState project)
+    private ProjectResponse ToResponse(ProjectState project)
     {
         var expectedProgress = CalculateExpectedProgress(project.StartDate, project.EndDate);
         var deviationPercent = expectedProgress - project.Progress;
         var daysRemaining = Math.Max(0, (int)Math.Ceiling((project.EndDate - DateTimeOffset.UtcNow).TotalDays));
         var delayDays = CalculateDelayDays(project);
-        var okrAverage = CalculateOkrAverage(project.Okr);
+        var okr = CalculateOkr(project);
+        var okrAverage = CalculateOkrAverage(okr);
         var totalCapacityPercent = project.TeamMembers.Sum(member => member.AllocationPercent);
 
         return new ProjectResponse(
@@ -1184,7 +1284,7 @@ public sealed class InnovationDashboardStore
             deviationPercent,
             daysRemaining,
             delayDays,
-            project.Okr,
+            okr,
             project.Risk,
             project.Team,
             project.TeamMembers.Select(ToTeamMemberResponse).ToList(),
@@ -1218,7 +1318,31 @@ public sealed class InnovationDashboardStore
             response.Owner,
             response.KeyResults.Select(kr => new KeyResultState(kr.Id, kr.Title, kr.Progress, kr.Target, kr.Unit)).ToList());
 
-    private static ProjectState ToProjectState(ProjectResponse response)
+    private static ProjectSnapshot ToProjectSnapshot(ProjectState project) =>
+        new(
+            project.Id,
+            project.Code,
+            project.Name,
+            project.Description,
+            project.Ministries.ToList(),
+            project.Agency,
+            project.Status,
+            project.Priority,
+            project.Sector,
+            project.TotalPhases,
+            project.CurrentPhase,
+            project.StartDate,
+            project.EndDate,
+            project.Progress,
+            project.Risk,
+            project.Team.ToList(),
+            project.TeamMembers.Select(ToTeamMemberResponse).ToList(),
+            project.Lead,
+            project.UpdateCadenceDays,
+            project.LastUpdated,
+            project.Objectives.Select(ToObjectiveResponse).ToList());
+
+    private static ProjectState ToProjectState(ProjectSnapshot response)
     {
         var teamMembers = response.TeamMembers.Select(ToTeamMemberState).ToList();
         var team = response.Team.Count > 0
@@ -1240,7 +1364,7 @@ public sealed class InnovationDashboardStore
             response.StartDate,
             response.EndDate,
             response.Progress,
-            response.Okr,
+            NeutralOkr(),
             response.Risk,
             team,
             teamMembers,
@@ -1361,20 +1485,20 @@ public sealed class InnovationDashboardStore
         var response = ToResponse(project);
         var weakest = new Dictionary<string, int>
         {
-            ["afatet"] = project.Okr.Deadlines,
-            ["cilësia"] = project.Okr.Quality,
-            ["impakti"] = project.Okr.Impact,
-            ["dinamika"] = project.Okr.Dynamics,
-            ["kapaciteti"] = project.Okr.Capacity,
+            ["afatet"] = response.Okr.Deadlines,
+            ["cilësia"] = response.Okr.Quality,
+            ["impakti"] = response.Okr.Impact,
+            ["dinamika"] = response.Okr.Dynamics,
+            ["kapaciteti"] = response.Okr.Capacity,
         }.OrderBy(item => item.Value).First();
 
         var strongest = new Dictionary<string, int>
         {
-            ["afatet"] = project.Okr.Deadlines,
-            ["cilësia"] = project.Okr.Quality,
-            ["impakti"] = project.Okr.Impact,
-            ["dinamika"] = project.Okr.Dynamics,
-            ["kapaciteti"] = project.Okr.Capacity,
+            ["afatet"] = response.Okr.Deadlines,
+            ["cilësia"] = response.Okr.Quality,
+            ["impakti"] = response.Okr.Impact,
+            ["dinamika"] = response.Okr.Dynamics,
+            ["kapaciteti"] = response.Okr.Capacity,
         }.OrderByDescending(item => item.Value).First();
 
         var jsonStructure = "{\"summary\":\"max 1 fjali\",\"riskExplanation\":\"max 1 fjali\",\"riskScore\":0-100,\"riskPrediction\":\"max 1 fjali\",\"positives\":[\"1 fjali\",\"1 fjali\"],\"concerns\":[\"1 fjali\"],\"recommendations\":[\"1 fjali\",\"1 fjali\"]}";
@@ -1395,11 +1519,11 @@ public sealed class InnovationDashboardStore
              $"- Devijimi: {response.DeviationPercent}%\n" +
              $"- Risku: {RiskLevels.ToLabel(project.Risk)}\n" +
              $"- OKR mesatar: {response.OkrAverage}%\n" +
-             $"- Afatet OKR: {project.Okr.Deadlines}%\n" +
-             $"- Cilësia OKR: {project.Okr.Quality}%\n" +
-             $"- Impakti OKR: {project.Okr.Impact}%\n" +
-             $"- Dinamika OKR: {project.Okr.Dynamics}%\n" +
-             $"- Kapaciteti OKR: {project.Okr.Capacity}%\n" +
+             $"- Afatet OKR: {response.Okr.Deadlines}%\n" +
+             $"- Cilësia OKR: {response.Okr.Quality}%\n" +
+             $"- Impakti OKR: {response.Okr.Impact}%\n" +
+             $"- Dinamika OKR: {response.Okr.Dynamics}%\n" +
+             $"- Kapaciteti OKR: {response.Okr.Capacity}%\n" +
              $"- Ditë të mbetura: {response.DaysRemaining}\n" +
              $"- Vonesa (ditë): {response.DelayDays}\n" +
              $"- Fusha më e dobët: {weakest.Key} ({weakest.Value}%)\n" +
@@ -1557,14 +1681,14 @@ public sealed class InnovationDashboardStore
             _ => "Modeli sugjeron ndërhyrje prioritare dhe eskalim drejtues për uljen e riskut."
         };
 
-    private static PortfolioMetricsResponse BuildPortfolioMetrics(IReadOnlyCollection<ProjectState> projects)
+    private PortfolioMetricsResponse BuildPortfolioMetrics(IReadOnlyCollection<ProjectState> projects)
     {
         if (projects.Count == 0)
         {
             return new PortfolioMetricsResponse(0, 0, 0, 0);
         }
 
-        var averageOkr = (int)Math.Round(projects.Average(project => CalculateOkrAverage(project.Okr)));
+        var averageOkr = (int)Math.Round(projects.Average(GetOkrAverage));
         var onTime = (int)Math.Round(projects.Count(project => CalculateExpectedProgress(project.StartDate, project.EndDate) - project.Progress <= 5) * 100d / projects.Count);
         var deviationAverage = (int)Math.Round(projects.Average(project => Math.Max(0, CalculateExpectedProgress(project.StartDate, project.EndDate) - project.Progress)));
         var attention = projects.Count(project => project.Risk is RiskLevels.High or RiskLevels.Critical || CalculateDelayDays(project) > 7);
@@ -1860,9 +1984,9 @@ public sealed class InnovationDashboardStore
 
     private List<WeeklyUpdateState> BuildUpdates() =>
     [
-        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, IsoOffset(-2), 70, ProjectStatuses.Active, new ProjectOkr(80, 75, 70, 78, 72), RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme."),
-        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, IsoOffset(-6), 33, ProjectStatuses.Active, new ProjectOkr(45, 70, 80, 52, 48), RiskLevels.High, "Ka vonesë në miratimin e dokumenteve përgatitore.", "Duhet ndjekje e përditshme me njësinë përkatëse."),
-        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, IsoOffset(-8), 41, ProjectStatuses.Blocked, new ProjectOkr(56, 60, 64, 54, 50), RiskLevels.High, "Bllokim në furnizim dhe mungesë aprovimesh.", "Kërkohet vendim drejtues për të zhbllokuar varësitë.")
+        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme."),
+        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, IsoOffset(-6), 33, ProjectStatuses.Active, RiskLevels.High, "Ka vonesë në miratimin e dokumenteve përgatitore.", "Duhet ndjekje e përditshme me njësinë përkatëse."),
+        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, IsoOffset(-8), 41, ProjectStatuses.Blocked, RiskLevels.High, "Bllokim në furnizim dhe mungesë aprovimesh.", "Kërkohet vendim drejtues për të zhbllokuar varësitë.")
     ];
 
     private static List<ObjectiveState> BuildSampleObjectives(string prefix, string title) =>
@@ -1875,10 +1999,33 @@ public sealed class InnovationDashboardStore
     ];
 
     private sealed record DashboardStoreSnapshot(
-        IReadOnlyList<ProjectResponse> Projects,
+        IReadOnlyList<ProjectSnapshot> Projects,
         IReadOnlyList<ObjectiveResponse> PortfolioObjectives,
         IReadOnlyList<WeeklyUpdateSnapshot> Updates,
         IReadOnlyList<ProjectChangeProposalSnapshot> ChangeProposals);
+
+    private sealed record ProjectSnapshot(
+        string Id,
+        string Code,
+        string Name,
+        string Description,
+        IReadOnlyList<string> Ministries,
+        string? Agency,
+        string Status,
+        string Priority,
+        string Sector,
+        int TotalPhases,
+        int CurrentPhase,
+        DateTimeOffset StartDate,
+        DateTimeOffset EndDate,
+        int Progress,
+        string Risk,
+        IReadOnlyList<string> Team,
+        IReadOnlyList<WorkgroupMemberResponse> TeamMembers,
+        string Lead,
+        int UpdateCadenceDays,
+        DateTimeOffset LastUpdated,
+        IReadOnlyList<ObjectiveResponse> Objectives);
 
     private sealed record WeeklyUpdateSnapshot(
         string Id,
@@ -1888,7 +2035,6 @@ public sealed class InnovationDashboardStore
         DateTimeOffset SubmittedAt,
         int Progress,
         string Status,
-        ProjectOkr Okr,
         string Risk,
         string Blockers,
         string Comments);
@@ -1978,7 +2124,6 @@ public sealed class InnovationDashboardStore
         DateTimeOffset SubmittedAt,
         int Progress,
         string Status,
-        ProjectOkr Okr,
         string Risk,
         string Blockers,
         string Comments);
