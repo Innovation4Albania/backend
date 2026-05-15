@@ -114,7 +114,8 @@ public sealed class InnovationDashboardStore
                 update.Status,
                 update.Risk,
                 update.Blockers,
-                update.Comments)).ToList(),
+                update.Comments,
+                update.ExpertName)).ToList(),
             _changeProposals.Select(proposal => new ProjectChangeProposalSnapshot(
                 proposal.Id,
                 proposal.ProjectId,
@@ -139,8 +140,9 @@ public sealed class InnovationDashboardStore
         _updates.AddRange(snapshot.Updates.Select(update => new WeeklyUpdateState(
             update.Id,
             update.ProjectId,
-            update.SubmittedBy,
+            ApplicationRoles.ToDisplayLabel(update.SubmittedRole),
             update.SubmittedRole,
+            string.IsNullOrWhiteSpace(update.ExpertName) ? update.SubmittedBy : update.ExpertName,
             update.SubmittedAt,
             update.Progress,
             update.Status,
@@ -736,6 +738,7 @@ public sealed class InnovationDashboardStore
                     project.Name,
                     update.SubmittedBy,
                     ApplicationRoles.ToDisplayLabel(update.SubmittedRole),
+                    update.ExpertName,
                     update.SubmittedAt,
                     update.Progress,
                     ProjectStatuses.ToLabel(update.Status),
@@ -771,8 +774,9 @@ public sealed class InnovationDashboardStore
         var update = new WeeklyUpdateState(
             $"upd-{_updates.Count + 1}",
             request.ProjectId,
-            expertName,
+            ApplicationRoles.ToDisplayLabel(context.Role),
             context.Role,
+            expertName,
             DateTimeOffset.UtcNow,
             request.Progress,
             request.Status,
@@ -794,6 +798,7 @@ public sealed class InnovationDashboardStore
             project.Name,
             update.SubmittedBy,
             ApplicationRoles.ToDisplayLabel(update.SubmittedRole),
+            update.ExpertName,
             update.SubmittedAt,
             update.Progress,
             ProjectStatuses.ToLabel(update.Status),
@@ -2066,9 +2071,9 @@ public sealed class InnovationDashboardStore
 
     private List<WeeklyUpdateState> BuildUpdates() =>
     [
-        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme."),
-        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, IsoOffset(-6), 33, ProjectStatuses.Active, RiskLevels.High, "Ka vonesë në miratimin e dokumenteve përgatitore.", "Duhet ndjekje e përditshme me njësinë përkatëse."),
-        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, IsoOffset(-8), 41, ProjectStatuses.Blocked, RiskLevels.High, "Bllokim në furnizim dhe mungesë aprovimesh.", "Kërkohet vendim drejtues për të zhbllokuar varësitë.")
+        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, "Drejtori i Inovacionit", IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme."),
+        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-6), 33, ProjectStatuses.Active, RiskLevels.High, "Ka vonesë në miratimin e dokumenteve përgatitore.", "Duhet ndjekje e përditshme me njësinë përkatëse."),
+        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-8), 41, ProjectStatuses.Blocked, RiskLevels.High, "Bllokim në furnizim dhe mungesë aprovimesh.", "Kërkohet vendim drejtues për të zhbllokuar varësitë.")
     ];
 
     private static List<ObjectiveState> BuildSampleObjectives(string prefix, string title) =>
@@ -2119,7 +2124,8 @@ public sealed class InnovationDashboardStore
         string Status,
         string Risk,
         string Blockers,
-        string Comments);
+        string Comments,
+        string? ExpertName = null);
 
     private sealed record ProjectChangeProposalSnapshot(
         string Id,
@@ -2203,6 +2209,7 @@ public sealed class InnovationDashboardStore
         string ProjectId,
         string SubmittedBy,
         string SubmittedRole,
+        string ExpertName,
         DateTimeOffset SubmittedAt,
         int Progress,
         string Status,

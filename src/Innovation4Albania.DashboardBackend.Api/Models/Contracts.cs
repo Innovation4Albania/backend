@@ -206,6 +206,7 @@ public sealed record WeeklyUpdateResponse(
     string ProjectName,
     string SubmittedBy,
     string SubmittedRole,
+    string ExpertName,
     DateTimeOffset SubmittedAt,
     int Progress,
     string Status,
