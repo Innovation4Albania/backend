@@ -75,6 +75,22 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.True(persistence.SaveCompleted);
     }
 
+    [Fact]
+    public async Task TryCreateProjectAsync_UsesNextHighestProjectIdAfterDelete()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+
+        var deleted = await store.TryDeleteProjectAsync(context, "p3");
+        var created = await store.TryCreateProjectAsync(context, StoreTestHelpers.ValidProjectRequest() with { Code = "AFTER-DELETE-001" });
+        var projectIds = store.GetProjects(context, null, null).Select(project => project.Id).ToList();
+
+        Assert.True(deleted.IsSuccess);
+        Assert.True(created.IsSuccess);
+        Assert.Equal("p8", created.Response!.Id);
+        Assert.Equal(projectIds.Count, projectIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
     private sealed class BlockingPersistence : IDashboardStorePersistence
     {
         public TaskCompletionSource SaveStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);

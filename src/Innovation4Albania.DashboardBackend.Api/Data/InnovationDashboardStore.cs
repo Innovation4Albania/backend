@@ -416,7 +416,7 @@ public sealed class InnovationDashboardStore
             return (false, null, "Ekziston tashme nje projekt me kete kod.");
         }
 
-        var projectNumber = _projects.Count + 1;
+        var projectNumber = GetNextProjectNumber();
         var now = DateTimeOffset.UtcNow;
         var teamMembers = BuildTeamMembersForRequest(projectNumber, request);
         var project = new ProjectState(
@@ -594,6 +594,10 @@ public sealed class InnovationDashboardStore
         var digits = new string(projectId.Where(char.IsDigit).ToArray());
         return int.TryParse(digits, out var number) && number > 0 ? number : 1;
     }
+
+    private int GetNextProjectNumber() =>
+        _projects.Count == 0 ? 1 : _projects.Max(project => ParseProjectNumber(project.Id)) + 1;
+
     public IReadOnlyList<ProjectEventResponse> GetEventsForProject(string projectId, UserContext context)
     {
         var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == projectId);
