@@ -16,16 +16,17 @@ public static class UpdateEndpoints
                 : errorResult!;
         });
 
-        api.MapPost("/updates", (ClaimsPrincipal user, CreateWeeklyUpdateRequest request, IUserContextService contextService, IUpdateService service) =>
+        api.MapPost("/updates", async (ClaimsPrincipal user, CreateWeeklyUpdateRequest request, IUserContextService contextService, IUpdateService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
 
-            return service.TryCreateWeeklyUpdate(context, request, out var update, out var error)
-                ? Results.Ok(update)
-                : Results.BadRequest(new ApiErrorResponse("update_create_failed", error!));
+            var result = await service.TryCreateWeeklyUpdateAsync(context, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("update_create_failed", result.Error!));
         });
 
         api.MapGet("/change-proposals", (ClaimsPrincipal user, string? projectId, IUserContextService contextService, IUpdateService service) =>
@@ -35,19 +36,20 @@ public static class UpdateEndpoints
                 : errorResult!;
         });
 
-        api.MapPost("/change-proposals", (ClaimsPrincipal user, CreateProjectChangeProposalRequest request, IUserContextService contextService, IUpdateService service) =>
+        api.MapPost("/change-proposals", async (ClaimsPrincipal user, CreateProjectChangeProposalRequest request, IUserContextService contextService, IUpdateService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
 
-            return service.TryCreateChangeProposal(context, request, out var proposal, out var error)
-                ? Results.Ok(proposal)
-                : Results.BadRequest(new ApiErrorResponse("change_proposal_failed", error!));
+            var result = await service.TryCreateChangeProposalAsync(context, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("change_proposal_failed", result.Error!));
         });
 
-        api.MapPatch("/change-proposals/{id}", (string id, ClaimsPrincipal user, ResolveChangeProposalRequest request, IUserContextService contextService, IUpdateService service) =>
+        api.MapPatch("/change-proposals/{id}", async (string id, ClaimsPrincipal user, ResolveChangeProposalRequest request, IUserContextService contextService, IUpdateService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
@@ -59,9 +61,10 @@ public static class UpdateEndpoints
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             }
 
-            return service.TryResolveChangeProposal(context, id, request.Action, out var proposal, out var error)
-                ? Results.Ok(proposal)
-                : Results.BadRequest(new ApiErrorResponse("change_proposal_resolution_failed", error!));
+            var result = await service.TryResolveChangeProposalAsync(context, id, request.Action);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("change_proposal_resolution_failed", result.Error!));
         });
 
         return api;

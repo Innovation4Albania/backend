@@ -7,8 +7,8 @@ namespace Innovation4Albania.DashboardBackend.Api.Services;
 public sealed class UpdateService(IInnovationDashboardRepository repository) : IUpdateService
 {
     public IReadOnlyList<WeeklyUpdateResponse> GetWeeklyUpdates(UserContext context, string? projectId) => repository.GetWeeklyUpdates(context, projectId);
-    public bool TryCreateWeeklyUpdate(UserContext context, CreateWeeklyUpdateRequest request, out WeeklyUpdateResponse? response, out string? error) => repository.TryCreateWeeklyUpdate(context, request, out response, out error);
+    public Task<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)> TryCreateWeeklyUpdateAsync(UserContext context, CreateWeeklyUpdateRequest request) => repository.TryCreateWeeklyUpdateAsync(context, request);
     public IReadOnlyList<ProjectChangeProposalResponse> GetChangeProposals(UserContext context, string? projectId) => repository.GetChangeProposals(context, projectId);
-    public bool TryCreateChangeProposal(UserContext context, CreateProjectChangeProposalRequest request, out ProjectChangeProposalResponse? response, out string? error) => repository.TryCreateChangeProposal(context, request, out response, out error);
-    public bool TryResolveChangeProposal(UserContext context, string id, string action, out ProjectChangeProposalResponse? response, out string? error) => repository.TryResolveChangeProposal(context, id, action, out response, out error);
+    public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryCreateChangeProposalAsync(UserContext context, CreateProjectChangeProposalRequest request) => repository.TryCreateChangeProposalAsync(context, request);
+    public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action) => repository.TryResolveChangeProposalAsync(context, id, action);
 }

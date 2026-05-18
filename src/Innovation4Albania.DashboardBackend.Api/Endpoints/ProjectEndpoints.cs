@@ -29,7 +29,7 @@ public static class ProjectEndpoints
                 : Results.Ok(project);
         });
 
-        api.MapPost("/projects", (ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
+        api.MapPost("/projects", async (ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
@@ -43,12 +43,13 @@ public static class ProjectEndpoints
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
-            return service.TryCreateProject(context, request, out var project, out var error)
-                ? Results.Ok(project)
-                : Results.BadRequest(new ApiErrorResponse("project_create_failed", error!));
+            var result = await service.TryCreateProjectAsync(context, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("project_create_failed", result.Error!));
         });
 
-        api.MapPut("/projects/{id}", (string id, ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
+        api.MapPut("/projects/{id}", async (string id, ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
@@ -62,12 +63,13 @@ public static class ProjectEndpoints
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
-            return service.TryUpdateProject(context, id, request, out var project, out var error)
-                ? Results.Ok(project)
-                : Results.BadRequest(new ApiErrorResponse("project_update_failed", error!));
+            var result = await service.TryUpdateProjectAsync(context, id, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("project_update_failed", result.Error!));
         });
 
-        api.MapDelete("/projects/{id}", (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
+        api.MapDelete("/projects/{id}", async (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
@@ -81,9 +83,10 @@ public static class ProjectEndpoints
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
-            return service.TryDeleteProject(context, id, out var error)
+            var result = await service.TryDeleteProjectAsync(context, id);
+            return result.IsSuccess
                 ? Results.NoContent()
-                : Results.BadRequest(new ApiErrorResponse("project_delete_failed", error!));
+                : Results.BadRequest(new ApiErrorResponse("project_delete_failed", result.Error!));
         });
 
         api.MapGet("/projects/{id}/events", (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>

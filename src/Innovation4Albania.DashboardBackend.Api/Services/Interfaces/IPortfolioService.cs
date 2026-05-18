@@ -5,7 +5,7 @@ namespace Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
 public interface IPortfolioService
 {
     PortfolioOkrResponse GetPortfolioOkr(UserContext context);
-    bool TryCreatePortfolioObjective(UserContext context, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error);
-    bool TryUpdatePortfolioObjective(UserContext context, string id, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error);
-    bool TryDeletePortfolioObjective(UserContext context, string id, out string? error);
+    Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryCreatePortfolioObjectiveAsync(UserContext context, CreatePortfolioObjectiveRequest request);
+    Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryUpdatePortfolioObjectiveAsync(UserContext context, string id, CreatePortfolioObjectiveRequest request);
+    Task<(bool IsSuccess, string? Error)> TryDeletePortfolioObjectiveAsync(UserContext context, string id);
 }

@@ -5,8 +5,8 @@ namespace Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
 public interface IUpdateService
 {
     IReadOnlyList<WeeklyUpdateResponse> GetWeeklyUpdates(UserContext context, string? projectId);
-    bool TryCreateWeeklyUpdate(UserContext context, CreateWeeklyUpdateRequest request, out WeeklyUpdateResponse? response, out string? error);
+    Task<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)> TryCreateWeeklyUpdateAsync(UserContext context, CreateWeeklyUpdateRequest request);
     IReadOnlyList<ProjectChangeProposalResponse> GetChangeProposals(UserContext context, string? projectId);
-    bool TryCreateChangeProposal(UserContext context, CreateProjectChangeProposalRequest request, out ProjectChangeProposalResponse? response, out string? error);
-    bool TryResolveChangeProposal(UserContext context, string id, string action, out ProjectChangeProposalResponse? response, out string? error);
+    Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryCreateChangeProposalAsync(UserContext context, CreateProjectChangeProposalRequest request);
+    Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action);
 }

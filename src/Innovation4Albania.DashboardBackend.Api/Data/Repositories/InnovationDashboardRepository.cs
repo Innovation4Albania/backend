@@ -16,9 +16,9 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
     public IReadOnlyList<TrendPointResponse> GetTrend(int months) => store.GetTrend(months);
     public IReadOnlyList<ProjectResponse> GetProjects(UserContext context, string? status, string? query) => store.GetProjects(context, status, query);
     public ProjectResponse? GetProjectById(string id, UserContext context) => store.GetProjectById(id, context);
-    public bool TryCreateProject(UserContext context, CreateProjectRequest request, out ProjectResponse? response, out string? error) => store.TryCreateProject(context, request, out response, out error);
-    public bool TryUpdateProject(UserContext context, string id, CreateProjectRequest request, out ProjectResponse? response, out string? error) => store.TryUpdateProject(context, id, request, out response, out error);
-    public bool TryDeleteProject(UserContext context, string id, out string? error) => store.TryDeleteProject(context, id, out error);
+    public Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryCreateProjectAsync(UserContext context, CreateProjectRequest request) => store.TryCreateProjectAsync(context, request);
+    public Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryUpdateProjectAsync(UserContext context, string id, CreateProjectRequest request) => store.TryUpdateProjectAsync(context, id, request);
+    public Task<(bool IsSuccess, string? Error)> TryDeleteProjectAsync(UserContext context, string id) => store.TryDeleteProjectAsync(context, id);
     public IReadOnlyList<ProjectEventResponse> GetEventsForProject(string projectId, UserContext context) => store.GetEventsForProject(projectId, context);
 
     public Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context, string apiKey)
@@ -28,15 +28,15 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
         => store.GetPerformanceBoard(context);
 
     public PortfolioOkrResponse GetPortfolioOkr(UserContext context) => store.GetPortfolioOkr(context);
-    public bool TryCreatePortfolioObjective(UserContext context, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error) => store.TryCreatePortfolioObjective(context, request, out response, out error);
-    public bool TryUpdatePortfolioObjective(UserContext context, string id, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error) => store.TryUpdatePortfolioObjective(context, id, request, out response, out error);
-    public bool TryDeletePortfolioObjective(UserContext context, string id, out string? error) => store.TryDeletePortfolioObjective(context, id, out error);
+    public Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryCreatePortfolioObjectiveAsync(UserContext context, CreatePortfolioObjectiveRequest request) => store.TryCreatePortfolioObjectiveAsync(context, request);
+    public Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryUpdatePortfolioObjectiveAsync(UserContext context, string id, CreatePortfolioObjectiveRequest request) => store.TryUpdatePortfolioObjectiveAsync(context, id, request);
+    public Task<(bool IsSuccess, string? Error)> TryDeletePortfolioObjectiveAsync(UserContext context, string id) => store.TryDeletePortfolioObjectiveAsync(context, id);
     public IReadOnlyList<RiskDeviationResponse> GetRiskDeviations(UserContext context) => store.GetRiskDeviations(context);
     public IReadOnlyList<WeeklyUpdateResponse> GetWeeklyUpdates(UserContext context, string? projectId) => store.GetWeeklyUpdates(context, projectId);
-    public bool TryCreateWeeklyUpdate(UserContext context, CreateWeeklyUpdateRequest request, out WeeklyUpdateResponse? response, out string? error) => store.TryCreateWeeklyUpdate(context, request, out response, out error);
+    public Task<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)> TryCreateWeeklyUpdateAsync(UserContext context, CreateWeeklyUpdateRequest request) => store.TryCreateWeeklyUpdateAsync(context, request);
     public IReadOnlyList<ProjectChangeProposalResponse> GetChangeProposals(UserContext context, string? projectId) => store.GetChangeProposals(context, projectId);
-    public bool TryCreateChangeProposal(UserContext context, CreateProjectChangeProposalRequest request, out ProjectChangeProposalResponse? response, out string? error) => store.TryCreateChangeProposal(context, request, out response, out error);
-    public bool TryResolveChangeProposal(UserContext context, string id, string action, out ProjectChangeProposalResponse? response, out string? error) => store.TryResolveChangeProposal(context, id, action, out response, out error);
+    public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryCreateChangeProposalAsync(UserContext context, CreateProjectChangeProposalRequest request) => store.TryCreateChangeProposalAsync(context, request);
+    public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action) => store.TryResolveChangeProposalAsync(context, id, action);
     public CalendarMonthResponse GetCalendarMonth(UserContext context, DateOnly month) => store.GetCalendarMonth(context, month);
     public IReadOnlyList<UpcomingEventResponse> GetUpcomingEvents(UserContext context, int limit) => store.GetUpcomingEvents(context, limit);
     public IReadOnlyList<UpcomingEventResponse> GetPastEvents(UserContext context, int limit) => store.GetPastEvents(context, limit);

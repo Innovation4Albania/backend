@@ -82,29 +82,30 @@ public sealed class InnovationDashboardStore
         }
     }
 
-    private void PersistSnapshot()
+    private async Task<bool> PersistSnapshotAsync(CancellationToken cancellationToken = default)
     {
         if (!_persistence.IsConfigured)
         {
-            return;
+            return true;
         }
 
         try
         {
             var payload = JsonSerializer.Serialize(BuildSnapshot(), SnapshotJsonOptions);
-            _ = SaveSnapshotAsync(payload);
+            return await SaveSnapshotAsync(payload, cancellationToken);
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Dashboard state could not be serialized for PostgreSQL.");
+            return false;
         }
     }
 
-    private async Task SaveSnapshotAsync(string payload, CancellationToken cancellationToken = default)
+    private async Task<bool> SaveSnapshotAsync(string payload, CancellationToken cancellationToken = default)
     {
         if (!_persistence.IsConfigured)
         {
-            return;
+            return true;
         }
 
         var lockTaken = false;
@@ -113,13 +114,16 @@ public sealed class InnovationDashboardStore
             await _persistenceLock.WaitAsync(cancellationToken);
             lockTaken = true;
             await _persistence.SaveSnapshotAsync(payload, cancellationToken);
+            return true;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            return false;
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Dashboard state could not be saved to PostgreSQL.");
+            return false;
         }
         finally
         {
@@ -395,25 +399,21 @@ public sealed class InnovationDashboardStore
             .FirstOrDefault(project => string.Equals(project.Id, id, StringComparison.OrdinalIgnoreCase))
             ?.Pipe(ToResponse);
 
-    public bool TryCreateProject(UserContext context, CreateProjectRequest request, out ProjectResponse? response, out string? error)
+    public async Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryCreateProjectAsync(UserContext context, CreateProjectRequest request)
     {
-        response = null;
-
         if (!ApplicationRoles.CanCreateProjects(context.Role))
         {
-            error = "Vetëm Drejtori i Agjencisë dhe Drejtori i Inovacionit Publik mund të krijojnë projekte.";
-            return false;
+            return (false, null, "Vetem Drejtori i Agjencise dhe Drejtori i Inovacionit Publik mund te krijojne projekte.");
         }
 
-        if (!TryValidateProjectRequest(request, out error))
+        if (!TryValidateProjectRequest(request, out var error))
         {
-            return false;
+            return (false, null, error);
         }
 
         if (HasProjectWithCode(request.Code))
         {
-            error = "Ekziston tashme nje projekt me kete kod.";
-            return false;
+            return (false, null, "Ekziston tashme nje projekt me kete kod.");
         }
 
         var projectNumber = _projects.Count + 1;
@@ -444,20 +444,16 @@ public sealed class InnovationDashboardStore
             request.Objectives.Select((objective, index) => ToObjectiveState($"obj-{projectNumber}-{index + 1}", objective)).ToList());
 
         _projects.Add(project);
-        response = ToResponse(project);
-        error = null;
-        PersistSnapshot();
-        return true;
+        var response = ToResponse(project);
+        return await PersistSnapshotAsync()
+            ? (true, response, null)
+            : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
-
-    public bool TryUpdateProject(UserContext context, string id, CreateProjectRequest request, out ProjectResponse? response, out string? error)
+    public async Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryUpdateProjectAsync(UserContext context, string id, CreateProjectRequest request)
     {
-        response = null;
-
         if (!ApplicationRoles.CanCreateProjects(context.Role))
         {
-            error = "Vetëm Drejtori i Agjencisë dhe Drejtori i Inovacionit Publik mund të editojnë projekte.";
-            return false;
+            return (false, null, "Vetem Drejtori i Agjencise dhe Drejtori i Inovacionit Publik mund te editojne projekte.");
         }
 
         var project = GetVisibleProjects(context)
@@ -465,36 +461,33 @@ public sealed class InnovationDashboardStore
 
         if (project is null)
         {
-            error = "Projekti nuk u gjet.";
-            return false;
+            return (false, null, "Projekti nuk u gjet.");
         }
 
-        if (!TryValidateProjectRequest(request, out error))
+        if (!TryValidateProjectRequest(request, out var error))
         {
-            return false;
+            return (false, null, error);
         }
 
         if (HasProjectWithCode(request.Code, project.Id))
         {
-            error = "Ekziston tashme nje projekt me kete kod.";
-            return false;
+            return (false, null, "Ekziston tashme nje projekt me kete kod.");
         }
 
         ApplyRequestToProjectState(project, request);
         project.LastUpdated = DateTimeOffset.UtcNow;
 
-        response = ToResponse(project);
-        error = null;
-        PersistSnapshot();
-        return true;
+        var response = ToResponse(project);
+        return await PersistSnapshotAsync()
+            ? (true, response, null)
+            : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
 
-    public bool TryDeleteProject(UserContext context, string id, out string? error)
+    public async Task<(bool IsSuccess, string? Error)> TryDeleteProjectAsync(UserContext context, string id)
     {
         if (!ApplicationRoles.CanCreateProjects(context.Role))
         {
-            error = "Vetëm Drejtori i Agjencisë dhe Drejtori i Inovacionit Publik mund të fshijnë projekte.";
-            return false;
+            return (false, "Vetem Drejtori i Agjencise dhe Drejtori i Inovacionit Publik mund te fshijne projekte.");
         }
 
         var project = GetVisibleProjects(context)
@@ -502,19 +495,17 @@ public sealed class InnovationDashboardStore
 
         if (project is null)
         {
-            error = "Projekti nuk u gjet.";
-            return false;
+            return (false, "Projekti nuk u gjet.");
         }
 
         _updates.RemoveAll(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase));
         _changeProposals.RemoveAll(proposal => string.Equals(proposal.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase));
         _projects.Remove(project);
 
-        error = null;
-        PersistSnapshot();
-        return true;
+        return await PersistSnapshotAsync()
+            ? (true, null)
+            : (false, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
-
     private static bool TryValidateProjectRequest(CreateProjectRequest request, out string? error)
     {
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Code))
@@ -659,78 +650,69 @@ public sealed class InnovationDashboardStore
         return new PortfolioOkrResponse(BuildPortfolioMetrics(visible), objectives);
     }
 
-    public bool TryCreatePortfolioObjective(UserContext context, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error)
+    public async Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryCreatePortfolioObjectiveAsync(UserContext context, CreatePortfolioObjectiveRequest request)
     {
-        response = null;
-
         if (!ApplicationRoles.CanManagePortfolio(context.Role))
         {
-            error = "Vetëm Drejtori i Inovacionit mund të shtojë OKR të portofolit.";
-            return false;
+            return (false, null, "Vetem Drejtori i Inovacionit mund te shtoje OKR te portofolit.");
         }
 
-        if (!TryValidatePortfolioObjectiveRequest(request, out error))
+        if (!TryValidatePortfolioObjectiveRequest(request, out var error))
         {
-            return false;
+            return (false, null, error);
         }
 
         var state = ToObjectiveState($"portfolio-{_portfolioObjectives.Count + 1}", new ObjectiveInput(request.Title, request.Owner, request.KeyResults));
         _portfolioObjectives.Add(state);
-        response = ToObjectiveResponse(state);
-        error = null;
-        PersistSnapshot();
-        return true;
+        var response = ToObjectiveResponse(state);
+        return await PersistSnapshotAsync()
+            ? (true, response, null)
+            : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
-    public bool TryUpdatePortfolioObjective(UserContext context, string id, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error)
-    {
-        response = null;
 
+    public async Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryUpdatePortfolioObjectiveAsync(UserContext context, string id, CreatePortfolioObjectiveRequest request)
+    {
         if (!ApplicationRoles.CanManagePortfolio(context.Role))
         {
-            error = "Vetëm Drejtori i Inovacionit mund të editojë OKR të portofolit.";
-            return false;
+            return (false, null, "Vetem Drejtori i Inovacionit mund te editoje OKR te portofolit.");
         }
 
-        if (!TryValidatePortfolioObjectiveRequest(request, out error))
+        if (!TryValidatePortfolioObjectiveRequest(request, out var error))
         {
-            return false;
+            return (false, null, error);
         }
 
         var index = _portfolioObjectives.FindIndex(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
         if (index < 0)
         {
-            error = "Objektivi nuk u gjet.";
-            return false;
+            return (false, null, "Objektivi nuk u gjet.");
         }
 
         var state = ToObjectiveState(_portfolioObjectives[index].Id, new ObjectiveInput(request.Title, request.Owner, request.KeyResults));
         _portfolioObjectives[index] = state;
-        response = ToObjectiveResponse(state);
-        error = null;
-        PersistSnapshot();
-        return true;
+        var response = ToObjectiveResponse(state);
+        return await PersistSnapshotAsync()
+            ? (true, response, null)
+            : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
 
-    public bool TryDeletePortfolioObjective(UserContext context, string id, out string? error)
+    public async Task<(bool IsSuccess, string? Error)> TryDeletePortfolioObjectiveAsync(UserContext context, string id)
     {
         if (!ApplicationRoles.CanManagePortfolio(context.Role))
         {
-            error = "Vetëm Drejtori i Inovacionit mund të fshijë OKR të portofolit.";
-            return false;
+            return (false, "Vetem Drejtori i Inovacionit mund te fshije OKR te portofolit.");
         }
 
         var removed = _portfolioObjectives.RemoveAll(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
         if (removed == 0)
         {
-            error = "Objektivi nuk u gjet.";
-            return false;
+            return (false, "Objektivi nuk u gjet.");
         }
 
-        error = null;
-        PersistSnapshot();
-        return true;
+        return await PersistSnapshotAsync()
+            ? (true, null)
+            : (false, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
-
     private static bool TryValidatePortfolioObjectiveRequest(CreatePortfolioObjectiveRequest request, out string? error)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || request.KeyResults.Count == 0)
@@ -797,21 +779,17 @@ public sealed class InnovationDashboardStore
             .ToList();
     }
 
-    public bool TryCreateWeeklyUpdate(UserContext context, CreateWeeklyUpdateRequest request, out WeeklyUpdateResponse? response, out string? error)
+    public async Task<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)> TryCreateWeeklyUpdateAsync(UserContext context, CreateWeeklyUpdateRequest request)
     {
-        response = null;
-
         if (!ApplicationRoles.CanSubmitUpdates(context.Role))
         {
-            error = "Vetëm ekspertët dhe drejtori mund të shtojnë përditësime dyjavore.";
-            return false;
+            return (false, null, "Vetem ekspertet dhe drejtori mund te shtojne perditesime dyjavore.");
         }
 
         var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == request.ProjectId);
         if (project is null)
         {
-            error = "Projekti nuk u gjet.";
-            return false;
+            return (false, null, "Projekti nuk u gjet.");
         }
 
         var expertName = string.IsNullOrWhiteSpace(request.ExpertName)
@@ -838,7 +816,7 @@ public sealed class InnovationDashboardStore
         project.Risk = request.Risk;
         project.LastUpdated = update.SubmittedAt;
 
-        response = new WeeklyUpdateResponse(
+        var response = new WeeklyUpdateResponse(
             update.Id,
             update.ProjectId,
             project.Code,
@@ -853,9 +831,10 @@ public sealed class InnovationDashboardStore
             RiskLevels.ToLabel(update.Risk),
             update.Blockers,
             update.Comments);
-        error = null;
-        PersistSnapshot();
-        return true;
+
+        return await PersistSnapshotAsync()
+            ? (true, response, null)
+            : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
 
     public IReadOnlyList<ProjectChangeProposalResponse> GetChangeProposals(UserContext context, string? projectId)
@@ -870,34 +849,28 @@ public sealed class InnovationDashboardStore
             .ToList();
     }
 
-    public bool TryCreateChangeProposal(UserContext context, CreateProjectChangeProposalRequest request, out ProjectChangeProposalResponse? response, out string? error)
+    public async Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryCreateChangeProposalAsync(UserContext context, CreateProjectChangeProposalRequest request)
     {
-        response = null;
-
         if (!ApplicationRoles.CanProposeProjectChanges(context.Role))
         {
-            error = "Vetëm Ekspert Agjencie mund të propozojë ndryshime në projekt.";
-            return false;
+            return (false, null, "Vetem Ekspert Agjencie mund te propozoje ndryshime ne projekt.");
         }
 
         var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == request.ProjectId);
         if (project is null)
         {
-            error = "Projekti nuk u gjet.";
-            return false;
+            return (false, null, "Projekti nuk u gjet.");
         }
 
         var type = request.Type.Trim().ToLowerInvariant();
         if (type is not ("deadline" or "content"))
         {
-            error = "Tipi i propozimit duhet të jetë afat ose përmbajtje.";
-            return false;
+            return (false, null, "Tipi i propozimit duhet te jete afat ose permbajtje.");
         }
 
         if (string.IsNullOrWhiteSpace(request.ProposedValue) || string.IsNullOrWhiteSpace(request.Reason))
         {
-            error = "Ndryshimi i propozuar dhe arsyeja janë të detyrueshme.";
-            return false;
+            return (false, null, "Ndryshimi i propozuar dhe arsyeja jane te detyrueshme.");
         }
 
         var proposal = new ProjectChangeProposalState(
@@ -913,49 +886,44 @@ public sealed class InnovationDashboardStore
             "Në shqyrtim");
 
         _changeProposals.Add(proposal);
-        response = ToChangeProposalResponse(proposal);
-        error = null;
-        PersistSnapshot();
-        return true;
+        var response = ToChangeProposalResponse(proposal);
+        return await PersistSnapshotAsync()
+            ? (true, response, null)
+            : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
 
-    public bool TryResolveChangeProposal(UserContext context, string id, string action, out ProjectChangeProposalResponse? response, out string? error)
+    public async Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action)
     {
-        response = null;
-
         if (!ApplicationRoles.CanManagePortfolio(context.Role))
         {
-            error = "Vetëm Drejtori i Agjencisë dhe Drejtori i Inovacionit Publik mund të shqyrtojnë propozime.";
-            return false;
+            return (false, null, "Vetem Drejtori i Agjencise dhe Drejtori i Inovacionit Publik mund te shqyrtojne propozime.");
         }
 
         var proposal = _changeProposals.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
         if (proposal is null)
         {
-            error = "Propozimi nuk u gjet.";
-            return false;
+            return (false, null, "Propozimi nuk u gjet.");
         }
 
         var visibleProjectIds = GetVisibleProjects(context).Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         if (!visibleProjectIds.Contains(proposal.ProjectId))
         {
-            error = "Nuk keni akses te ky propozim.";
-            return false;
+            return (false, null, "Nuk keni akses te ky propozim.");
         }
 
-        if (!string.Equals(proposal.Status, "Në shqyrtim", StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(proposal.Status, "Në shqyrtim", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(proposal.Status, "Ne shqyrtim", StringComparison.OrdinalIgnoreCase))
         {
-            error = "Ky propozim është zgjidhur tashmë.";
-            return false;
+            return (false, null, "Ky propozim eshte zgjidhur tashme.");
         }
 
         var normalizedAction = action.Trim().ToLowerInvariant();
         if (normalizedAction is "approve" or "approved" or "mirato")
         {
             var project = _projects.First(item => item.Id == proposal.ProjectId);
-            if (!TryApplyApprovedChangeProposal(project, proposal, out error))
+            if (!TryApplyApprovedChangeProposal(project, proposal, out var error))
             {
-                return false;
+                return (false, null, error);
             }
 
             project.LastUpdated = DateTimeOffset.UtcNow;
@@ -967,16 +935,14 @@ public sealed class InnovationDashboardStore
         }
         else
         {
-            error = "Veprimi duhet të jetë approve ose reject.";
-            return false;
+            return (false, null, "Veprimi duhet te jete approve ose reject.");
         }
 
-        response = ToChangeProposalResponse(proposal);
-        error = null;
-        PersistSnapshot();
-        return true;
+        var response = ToChangeProposalResponse(proposal);
+        return await PersistSnapshotAsync()
+            ? (true, response, null)
+            : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
     }
-
     public CalendarMonthResponse GetCalendarMonth(UserContext context, DateOnly month)
     {
         var events = GetVisibleProjects(context)

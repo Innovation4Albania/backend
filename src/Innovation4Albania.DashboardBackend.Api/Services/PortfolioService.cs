@@ -7,7 +7,7 @@ namespace Innovation4Albania.DashboardBackend.Api.Services;
 public sealed class PortfolioService(IInnovationDashboardRepository repository) : IPortfolioService
 {
     public PortfolioOkrResponse GetPortfolioOkr(UserContext context) => repository.GetPortfolioOkr(context);
-    public bool TryCreatePortfolioObjective(UserContext context, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error) => repository.TryCreatePortfolioObjective(context, request, out response, out error);
-    public bool TryUpdatePortfolioObjective(UserContext context, string id, CreatePortfolioObjectiveRequest request, out ObjectiveResponse? response, out string? error) => repository.TryUpdatePortfolioObjective(context, id, request, out response, out error);
-    public bool TryDeletePortfolioObjective(UserContext context, string id, out string? error) => repository.TryDeletePortfolioObjective(context, id, out error);
+    public Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryCreatePortfolioObjectiveAsync(UserContext context, CreatePortfolioObjectiveRequest request) => repository.TryCreatePortfolioObjectiveAsync(context, request);
+    public Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryUpdatePortfolioObjectiveAsync(UserContext context, string id, CreatePortfolioObjectiveRequest request) => repository.TryUpdatePortfolioObjectiveAsync(context, id, request);
+    public Task<(bool IsSuccess, string? Error)> TryDeletePortfolioObjectiveAsync(UserContext context, string id) => repository.TryDeletePortfolioObjectiveAsync(context, id);
 }

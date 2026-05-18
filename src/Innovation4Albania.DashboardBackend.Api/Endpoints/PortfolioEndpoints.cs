@@ -15,40 +15,43 @@ public static class PortfolioEndpoints
                 : errorResult!;
         });
 
-        api.MapPost("/portfolio/okr", (ClaimsPrincipal user, CreatePortfolioObjectiveRequest request, IUserContextService contextService, IPortfolioService service) =>
+        api.MapPost("/portfolio/okr", async (ClaimsPrincipal user, CreatePortfolioObjectiveRequest request, IUserContextService contextService, IPortfolioService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
 
-            return service.TryCreatePortfolioObjective(context, request, out var objective, out var error)
-                ? Results.Ok(objective)
-                : Results.BadRequest(new ApiErrorResponse("portfolio_create_failed", error!));
+            var result = await service.TryCreatePortfolioObjectiveAsync(context, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("portfolio_create_failed", result.Error!));
         });
 
-        api.MapPut("/portfolio/okr/{id}", (string id, ClaimsPrincipal user, CreatePortfolioObjectiveRequest request, IUserContextService contextService, IPortfolioService service) =>
+        api.MapPut("/portfolio/okr/{id}", async (string id, ClaimsPrincipal user, CreatePortfolioObjectiveRequest request, IUserContextService contextService, IPortfolioService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
 
-            return service.TryUpdatePortfolioObjective(context, id, request, out var objective, out var error)
-                ? Results.Ok(objective)
-                : Results.BadRequest(new ApiErrorResponse("portfolio_update_failed", error!));
+            var result = await service.TryUpdatePortfolioObjectiveAsync(context, id, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("portfolio_update_failed", result.Error!));
         });
 
-        api.MapDelete("/portfolio/okr/{id}", (string id, ClaimsPrincipal user, IUserContextService contextService, IPortfolioService service) =>
+        api.MapDelete("/portfolio/okr/{id}", async (string id, ClaimsPrincipal user, IUserContextService contextService, IPortfolioService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
 
-            return service.TryDeletePortfolioObjective(context, id, out var error)
+            var result = await service.TryDeletePortfolioObjectiveAsync(context, id);
+            return result.IsSuccess
                 ? Results.NoContent()
-                : Results.BadRequest(new ApiErrorResponse("portfolio_delete_failed", error!));
+                : Results.BadRequest(new ApiErrorResponse("portfolio_delete_failed", result.Error!));
         });
 
         return api;

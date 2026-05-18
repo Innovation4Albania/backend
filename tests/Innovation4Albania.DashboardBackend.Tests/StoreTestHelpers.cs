@@ -10,6 +10,9 @@ internal static class StoreTestHelpers
     public static InnovationDashboardStore CreateStore() =>
         new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>(), new TestDashboardStorePersistence());
 
+    public static InnovationDashboardStore CreateStore(IDashboardStorePersistence persistence) =>
+        new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>(), persistence);
+
     public static UserContext DirectorContext() => UserContext.From(ApplicationRoles.DrejtorAgjencie, null);
 
     public static UserContext StaffContext() => UserContext.From(ApplicationRoles.StafAgjencie, null);

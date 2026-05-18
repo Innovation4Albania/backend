@@ -6,51 +6,54 @@ namespace Innovation4Albania.DashboardBackend.Tests;
 public sealed class InnovationDashboardStoreChangeProposalTests
 {
     [Fact]
-    public void TryResolveChangeProposal_RejectsNonManagerRole()
+    public async Task TryResolveChangeProposalAsync_RejectsNonManagerRole()
     {
         var store = StoreTestHelpers.CreateStore();
         var staff = StoreTestHelpers.StaffContext();
-        Assert.True(store.TryCreateChangeProposal(staff, ValidContentProposal(), out var proposal, out _));
+        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal());
+        Assert.True(proposal.IsSuccess);
 
-        var resolved = store.TryResolveChangeProposal(staff, proposal!.Id, "approve", out var response, out var error);
+        var resolved = await store.TryResolveChangeProposalAsync(staff, proposal.Response!.Id, "approve");
 
-        Assert.False(resolved);
-        Assert.Null(response);
-        Assert.Contains("shqyrto", error);
+        Assert.False(resolved.IsSuccess);
+        Assert.Null(resolved.Response);
+        Assert.Contains("shqyrto", resolved.Error);
     }
 
     [Fact]
-    public void TryResolveChangeProposal_ApprovesContentProposalAndUpdatesProjectDescription()
+    public async Task TryResolveChangeProposalAsync_ApprovesContentProposalAndUpdatesProjectDescription()
     {
         var store = StoreTestHelpers.CreateStore();
         var staff = StoreTestHelpers.StaffContext();
         var director = StoreTestHelpers.DirectorContext();
         var nextDescription = "Pershkrimi i perditesuar nga propozimi.";
         var request = new CreateProjectChangeProposalRequest("p1", "content", "old", nextDescription, "Duhet perditesuar.");
-        Assert.True(store.TryCreateChangeProposal(staff, request, out var proposal, out _));
+        var proposal = await store.TryCreateChangeProposalAsync(staff, request);
+        Assert.True(proposal.IsSuccess);
 
-        var resolved = store.TryResolveChangeProposal(director, proposal!.Id, "approve", out var response, out var error);
+        var resolved = await store.TryResolveChangeProposalAsync(director, proposal.Response!.Id, "approve");
         var project = store.GetProjectById("p1", director);
 
-        Assert.True(resolved);
-        Assert.Null(error);
-        Assert.Equal("Miratuar", response!.Status);
+        Assert.True(resolved.IsSuccess);
+        Assert.Null(resolved.Error);
+        Assert.Equal("Miratuar", resolved.Response!.Status);
         Assert.Equal(nextDescription, project!.Description);
     }
 
     [Fact]
-    public void TryResolveChangeProposal_RejectsUnknownAction()
+    public async Task TryResolveChangeProposalAsync_RejectsUnknownAction()
     {
         var store = StoreTestHelpers.CreateStore();
         var staff = StoreTestHelpers.StaffContext();
         var director = StoreTestHelpers.DirectorContext();
-        Assert.True(store.TryCreateChangeProposal(staff, ValidContentProposal(), out var proposal, out _));
+        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal());
+        Assert.True(proposal.IsSuccess);
 
-        var resolved = store.TryResolveChangeProposal(director, proposal!.Id, "hold", out var response, out var error);
+        var resolved = await store.TryResolveChangeProposalAsync(director, proposal.Response!.Id, "hold");
 
-        Assert.False(resolved);
-        Assert.Null(response);
-        Assert.Contains("approve ose reject", error);
+        Assert.False(resolved.IsSuccess);
+        Assert.Null(resolved.Response);
+        Assert.Contains("approve ose reject", resolved.Error);
     }
 
     private static CreateProjectChangeProposalRequest ValidContentProposal() =>

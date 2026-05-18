@@ -1,55 +1,94 @@
+using Innovation4Albania.DashboardBackend.Api.Data;
+
 namespace Innovation4Albania.DashboardBackend.Tests;
 
 public sealed class InnovationDashboardStoreProjectMutationTests
 {
     [Fact]
-    public void TryCreateProject_RejectsDuplicateCode()
+    public async Task TryCreateProjectAsync_RejectsDuplicateCode()
     {
         var store = StoreTestHelpers.CreateStore();
         var context = StoreTestHelpers.DirectorContext();
         var request = StoreTestHelpers.ValidProjectRequest() with { Code = "UNIQUE-001" };
 
-        var created = store.TryCreateProject(context, request, out _, out var createError);
-        var duplicateCreated = store.TryCreateProject(context, request with { Name = "Projekt tjeter" }, out _, out var duplicateError);
+        var created = await store.TryCreateProjectAsync(context, request);
+        var duplicateCreated = await store.TryCreateProjectAsync(context, request with { Name = "Projekt tjeter" });
 
-        Assert.True(created);
-        Assert.Null(createError);
-        Assert.False(duplicateCreated);
-        Assert.Contains("kod", duplicateError);
+        Assert.True(created.IsSuccess);
+        Assert.Null(created.Error);
+        Assert.False(duplicateCreated.IsSuccess);
+        Assert.Contains("kod", duplicateCreated.Error);
     }
 
     [Fact]
-    public void TryUpdateProject_RejectsDuplicateCodeFromAnotherProject()
+    public async Task TryUpdateProjectAsync_RejectsDuplicateCodeFromAnotherProject()
     {
         var store = StoreTestHelpers.CreateStore();
         var context = StoreTestHelpers.DirectorContext();
 
-        var firstCreated = store.TryCreateProject(context, StoreTestHelpers.ValidProjectRequest() with { Code = "UNIQUE-101" }, out var first, out _);
+        var firstCreated = await store.TryCreateProjectAsync(context, StoreTestHelpers.ValidProjectRequest() with { Code = "UNIQUE-101" });
         var secondRequest = StoreTestHelpers.ValidProjectRequest() with { Code = "UNIQUE-102", Name = "Projekt i dyte" };
-        var secondCreated = store.TryCreateProject(context, secondRequest, out var second, out _);
+        var secondCreated = await store.TryCreateProjectAsync(context, secondRequest);
 
-        var updated = store.TryUpdateProject(context, second!.Id, secondRequest with { Code = first!.Code }, out _, out var error);
+        var updated = await store.TryUpdateProjectAsync(context, secondCreated.Response!.Id, secondRequest with { Code = firstCreated.Response!.Code });
 
-        Assert.True(firstCreated);
-        Assert.True(secondCreated);
-        Assert.False(updated);
-        Assert.Contains("kod", error);
+        Assert.True(firstCreated.IsSuccess);
+        Assert.True(secondCreated.IsSuccess);
+        Assert.False(updated.IsSuccess);
+        Assert.Contains("kod", updated.Error);
     }
 
     [Fact]
-    public void TryUpdateProject_AllowsKeepingOwnCode()
+    public async Task TryUpdateProjectAsync_AllowsKeepingOwnCode()
     {
         var store = StoreTestHelpers.CreateStore();
         var context = StoreTestHelpers.DirectorContext();
         var request = StoreTestHelpers.ValidProjectRequest() with { Code = "UNIQUE-201" };
 
-        var created = store.TryCreateProject(context, request, out var project, out _);
-        var updated = store.TryUpdateProject(context, project!.Id, request with { Name = "Projekt i perditesuar" }, out var updatedProject, out var error);
+        var created = await store.TryCreateProjectAsync(context, request);
+        var updated = await store.TryUpdateProjectAsync(context, created.Response!.Id, request with { Name = "Projekt i perditesuar" });
 
-        Assert.True(created);
-        Assert.True(updated);
-        Assert.Null(error);
-        Assert.Equal("UNIQUE-201", updatedProject!.Code);
-        Assert.Equal("Projekt i perditesuar", updatedProject.Name);
+        Assert.True(created.IsSuccess);
+        Assert.True(updated.IsSuccess);
+        Assert.Null(updated.Error);
+        Assert.Equal("UNIQUE-201", updated.Response!.Code);
+        Assert.Equal("Projekt i perditesuar", updated.Response.Name);
+    }
+
+    [Fact]
+    public async Task TryCreateProjectAsync_WaitsForSnapshotPersistence()
+    {
+        var persistence = new BlockingPersistence();
+        var store = StoreTestHelpers.CreateStore(persistence);
+        var context = StoreTestHelpers.DirectorContext();
+
+        var createTask = store.TryCreateProjectAsync(context, StoreTestHelpers.ValidProjectRequest() with { Code = "AWAIT-001" });
+        await persistence.SaveStarted.Task;
+        await Task.Delay(25);
+
+        Assert.False(createTask.IsCompleted);
+
+        persistence.AllowSave.SetResult();
+        var result = await createTask;
+
+        Assert.True(result.IsSuccess);
+        Assert.True(persistence.SaveCompleted);
+    }
+
+    private sealed class BlockingPersistence : IDashboardStorePersistence
+    {
+        public TaskCompletionSource SaveStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource AllowSave { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public bool SaveCompleted { get; private set; }
+        public bool IsConfigured => true;
+
+        public Task<string?> LoadSnapshotAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+
+        public async Task SaveSnapshotAsync(string payload, CancellationToken cancellationToken = default)
+        {
+            SaveStarted.SetResult();
+            await AllowSave.Task.WaitAsync(cancellationToken);
+            SaveCompleted = true;
+        }
     }
 }
