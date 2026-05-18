@@ -77,6 +77,17 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public void GetProjects_ReturnsNoProjectsForMinistryStaffWithoutMinistry()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = UserContext.From(ApplicationRoles.StafMinistrie, null);
+
+        var projects = store.GetProjects(context, null, null);
+
+        Assert.Empty(projects);
+    }
+
+    [Fact]
     public void Login_CanonicalizesMinistryWithReplacementCharacters()
     {
         var store = StoreTestHelpers.CreateStore();

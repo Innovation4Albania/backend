@@ -36,11 +36,6 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
             return "Ky rol duhet të përdorë login.";
         }
 
-        if (context.Role == ApplicationRoles.StafMinistrie && string.IsNullOrWhiteSpace(context.Ministry))
-        {
-            return null;
-        }
-
         return repository.ValidateLogin(request);
     }
 

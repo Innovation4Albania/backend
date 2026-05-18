@@ -1146,12 +1146,17 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
-        if (context.Role != ApplicationRoles.StafMinistrie || string.IsNullOrWhiteSpace(context.Ministry))
+        if (context.Role != ApplicationRoles.StafMinistrie)
         {
             return _projects;
         }
 
-        var ministry = ResolveMinistry(context.Ministry) ?? context.Ministry;
+        var ministry = ResolveMinistry(context.Ministry);
+        if (ministry is null)
+        {
+            return [];
+        }
+
         return _projects
             .Where(project => project.Ministries.Contains(ministry, StringComparer.OrdinalIgnoreCase))
             .ToList();
