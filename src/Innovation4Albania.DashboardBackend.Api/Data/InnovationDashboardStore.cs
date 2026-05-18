@@ -410,6 +410,12 @@ public sealed class InnovationDashboardStore
             return false;
         }
 
+        if (HasProjectWithCode(request.Code))
+        {
+            error = "Ekziston tashme nje projekt me kete kod.";
+            return false;
+        }
+
         var projectNumber = _projects.Count + 1;
         var now = DateTimeOffset.UtcNow;
         var teamMembers = BuildTeamMembersForRequest(projectNumber, request);
@@ -454,17 +460,23 @@ public sealed class InnovationDashboardStore
             return false;
         }
 
-        if (!TryValidateProjectRequest(request, out error))
-        {
-            return false;
-        }
-
         var project = GetVisibleProjects(context)
             .FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
 
         if (project is null)
         {
             error = "Projekti nuk u gjet.";
+            return false;
+        }
+
+        if (!TryValidateProjectRequest(request, out error))
+        {
+            return false;
+        }
+
+        if (HasProjectWithCode(request.Code, project.Id))
+        {
+            error = "Ekziston tashme nje projekt me kete kod.";
             return false;
         }
 
@@ -544,6 +556,11 @@ public sealed class InnovationDashboardStore
         error = null;
         return true;
     }
+
+    private bool HasProjectWithCode(string code, string? excludedProjectId = null) =>
+        _projects.Any(project =>
+            !string.Equals(project.Id, excludedProjectId, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(project.Code.Trim(), code.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private void ApplyRequestToProjectState(ProjectState project, CreateProjectRequest request)
     {
