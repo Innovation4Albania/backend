@@ -292,7 +292,8 @@ public sealed class InnovationDashboardStore
                 ProjectStatuses.ToColor(status)))
             .ToList();
 
-        return new DashboardSummaryResponse(visible.Count, statusCards, BuildPortfolioMetrics(visible));
+        var updatesByProject = BuildUpdatesByProjectLookup();
+        return new DashboardSummaryResponse(visible.Count, statusCards, BuildPortfolioMetrics(visible, updatesByProject));
     });
 
     public IReadOnlyList<StatusDistributionItem> GetStatusDistribution(UserContext context) => ExecuteRead(() =>
@@ -372,10 +373,14 @@ public sealed class InnovationDashboardStore
     });
 
     public IReadOnlyList<PerformanceScoreItem> GetPerformanceScores(UserContext context) =>
-        ExecuteRead(() => GetVisibleProjects(context)
-            .OrderByDescending(GetOkrAverage)
-            .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project), project.Progress, project.Risk))
-            .ToList());
+        ExecuteRead(() =>
+        {
+            var updatesByProject = BuildUpdatesByProjectLookup();
+            return GetVisibleProjects(context)
+                .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project, updatesByProject), project.Progress, project.Risk))
+                .OrderByDescending(item => item.Score)
+                .ToList();
+        });
 
     public IReadOnlyList<TrendPointResponse> GetTrend(int months)
     {
@@ -418,18 +423,23 @@ public sealed class InnovationDashboardStore
                 .ToList();
         }
 
+        var updatesByProject = BuildUpdatesByProjectLookup();
         return visible
             .OrderByDescending(project => project.DelayDays > 0)
             .ThenByDescending(project => project.DeviationPercent)
             .ThenBy(project => project.Name)
-            .Select(ToResponse)
+            .Select(project => ToResponseWithUpdates(project, updatesByProject))
             .ToList();
     });
 
     public ProjectResponse? GetProjectById(string id, UserContext context) =>
-        ExecuteRead(() => GetVisibleProjects(context)
-            .FirstOrDefault(project => string.Equals(project.Id, id, StringComparison.OrdinalIgnoreCase))
-            ?.Pipe(ToResponse));
+        ExecuteRead(() =>
+        {
+            var project = GetVisibleProjects(context)
+                .FirstOrDefault(project => string.Equals(project.Id, id, StringComparison.OrdinalIgnoreCase));
+
+            return project is null ? null : ToResponseWithUpdates(project, BuildUpdatesByProjectLookup());
+        });
 
     public async Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryCreateProjectAsync(UserContext context, CreateProjectRequest request)
     {
@@ -655,7 +665,7 @@ public sealed class InnovationDashboardStore
                 return null;
             }
 
-            var response = ToResponse(project);
+            var response = ToResponseWithUpdates(project, BuildUpdatesByProjectLookup());
 
             return new AiInsightState(ToProjectState(ToProjectSnapshot(project)), response);
         });
@@ -667,8 +677,9 @@ public sealed class InnovationDashboardStore
 
     public IReadOnlyList<PerformanceBoardColumnResponse> GetPerformanceBoard(UserContext context) => ExecuteRead<IReadOnlyList<PerformanceBoardColumnResponse>>(() =>
     {
+        var updatesByProject = BuildUpdatesByProjectLookup();
         var scored = GetVisibleProjects(context)
-            .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project), project.Progress, project.Risk))
+            .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project, updatesByProject), project.Progress, project.Risk))
             .ToList();
 
         return
@@ -694,8 +705,8 @@ public sealed class InnovationDashboardStore
                 "Statusi: Përfunduara",
                 GetVisibleProjects(context)
                     .Where(project => project.Status == ProjectStatuses.Completed)
-                    .OrderByDescending(GetOkrAverage)
-                    .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project), project.Progress, project.Risk))
+                    .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project, updatesByProject), project.Progress, project.Risk))
+                    .OrderByDescending(item => item.Score)
                     .ToList())
         ];
     });
@@ -704,7 +715,7 @@ public sealed class InnovationDashboardStore
     {
         var visible = GetVisibleProjects(context);
         var objectives = _portfolioObjectives.Select(ToObjectiveResponse).ToList();
-        return new PortfolioOkrResponse(BuildPortfolioMetrics(visible), objectives);
+        return new PortfolioOkrResponse(BuildPortfolioMetrics(visible, BuildUpdatesByProjectLookup()), objectives);
     });
 
     public async Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryCreatePortfolioObjectiveAsync(UserContext context, CreatePortfolioObjectiveRequest request)
@@ -818,6 +829,7 @@ public sealed class InnovationDashboardStore
     public IReadOnlyList<WeeklyUpdateResponse> GetWeeklyUpdates(UserContext context, string? projectId) => ExecuteRead(() =>
     {
         var visibleIds = GetVisibleProjects(context).Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var updatesByProject = BuildUpdatesByProjectLookup();
 
         return _updates
             .Where(update => visibleIds.Contains(update.ProjectId) &&
@@ -837,7 +849,7 @@ public sealed class InnovationDashboardStore
                     update.SubmittedAt,
                     update.Progress,
                     ProjectStatuses.ToLabel(update.Status),
-                    GetOkrAverage(project),
+                    GetOkrAverage(project, updatesByProject),
                     RiskLevels.ToLabel(update.Risk),
                     update.Blockers,
                     update.Comments);
@@ -883,6 +895,7 @@ public sealed class InnovationDashboardStore
             project.Status = request.Status;
             project.Risk = request.Risk;
             project.LastUpdated = update.SubmittedAt;
+            var updatesByProject = BuildUpdatesByProjectLookup();
 
             var response = new WeeklyUpdateResponse(
                 update.Id,
@@ -895,7 +908,7 @@ public sealed class InnovationDashboardStore
                 update.SubmittedAt,
                 update.Progress,
                 ProjectStatuses.ToLabel(update.Status),
-                GetOkrAverage(project),
+                GetOkrAverage(project, updatesByProject),
                 RiskLevels.ToLabel(update.Risk),
                 update.Blockers,
                 update.Comments);
@@ -1121,7 +1134,8 @@ public sealed class InnovationDashboardStore
                 var delayed = visible.Where(p => p.DelayDays > 0)
                                      .OrderByDescending(p => p.DelayDays)
                                      .Take(3).ToList();
-                var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(GetOkrAverage));
+                var updatesByProject = BuildUpdatesByProjectLookup();
+                var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(project => GetOkrAverage(project, updatesByProject)));
                 var highRisk = visible
                     .Where(p => p.Risk is RiskLevels.High or RiskLevels.Critical)
                     .Select(p => $"{p.Code} ({p.Name})")
@@ -1198,7 +1212,8 @@ public sealed class InnovationDashboardStore
             .OrderByDescending(project => project.DelayDays)
             .Take(3)
             .ToList();
-        var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(GetOkrAverage));
+        var updatesByProject = BuildUpdatesByProjectLookup();
+        var avgOkr = visible.Count == 0 ? 0 : (int)Math.Round(visible.Average(project => GetOkrAverage(project, updatesByProject)));
         var highRisk = visible
             .Where(project => project.Risk is RiskLevels.High or RiskLevels.Critical)
             .OrderByDescending(project => project.DeviationPercent)
@@ -1325,17 +1340,32 @@ public sealed class InnovationDashboardStore
         _ => ministry
     };
 
-    private int GetOkrAverage(ProjectState project) => CalculateOkrAverage(CalculateOkr(project));
+    private Dictionary<string, IReadOnlyList<WeeklyUpdateState>> BuildUpdatesByProjectLookup() =>
+        _updates
+            .GroupBy(update => update.ProjectId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyList<WeeklyUpdateState>)group.OrderBy(update => update.SubmittedAt).ToList(),
+                StringComparer.OrdinalIgnoreCase);
+
+    private int GetOkrAverage(
+        ProjectState project,
+        IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject) =>
+        CalculateOkrAverage(CalculateOkr(project, updatesByProject));
 
     private static int CalculateOkrAverage(ProjectOkr okr) =>
         ClampPercent((okr.Deadlines + okr.Quality + okr.Impact + okr.Dynamics) / 4d);
 
-    private ProjectOkr CalculateOkr(ProjectState project)
+    private static IReadOnlyList<WeeklyUpdateState> GetProjectUpdates(
+        ProjectState project,
+        IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject) =>
+        updatesByProject.TryGetValue(project.Id, out var updates) ? updates : [];
+
+    private static ProjectOkr CalculateOkr(
+        ProjectState project,
+        IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject)
     {
-        var projectUpdates = _updates
-            .Where(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(update => update.SubmittedAt)
-            .ToList();
+        var projectUpdates = GetProjectUpdates(project, updatesByProject);
 
         var deadline = CalculateDeadlineOkr(project);
         var quality = CalculateQualityOkr(projectUpdates);
@@ -1449,11 +1479,18 @@ public sealed class InnovationDashboardStore
 
     private ProjectResponse ToResponse(ProjectState project)
     {
+        return ToResponseWithUpdates(project, BuildUpdatesByProjectLookup());
+    }
+
+    private ProjectResponse ToResponseWithUpdates(
+        ProjectState project,
+        IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject)
+    {
         var expectedProgress = CalculateExpectedProgress(project.StartDate, project.EndDate);
         var deviationPercent = expectedProgress - project.Progress;
         var daysRemaining = Math.Max(0, (int)Math.Ceiling((project.EndDate - DateTimeOffset.UtcNow).TotalDays));
         var delayDays = CalculateDelayDays(project);
-        var okr = CalculateOkr(project);
+        var okr = CalculateOkr(project, updatesByProject);
         var okrAverage = CalculateOkrAverage(okr);
         var totalCapacityPercent = project.TeamMembers.Sum(member => member.AllocationPercent);
 
@@ -1894,14 +1931,16 @@ public sealed class InnovationDashboardStore
             _ => "Modeli sugjeron ndërhyrje prioritare dhe eskalim drejtues për uljen e riskut."
         };
 
-    private PortfolioMetricsResponse BuildPortfolioMetrics(IReadOnlyCollection<ProjectState> projects)
+    private PortfolioMetricsResponse BuildPortfolioMetrics(
+        IReadOnlyCollection<ProjectState> projects,
+        IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject)
     {
         if (projects.Count == 0)
         {
             return new PortfolioMetricsResponse(0, 0, 0, 0);
         }
 
-        var averageOkr = (int)Math.Round(projects.Average(GetOkrAverage));
+        var averageOkr = (int)Math.Round(projects.Average(project => GetOkrAverage(project, updatesByProject)));
         var onTime = (int)Math.Round(projects.Count(project => CalculateExpectedProgress(project.StartDate, project.EndDate) - project.Progress <= 5) * 100d / projects.Count);
         var deviationAverage = (int)Math.Round(projects.Average(project => Math.Max(0, CalculateExpectedProgress(project.StartDate, project.EndDate) - project.Progress)));
         var attention = projects.Count(project => project.Risk is RiskLevels.High or RiskLevels.Critical || CalculateDelayDays(project) > 7);
