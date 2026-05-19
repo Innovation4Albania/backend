@@ -1791,11 +1791,11 @@ public sealed class InnovationDashboardStore
             };
 
             using var http = _httpClientFactory.CreateClient();
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey}";
+            http.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+            var url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
             var json = JsonSerializer.Serialize(geminiRequest);
             var content = new StringContent(json, Encoding.UTF8);
             content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
-
             var httpResponse = await http.PostAsync(url, content);
             var responseBody = await httpResponse.Content.ReadAsStringAsync();
 
