@@ -125,6 +125,39 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.Equal(ids.Count, ids.Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
 
+    [Fact]
+    public async Task Store_AllowsConcurrentReadsDuringMutations()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+
+        var writeTasks = Enumerable.Range(1, 40)
+            .Select(index => Task.Run(() => store.TryCreateWeeklyUpdateAsync(
+                context,
+                new CreateWeeklyUpdateRequest(
+                    "p1",
+                    $"Ekspert {index}",
+                    35 + index,
+                    ProjectStatuses.Active,
+                    RiskLevels.Medium,
+                    "",
+                    $"Koment paralel {index}"))));
+
+        var readTasks = Enumerable.Range(1, 40)
+            .Select(_ => Task.Run(() =>
+            {
+                store.GetProjects(context, null, null);
+                store.GetWeeklyUpdates(context, "p1");
+                store.GetChangeProposals(context, null);
+                store.GetPortfolioOkr(context);
+            }));
+
+        var results = await Task.WhenAll(writeTasks);
+        await Task.WhenAll(readTasks);
+
+        Assert.All(results, result => Assert.True(result.IsSuccess));
+    }
+
     private sealed class BlockingPersistence : IDashboardStorePersistence
     {
         public TaskCompletionSource SaveStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
