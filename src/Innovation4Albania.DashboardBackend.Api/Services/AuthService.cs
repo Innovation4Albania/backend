@@ -107,8 +107,8 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
         }
 
         return string.Equals(username.Trim(), configuredUsername, StringComparison.Ordinal) &&
-               string.Equals(password, configuredPassword, StringComparison.Ordinal)
-            ? null
-            : "Username ose password nuk është i saktë.";
+        BCrypt.Net.BCrypt.Verify(password, configuredPassword)
+     ? null
+     : "Username ose password nuk është i saktë.";
     }
 }
