@@ -2,6 +2,7 @@ using Innovation4Albania.DashboardBackend.Api.Data;
 using Innovation4Albania.DashboardBackend.Api.Data.Repositories;
 using Innovation4Albania.DashboardBackend.Api.Services;
 using Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
+using Microsoft.Extensions.Options;
 
 namespace Innovation4Albania.DashboardBackend.Api.Configuration;
 
@@ -9,7 +10,10 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
-        services.AddHttpClient();
+        services.AddHttpClient(Options.DefaultName, client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
         services.AddSingleton<IDashboardStorePersistence, PostgresDashboardStorePersistence>();
         services.AddSingleton<InnovationDashboardStore>();
         services.AddHostedService<DashboardStoreInitializer>();
