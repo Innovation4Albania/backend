@@ -111,4 +111,10 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
      ? null
      : "Username ose password nuk është i saktë.";
     }
+
+    public string RefreshToken(UserContext context)
+    {
+        var user = repository.Login(new LoginRequest(context.Role, context.Ministry, null));
+        return CreateToken(user);
+    }
 }
