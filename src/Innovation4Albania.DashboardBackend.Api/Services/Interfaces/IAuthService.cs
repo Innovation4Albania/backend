@@ -8,4 +8,5 @@ public interface IAuthService
     string? ValidateViewLink(LoginRequest request);
     AuthResponse Login(LoginRequest request);
     AuthResponse CreateViewLinkSession(LoginRequest request);
+    string RefreshToken(UserContext context);
 }
