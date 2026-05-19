@@ -240,6 +240,10 @@ public sealed record AiChatResponse(
     ChatMessageResponse Reply,
     IReadOnlyList<string> SuggestedActions);
 
+public sealed record AiChatMessageRequest(
+    string Role,
+    string Content);
+
 public sealed record ObjectiveInput(
     string Title,
     string Owner,
@@ -301,7 +305,9 @@ public sealed record CreateProjectChangeProposalRequest(
 
 public sealed record ResolveChangeProposalRequest(string Action);
 
-public sealed record AiChatRequest(string Message);
+public sealed record AiChatRequest(
+    string Message,
+    IReadOnlyList<AiChatMessageRequest>? History = null);
 
 public sealed record ApiErrorResponse(string Code, string Message);
 

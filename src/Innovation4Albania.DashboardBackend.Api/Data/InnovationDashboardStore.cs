@@ -1160,13 +1160,15 @@ public sealed class InnovationDashboardStore
                 _mutationLock.Release();
             }
 
+            var conversation = BuildGeminiConversation(request);
             var geminiRequest = new
             {
                 system_instruction = new { parts = new[] { new { text = systemPrompt } } },
-                contents = new[]
+                contents = conversation.Select(message => new
                 {
-                new { role = "user", parts = new[] { new { text = request.Message } } }
-            },
+                    role = message.Role,
+                    parts = new[] { new { text = message.Content } }
+                }).ToArray(),
                 generationConfig = new { maxOutputTokens = 2048, temperature = 0.5 }
             };
 
@@ -1203,6 +1205,32 @@ public sealed class InnovationDashboardStore
             return ExecuteRead(() => BuildAiChatFallback(context, request));
         }
     }
+
+    private static IReadOnlyList<GeminiChatMessage> BuildGeminiConversation(AiChatRequest request)
+    {
+        var conversation = (request.History ?? [])
+            .Where(message => !string.IsNullOrWhiteSpace(message.Content))
+            .Select(message => new GeminiChatMessage(ToGeminiRole(message.Role), message.Content.Trim()))
+            .Where(message => !string.IsNullOrWhiteSpace(message.Role))
+            .TakeLast(20)
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(request.Message))
+        {
+            conversation.Add(new GeminiChatMessage("user", request.Message.Trim()));
+        }
+
+        return conversation;
+    }
+
+    private static string ToGeminiRole(string? role) => role?.Trim().ToLowerInvariant() switch
+    {
+        "assistant" or "model" => "model",
+        "user" => "user",
+        _ => string.Empty
+    };
+
+    private sealed record GeminiChatMessage(string Role, string Content);
 
     private AiChatResponse BuildAiChatFallback(UserContext context, AiChatRequest request)
     {
