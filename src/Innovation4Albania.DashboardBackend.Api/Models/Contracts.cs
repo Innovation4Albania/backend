@@ -294,7 +294,12 @@ public sealed record CreateWeeklyUpdateRequest(
     string Status,
     string Risk,
     string Blockers,
-    string Comments);
+    string Comments,
+    IReadOnlyList<WeeklyUpdateKeyResultInput>? KeyResults = null);
+
+public sealed record WeeklyUpdateKeyResultInput(
+    string KeyResultId,
+    int CurrentValue);
 
 public sealed record CreateProjectChangeProposalRequest(
     string ProjectId,

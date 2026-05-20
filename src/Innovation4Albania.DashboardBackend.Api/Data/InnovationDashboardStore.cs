@@ -890,8 +890,13 @@ public sealed class InnovationDashboardStore
                 request.Blockers.Trim(),
                 request.Comments.Trim());
 
-            _updates.Add(update);
+            var keyResultUpdateError = ApplyWeeklyKeyResultUpdates(project, request.KeyResults);
+            if (keyResultUpdateError is not null)
+            {
+                return (false, null, keyResultUpdateError);
+            }
 
+            _updates.Add(update);
             project.Progress = progress;
             project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
             project.Status = update.Status;
@@ -920,6 +925,33 @@ public sealed class InnovationDashboardStore
                 ? (true, response, null)
                 : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
         });
+    }
+
+    private static string? ApplyWeeklyKeyResultUpdates(
+        ProjectState project,
+        IReadOnlyList<WeeklyUpdateKeyResultInput>? keyResultUpdates)
+    {
+        if (keyResultUpdates is null || keyResultUpdates.Count == 0)
+        {
+            return null;
+        }
+
+        var keyResultsById = project.Objectives
+            .SelectMany(objective => objective.KeyResults)
+            .ToDictionary(keyResult => keyResult.Id, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var update in keyResultUpdates)
+        {
+            if (string.IsNullOrWhiteSpace(update.KeyResultId) ||
+                !keyResultsById.TryGetValue(update.KeyResultId, out var keyResult))
+            {
+                return "Nje KR i derguar nuk i perket projektit te zgjedhur.";
+            }
+
+            keyResult.Progress = CalculateKeyResultProgress(update.CurrentValue, keyResult.Target);
+        }
+
+        return null;
     }
 
     public Task<IReadOnlyList<ProjectChangeProposalResponse>> GetChangeProposals(UserContext context, string? projectId) => ExecuteReadAsync<IReadOnlyList<ProjectChangeProposalResponse>>(() =>
@@ -1488,6 +1520,16 @@ public sealed class InnovationDashboardStore
     private static ProjectOkr NeutralOkr() => new(50, 50, 50, 50);
 
     private static int ClampPercent(double value) => (int)Math.Round(Math.Clamp(value, 0, 100));
+
+    private static int CalculateKeyResultProgress(int currentValue, int target)
+    {
+        if (target <= 0)
+        {
+            return currentValue > 0 ? 100 : 0;
+        }
+
+        return ClampPercent(currentValue / (double)target * 100d);
+    }
 
     private static string ResolveStatusForProgress(string status, int progress) =>
         Math.Clamp(progress, 0, 100) >= 100 ? ProjectStatuses.Completed : status;
@@ -2396,7 +2438,10 @@ public sealed class InnovationDashboardStore
 
     private sealed record ObjectiveState(string Id, string Title, string Owner, List<KeyResultState> KeyResults);
 
-    private sealed record KeyResultState(string Id, string Title, int Progress, int Target, string Unit);
+    private sealed record KeyResultState(string Id, string Title, int InitialProgress, int Target, string Unit)
+    {
+        public int Progress { get; set; } = InitialProgress;
+    }
 
     private sealed record WorkgroupMemberState(
         string Id,

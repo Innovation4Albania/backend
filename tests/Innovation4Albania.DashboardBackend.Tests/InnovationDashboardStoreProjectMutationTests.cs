@@ -227,6 +227,49 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreateWeeklyUpdateAsync_UpdatesProjectKeyResultProgress()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var objectives = new[]
+        {
+            new ObjectiveInput(
+                "Objektiv test",
+                "Test Lead",
+                [
+                    new KeyResultInput("KR 1", 10, 100, "%"),
+                    new KeyResultInput("KR 2", 20, 50, "%"),
+                ]),
+        };
+        var created = await store.TryCreateProjectAsync(
+            context,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "KR-WEEKLY-001", Objectives = objectives });
+        var firstKr = created.Response!.Objectives[0].KeyResults[0];
+        var secondKr = created.Response.Objectives[0].KeyResults[1];
+
+        var result = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest(
+                created.Response.Id,
+                "Ekspert KR",
+                45,
+                ProjectStatuses.Active,
+                RiskLevels.Low,
+                "",
+                "Perditesim KR",
+                [
+                    new WeeklyUpdateKeyResultInput(firstKr.Id, 75),
+                    new WeeklyUpdateKeyResultInput(secondKr.Id, 25),
+                ]));
+        var project = await store.GetProjectById(created.Response.Id, context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(75, project!.Objectives[0].KeyResults[0].Progress);
+        Assert.Equal(50, project.Objectives[0].KeyResults[1].Progress);
+        Assert.Equal(62, project.Objectives[0].Progress);
+    }
+
+    [Fact]
     public async Task TryCreateWeeklyUpdateAsync_CompletesProjectAtFullProgress()
     {
         var store = StoreTestHelpers.CreateStore();
