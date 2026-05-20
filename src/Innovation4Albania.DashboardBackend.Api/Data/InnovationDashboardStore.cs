@@ -1416,16 +1416,13 @@ public sealed class InnovationDashboardStore
     private static int CalculateDeadlineOkr(ProjectState project)
     {
         if (project.Status == ProjectStatuses.Completed && project.LastUpdated <= project.EndDate)
-        {
             return 100;
-        }
 
         if (DateTimeOffset.UtcNow > project.EndDate)
-        {
             return 0;
-        }
 
-        return CalculateExpectedProgress(project.StartDate, project.EndDate);
+        var expectedProgress = CalculateExpectedProgress(project.StartDate, project.EndDate);
+        return ClampPercent(100 - (expectedProgress - project.Progress) * 2);
     }
 
     private static int CalculateQualityOkr(IReadOnlyList<WeeklyUpdateState> updates)
@@ -1481,7 +1478,9 @@ public sealed class InnovationDashboardStore
             previousDate = update.SubmittedAt;
         }
 
-        return ClampPercent(updatesOnTime * 100d / updates.Count);
+        var weight = Math.Min(1.0, updates.Count / 5.0);
+        var score = updatesOnTime * 100d / updates.Count;
+        return ClampPercent(50 + (score - 50) * weight);
     }
 
     private static ProjectOkr NeutralOkr() => new(50, 50, 50, 50);
