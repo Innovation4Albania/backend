@@ -463,6 +463,7 @@ public sealed class InnovationDashboardStore
             var projectNumber = GetNextProjectNumber();
             var now = DateTimeOffset.UtcNow;
             var teamMembers = BuildTeamMembersForRequest(projectNumber, request);
+            var progress = Math.Clamp(request.Progress, 0, 100);
             var project = new ProjectState(
                 $"p{projectNumber}",
                 request.Code.Trim(),
@@ -470,14 +471,14 @@ public sealed class InnovationDashboardStore
                 request.Description.Trim(),
                 request.Ministries.Count == 0 ? ["—"] : request.Ministries.Select(item => item.Trim()).ToList(),
                 string.IsNullOrWhiteSpace(request.Agency) ? null : request.Agency.Trim(),
-                request.Status,
+                ResolveStatusForProgress(request.Status, progress),
                 request.Priority,
                 request.Sector,
                 request.TotalPhases <= 0 ? 6 : Math.Max(1, request.TotalPhases),
                 1,
                 request.StartDate,
                 request.EndDate,
-                Math.Clamp(request.Progress, 0, 100),
+                progress,
                 NeutralOkr(),
                 request.Risk,
                 teamMembers.Select(member => member.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
@@ -615,13 +616,13 @@ public sealed class InnovationDashboardStore
         project.Name = request.Name.Trim();
         project.Description = request.Description.Trim();
         project.Agency = string.IsNullOrWhiteSpace(request.Agency) ? null : request.Agency.Trim();
-        project.Status = request.Status;
         project.Priority = request.Priority;
         project.Sector = request.Sector;
         project.TotalPhases = request.TotalPhases <= 0 ? 6 : Math.Max(1, request.TotalPhases);
         project.StartDate = request.StartDate;
         project.EndDate = request.EndDate;
         project.Progress = Math.Clamp(request.Progress, 0, 100);
+        project.Status = ResolveStatusForProgress(request.Status, project.Progress);
         project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
         project.Risk = request.Risk;
         project.Lead = request.Lead.Trim();
@@ -884,7 +885,7 @@ public sealed class InnovationDashboardStore
                 expertName,
                 DateTimeOffset.UtcNow,
                 progress,
-                request.Status,
+                ResolveStatusForProgress(request.Status, progress),
                 request.Risk,
                 request.Blockers.Trim(),
                 request.Comments.Trim());
@@ -893,7 +894,7 @@ public sealed class InnovationDashboardStore
 
             project.Progress = progress;
             project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
-            project.Status = request.Status;
+            project.Status = update.Status;
             project.Risk = request.Risk;
             project.LastUpdated = update.SubmittedAt;
             var updatesByProject = BuildUpdatesByProjectLookup();
@@ -1487,6 +1488,9 @@ public sealed class InnovationDashboardStore
     private static ProjectOkr NeutralOkr() => new(50, 50, 50, 50);
 
     private static int ClampPercent(double value) => (int)Math.Round(Math.Clamp(value, 0, 100));
+
+    private static string ResolveStatusForProgress(string status, int progress) =>
+        Math.Clamp(progress, 0, 100) >= 100 ? ProjectStatuses.Completed : status;
 
     private static int CalculateCurrentPhase(int progress, int totalPhases)
     {

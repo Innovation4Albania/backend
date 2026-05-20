@@ -110,6 +110,37 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreateProjectAsync_CompletesProjectAtFullProgress()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+
+        var created = await store.TryCreateProjectAsync(
+            context,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "COMPLETE-CREATE-001", Status = ProjectStatuses.Active, Progress = 100 });
+
+        Assert.True(created.IsSuccess);
+        Assert.Equal(ProjectStatuses.Completed, created.Response!.Status);
+    }
+
+    [Fact]
+    public async Task TryUpdateProjectAsync_CompletesProjectAtFullProgress()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with { Code = "COMPLETE-UPDATE-001", Status = ProjectStatuses.Active, Progress = 50 };
+        var created = await store.TryCreateProjectAsync(context, request);
+
+        var updated = await store.TryUpdateProjectAsync(
+            context,
+            created.Response!.Id,
+            request with { Progress = 100 });
+
+        Assert.True(updated.IsSuccess);
+        Assert.Equal(ProjectStatuses.Completed, updated.Response!.Status);
+    }
+
+    [Fact]
     public async Task TryCreateProjectAsync_WaitsForSnapshotPersistence()
     {
         var persistence = new BlockingPersistence();
@@ -193,6 +224,22 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.True(result.IsSuccess);
         Assert.Equal(projectResponse!.Okr, storedOkr);
         Assert.Equal(projectResponse.OkrAverage, result.Response!.OkrAverage);
+    }
+
+    [Fact]
+    public async Task TryCreateWeeklyUpdateAsync_CompletesProjectAtFullProgress()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+
+        var result = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest("p1", "Ekspert Complete", 100, ProjectStatuses.Active, RiskLevels.Low, "", "Perfunduar"));
+        var project = await store.GetProjectById("p1", context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ProjectStatuses.Completed, project!.Status);
+        Assert.Equal(ProjectStatuses.ToLabel(ProjectStatuses.Completed), result.Response!.Status);
     }
 
     [Fact]
