@@ -78,6 +78,38 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreateProjectAsync_DefaultsTotalPhasesAndStartsAtFirstPhase()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+
+        var created = await store.TryCreateProjectAsync(
+            context,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "PHASE-CREATE-001", TotalPhases = 0, CurrentPhase = 5, Progress = 85 });
+
+        Assert.True(created.IsSuccess);
+        Assert.Equal(6, created.Response!.TotalPhases);
+        Assert.Equal(1, created.Response.CurrentPhase);
+    }
+
+    [Fact]
+    public async Task TryUpdateProjectAsync_RecalculatesCurrentPhaseFromProgress()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with { Code = "PHASE-UPDATE-001", TotalPhases = 6, Progress = 0 };
+        var created = await store.TryCreateProjectAsync(context, request);
+
+        var updated = await store.TryUpdateProjectAsync(
+            context,
+            created.Response!.Id,
+            request with { Progress = 68, CurrentPhase = 1 });
+
+        Assert.True(updated.IsSuccess);
+        Assert.Equal(5, updated.Response!.CurrentPhase);
+    }
+
+    [Fact]
     public async Task TryCreateProjectAsync_WaitsForSnapshotPersistence()
     {
         var persistence = new BlockingPersistence();

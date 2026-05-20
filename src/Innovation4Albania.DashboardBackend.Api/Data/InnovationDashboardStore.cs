@@ -473,8 +473,8 @@ public sealed class InnovationDashboardStore
                 request.Status,
                 request.Priority,
                 request.Sector,
-                Math.Max(1, request.TotalPhases),
-                Math.Clamp(request.CurrentPhase, 1, Math.Max(1, request.TotalPhases)),
+                request.TotalPhases <= 0 ? 6 : Math.Max(1, request.TotalPhases),
+                1,
                 request.StartDate,
                 request.EndDate,
                 Math.Clamp(request.Progress, 0, 100),
@@ -618,11 +618,11 @@ public sealed class InnovationDashboardStore
         project.Status = request.Status;
         project.Priority = request.Priority;
         project.Sector = request.Sector;
-        project.TotalPhases = Math.Max(1, request.TotalPhases);
-        project.CurrentPhase = Math.Clamp(request.CurrentPhase, 1, project.TotalPhases);
+        project.TotalPhases = request.TotalPhases <= 0 ? 6 : Math.Max(1, request.TotalPhases);
         project.StartDate = request.StartDate;
         project.EndDate = request.EndDate;
         project.Progress = Math.Clamp(request.Progress, 0, 100);
+        project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
         project.Risk = request.Risk;
         project.Lead = request.Lead.Trim();
         project.UpdateCadenceDays = 14;
@@ -892,6 +892,7 @@ public sealed class InnovationDashboardStore
             _updates.Add(update);
 
             project.Progress = progress;
+            project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
             project.Status = request.Status;
             project.Risk = request.Risk;
             project.LastUpdated = update.SubmittedAt;
@@ -1486,6 +1487,12 @@ public sealed class InnovationDashboardStore
     private static ProjectOkr NeutralOkr() => new(50, 50, 50, 50);
 
     private static int ClampPercent(double value) => (int)Math.Round(Math.Clamp(value, 0, 100));
+
+    private static int CalculateCurrentPhase(int progress, int totalPhases)
+    {
+        var phases = Math.Max(1, totalPhases);
+        return Math.Clamp((int)Math.Ceiling(Math.Clamp(progress, 0, 100) / 100d * phases), 1, phases);
+    }
 
     private static int CalculateExpectedProgress(DateTimeOffset startDate, DateTimeOffset endDate)
     {
