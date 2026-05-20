@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Reflection;
 using Innovation4Albania.DashboardBackend.Api.Constants;
 using Innovation4Albania.DashboardBackend.Api.Data;
 using Innovation4Albania.DashboardBackend.Api.Models;
@@ -55,6 +57,24 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.Null(updated.Error);
         Assert.Equal("UNIQUE-201", updated.Response!.Code);
         Assert.Equal("Projekt i perditesuar", updated.Response.Name);
+    }
+
+    [Fact]
+    public async Task TryUpdateProjectAsync_RecalculatesStoredOkr()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var created = await store.TryCreateProjectAsync(context, StoreTestHelpers.ValidProjectRequest() with { Code = "OKR-UPDATE-001" });
+        var project = GetProjectState(store, created.Response!.Id);
+
+        var updated = await store.TryUpdateProjectAsync(
+            context,
+            created.Response.Id,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "OKR-UPDATE-001", Progress = 95 });
+        var storedOkr = GetProperty<ProjectOkr>(project, "Okr");
+
+        Assert.True(updated.IsSuccess);
+        Assert.Equal(updated.Response!.Okr, storedOkr);
     }
 
     [Fact]
@@ -126,6 +146,24 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreateWeeklyUpdateAsync_RecalculatesStoredOkr()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var project = GetProjectState(store, "p1");
+
+        var result = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest("p1", "Ekspert OKR", 95, ProjectStatuses.Active, RiskLevels.Low, "", "Progres i ri"));
+        var storedOkr = GetProperty<ProjectOkr>(project, "Okr");
+        var projectResponse = await store.GetProjectById("p1", context);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(projectResponse!.Okr, storedOkr);
+        Assert.Equal(projectResponse.OkrAverage, result.Response!.OkrAverage);
+    }
+
+    [Fact]
     public async Task Store_AllowsConcurrentReadsDuringMutations()
     {
         var store = StoreTestHelpers.CreateStore();
@@ -173,5 +211,22 @@ public sealed class InnovationDashboardStoreProjectMutationTests
             await AllowSave.Task.WaitAsync(cancellationToken);
             SaveCompleted = true;
         }
+    }
+
+    private static object GetProjectState(InnovationDashboardStore store, string projectId)
+    {
+        var field = typeof(InnovationDashboardStore).GetField("_projects", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingFieldException(nameof(InnovationDashboardStore), "_projects");
+        var projects = (IEnumerable)field.GetValue(store)!;
+
+        return projects.Cast<object>().First(project =>
+            string.Equals(GetProperty<string>(project, "Id"), projectId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static T GetProperty<T>(object instance, string propertyName)
+    {
+        var property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new MissingMemberException(instance.GetType().Name, propertyName);
+        return (T)property.GetValue(instance)!;
     }
 }
