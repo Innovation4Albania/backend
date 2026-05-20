@@ -4,12 +4,12 @@ namespace Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
 
 public interface IDashboardService
 {
-    DashboardSummaryResponse GetSummary(UserContext context);
-    IReadOnlyList<StatusDistributionItem> GetStatusDistribution(UserContext context);
-    IReadOnlyList<PerformanceScoreItem> GetPerformance(UserContext context);
+    Task<DashboardSummaryResponse> GetSummary(UserContext context);
+    Task<IReadOnlyList<StatusDistributionItem>> GetStatusDistribution(UserContext context);
+    Task<IReadOnlyList<PerformanceScoreItem>> GetPerformance(UserContext context);
     IReadOnlyList<TrendPointResponse> GetTrend(int months);
-    IReadOnlyList<MinistryDistributionItem> GetMinistryDistribution(UserContext context);
-    ResourceCapacitySummaryResponse GetResourceCapacity(UserContext context);
-    IReadOnlyList<PerformanceBoardColumnResponse> GetPerformanceBoard(UserContext context);
-    IReadOnlyList<RiskDeviationResponse> GetRiskDeviations(UserContext context);
+    Task<IReadOnlyList<MinistryDistributionItem>> GetMinistryDistribution(UserContext context);
+    Task<ResourceCapacitySummaryResponse> GetResourceCapacity(UserContext context);
+    Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context);
+    Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context);
 }

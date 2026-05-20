@@ -9,21 +9,22 @@ public static class ProjectEndpoints
 {
     public static RouteGroupBuilder MapProjectEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/projects", (ClaimsPrincipal user, string? status, string? query, IUserContextService contextService, IProjectService service) =>
+        api.MapGet("/projects", async (ClaimsPrincipal user, string? status, string? query, IUserContextService contextService, IProjectService service) =>
         {
-            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
-                ? Results.Ok(service.GetProjects(context, status, query))
-                : errorResult!;
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetProjects(context, status, query));
         });
 
-        api.MapGet("/projects/{id}", (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
+        api.MapGet("/projects/{id}", async (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
 
-            var project = service.GetProjectById(id, context);
+            var project = await service.GetProjectById(id, context);
             return project is null
                 ? Results.NotFound(new ApiErrorResponse("not_found", "Projekti nuk u gjet ose nuk është i aksesueshëm për këtë përdorues."))
                 : Results.Ok(project);
@@ -89,19 +90,19 @@ public static class ProjectEndpoints
                 : Results.BadRequest(new ApiErrorResponse("project_delete_failed", result.Error!));
         });
 
-        api.MapGet("/projects/{id}/events", (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
+        api.MapGet("/projects/{id}/events", async (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
             }
 
-            if (service.GetProjectById(id, context) is null)
+            if (await service.GetProjectById(id, context) is null)
             {
                 return Results.NotFound(new ApiErrorResponse("not_found", "Projekti nuk u gjet ose nuk është i aksesueshëm për këtë përdorues."));
             }
 
-            return Results.Ok(service.GetProjectEvents(id, context));
+            return Results.Ok(await service.GetProjectEvents(id, context));
         });
 
         api.MapGet("/projects/{id}/ai-insights", async (string id, ClaimsPrincipal user,

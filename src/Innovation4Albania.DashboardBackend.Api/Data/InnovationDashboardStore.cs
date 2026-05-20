@@ -66,7 +66,7 @@ public sealed class InnovationDashboardStore
             var payload = await _persistence.LoadSnapshotAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(payload))
             {
-                var seedPayload = ExecuteRead(() => JsonSerializer.Serialize(BuildSnapshot(), SnapshotJsonOptions));
+                var seedPayload = await ExecuteReadAsync(() => JsonSerializer.Serialize(BuildSnapshot(), SnapshotJsonOptions));
                 await SaveSnapshotAsync(seedPayload, cancellationToken);
                 return;
             }
@@ -153,9 +153,9 @@ public sealed class InnovationDashboardStore
         }
     }
 
-    private T ExecuteRead<T>(Func<T> read)
+    private async Task<T> ExecuteReadAsync<T>(Func<T> read)
     {
-        _mutationLock.Wait();
+        await _mutationLock.WaitAsync();
         try
         {
             return read();
@@ -281,7 +281,7 @@ public sealed class InnovationDashboardStore
             ApplicationRoles.ToDisplayLabel(context.Role));
     }
 
-    public DashboardSummaryResponse GetDashboardSummary(UserContext context) => ExecuteRead(() =>
+    public Task<DashboardSummaryResponse> GetDashboardSummary(UserContext context) => ExecuteReadAsync(() =>
     {
         var visible = GetVisibleProjects(context);
         var statusCards = ProjectStatuses.All
@@ -296,7 +296,7 @@ public sealed class InnovationDashboardStore
         return new DashboardSummaryResponse(visible.Count, statusCards, BuildPortfolioMetrics(visible, updatesByProject));
     });
 
-    public IReadOnlyList<StatusDistributionItem> GetStatusDistribution(UserContext context) => ExecuteRead(() =>
+    public Task<IReadOnlyList<StatusDistributionItem>> GetStatusDistribution(UserContext context) => ExecuteReadAsync<IReadOnlyList<StatusDistributionItem>>(() =>
     {
         var visible = GetVisibleProjects(context);
 
@@ -310,7 +310,7 @@ public sealed class InnovationDashboardStore
             .ToList();
     });
 
-    public IReadOnlyList<MinistryDistributionItem> GetMinistryDistribution(UserContext context) => ExecuteRead(() =>
+    public Task<IReadOnlyList<MinistryDistributionItem>> GetMinistryDistribution(UserContext context) => ExecuteReadAsync<IReadOnlyList<MinistryDistributionItem>>(() =>
     {
         var palette = new[]
         {
@@ -333,7 +333,7 @@ public sealed class InnovationDashboardStore
             .ToList();
     });
 
-    public ResourceCapacitySummaryResponse GetResourceCapacitySummary(UserContext context) => ExecuteRead(() =>
+    public Task<ResourceCapacitySummaryResponse> GetResourceCapacitySummary(UserContext context) => ExecuteReadAsync(() =>
     {
         var visible = GetVisibleProjects(context);
         if (visible.Count == 0)
@@ -372,8 +372,8 @@ public sealed class InnovationDashboardStore
             unitAllocations);
     });
 
-    public IReadOnlyList<PerformanceScoreItem> GetPerformanceScores(UserContext context) =>
-        ExecuteRead(() =>
+    public Task<IReadOnlyList<PerformanceScoreItem>> GetPerformanceScores(UserContext context) =>
+        ExecuteReadAsync<IReadOnlyList<PerformanceScoreItem>>(() =>
         {
             var updatesByProject = BuildUpdatesByProjectLookup();
             return GetVisibleProjects(context)
@@ -398,7 +398,7 @@ public sealed class InnovationDashboardStore
         return points;
     }
 
-    public IReadOnlyList<ProjectResponse> GetProjects(UserContext context, string? status, string? query) => ExecuteRead(() =>
+    public Task<IReadOnlyList<ProjectResponse>> GetProjects(UserContext context, string? status, string? query) => ExecuteReadAsync<IReadOnlyList<ProjectResponse>>(() =>
     {
         var visible = GetVisibleProjects(context);
 
@@ -432,8 +432,8 @@ public sealed class InnovationDashboardStore
             .ToList();
     });
 
-    public ProjectResponse? GetProjectById(string id, UserContext context) =>
-        ExecuteRead(() =>
+    public Task<ProjectResponse?> GetProjectById(string id, UserContext context) =>
+        ExecuteReadAsync(() =>
         {
             var project = GetVisibleProjects(context)
                 .FirstOrDefault(project => string.Equals(project.Id, id, StringComparison.OrdinalIgnoreCase));
@@ -649,7 +649,7 @@ public sealed class InnovationDashboardStore
     private int GetNextProjectNumber() =>
         _projects.Count == 0 ? 1 : _projects.Max(project => ParseProjectNumber(project.Id)) + 1;
 
-    public IReadOnlyList<ProjectEventResponse> GetEventsForProject(string projectId, UserContext context) => ExecuteRead(() =>
+    public Task<IReadOnlyList<ProjectEventResponse>> GetEventsForProject(string projectId, UserContext context) => ExecuteReadAsync(() =>
     {
         var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == projectId);
         return project is null ? [] : BuildProjectEvents(project);
@@ -657,7 +657,7 @@ public sealed class InnovationDashboardStore
 
     public async Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context, string apiKey)
     {
-        var insightState = ExecuteRead(() =>
+        var insightState = await ExecuteReadAsync(() =>
         {
             var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == projectId);
             if (project is null)
@@ -675,7 +675,7 @@ public sealed class InnovationDashboardStore
             : await BuildAiInsights(insightState.Project, insightState.Response, apiKey);
     }
 
-    public IReadOnlyList<PerformanceBoardColumnResponse> GetPerformanceBoard(UserContext context) => ExecuteRead<IReadOnlyList<PerformanceBoardColumnResponse>>(() =>
+    public Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context) => ExecuteReadAsync<IReadOnlyList<PerformanceBoardColumnResponse>>(() =>
     {
         var updatesByProject = BuildUpdatesByProjectLookup();
         var scored = GetVisibleProjects(context)
@@ -711,7 +711,7 @@ public sealed class InnovationDashboardStore
         ];
     });
 
-    public PortfolioOkrResponse GetPortfolioOkr(UserContext context) => ExecuteRead(() =>
+    public Task<PortfolioOkrResponse> GetPortfolioOkr(UserContext context) => ExecuteReadAsync(() =>
     {
         var visible = GetVisibleProjects(context);
         var objectives = _portfolioObjectives.Select(ToObjectiveResponse).ToList();
@@ -808,8 +808,8 @@ public sealed class InnovationDashboardStore
         return true;
     }
 
-    public IReadOnlyList<RiskDeviationResponse> GetRiskDeviations(UserContext context) =>
-        ExecuteRead(() => GetVisibleProjects(context)
+    public Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context) =>
+        ExecuteReadAsync<IReadOnlyList<RiskDeviationResponse>>(() => GetVisibleProjects(context)
             .OrderByDescending(project => UrgencyRank(project))
             .ThenBy(project => project.DaysRemaining)
             .Select(project => new RiskDeviationResponse(
@@ -826,7 +826,7 @@ public sealed class InnovationDashboardStore
                 GetUrgencyLabel(project)))
             .ToList());
 
-    public IReadOnlyList<WeeklyUpdateResponse> GetWeeklyUpdates(UserContext context, string? projectId) => ExecuteRead(() =>
+    public Task<IReadOnlyList<WeeklyUpdateResponse>> GetWeeklyUpdates(UserContext context, string? projectId) => ExecuteReadAsync<IReadOnlyList<WeeklyUpdateResponse>>(() =>
     {
         var visibleIds = GetVisibleProjects(context).Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var updatesByProject = BuildUpdatesByProjectLookup();
@@ -919,7 +919,7 @@ public sealed class InnovationDashboardStore
         });
     }
 
-    public IReadOnlyList<ProjectChangeProposalResponse> GetChangeProposals(UserContext context, string? projectId) => ExecuteRead(() =>
+    public Task<IReadOnlyList<ProjectChangeProposalResponse>> GetChangeProposals(UserContext context, string? projectId) => ExecuteReadAsync<IReadOnlyList<ProjectChangeProposalResponse>>(() =>
     {
         var visibleIds = GetVisibleProjects(context).Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -1031,7 +1031,7 @@ public sealed class InnovationDashboardStore
                 : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
         });
     }
-    public CalendarMonthResponse GetCalendarMonth(UserContext context, DateOnly month) => ExecuteRead(() =>
+    public Task<CalendarMonthResponse> GetCalendarMonth(UserContext context, DateOnly month) => ExecuteReadAsync(() =>
     {
         var events = GetVisibleProjects(context)
             .SelectMany(BuildProjectEvents)
@@ -1069,7 +1069,7 @@ public sealed class InnovationDashboardStore
         return new CalendarMonthResponse(monthStart, gridStart, gridEnd, days);
     });
 
-    public IReadOnlyList<UpcomingEventResponse> GetUpcomingEvents(UserContext context, int limit) => ExecuteRead(() =>
+    public Task<IReadOnlyList<UpcomingEventResponse>> GetUpcomingEvents(UserContext context, int limit) => ExecuteReadAsync<IReadOnlyList<UpcomingEventResponse>>(() =>
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         return GetVisibleProjects(context)
@@ -1093,7 +1093,7 @@ public sealed class InnovationDashboardStore
             .ToList();
     });
 
-    public IReadOnlyList<UpcomingEventResponse> GetPastEvents(UserContext context, int limit) => ExecuteRead(() =>
+    public Task<IReadOnlyList<UpcomingEventResponse>> GetPastEvents(UserContext context, int limit) => ExecuteReadAsync<IReadOnlyList<UpcomingEventResponse>>(() =>
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
         return GetVisibleProjects(context)
@@ -1121,14 +1121,12 @@ public sealed class InnovationDashboardStore
     {
         if (string.IsNullOrWhiteSpace(apiKey))
         {
-            return ExecuteRead(() => BuildAiChatFallback(context, request));
+            return await ExecuteReadAsync(() => BuildAiChatFallback(context, request));
         }
 
         try
         {
-            string systemPrompt;
-            _mutationLock.Wait();
-            try
+            var systemPrompt = await ExecuteReadAsync(() =>
             {
                 var visible = GetVisibleProjects(context);
                 var delayed = visible.Where(p => p.DelayDays > 0)
@@ -1141,7 +1139,7 @@ public sealed class InnovationDashboardStore
                     .Select(p => $"{p.Code} ({p.Name})")
                     .ToList();
 
-                systemPrompt = $"""
+                return $"""
             Jeni një asistent AI për platformën Innovation4Albania.
             Përgjigjuni GJITHMONË në shqip. Ji konciz dhe praktik.
             
@@ -1153,12 +1151,7 @@ public sealed class InnovationDashboardStore
             - Projekte me vonesë: {string.Join(", ", delayed.Select(p => p.Code))}
             - Risk i lartë/kritik: {string.Join(", ", highRisk)}
             """;
-
-            }
-            finally
-            {
-                _mutationLock.Release();
-            }
+            });
 
             var conversation = BuildGeminiConversation(request);
             var geminiRequest = new
@@ -1202,7 +1195,7 @@ public sealed class InnovationDashboardStore
         catch (Exception ex)
         {
             _logger.LogError(ex, "Gemini chat request failed");
-            return ExecuteRead(() => BuildAiChatFallback(context, request));
+            return await ExecuteReadAsync(() => BuildAiChatFallback(context, request));
         }
     }
 

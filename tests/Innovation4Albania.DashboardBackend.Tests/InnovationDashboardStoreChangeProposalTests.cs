@@ -32,7 +32,7 @@ public sealed class InnovationDashboardStoreChangeProposalTests
         Assert.True(proposal.IsSuccess);
 
         var resolved = await store.TryResolveChangeProposalAsync(director, proposal.Response!.Id, "approve");
-        var project = store.GetProjectById("p1", director);
+        var project = await store.GetProjectById("p1", director);
 
         Assert.True(resolved.IsSuccess);
         Assert.Null(resolved.Error);

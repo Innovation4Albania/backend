@@ -8,11 +8,12 @@ public static class PortfolioEndpoints
 {
     public static RouteGroupBuilder MapPortfolioEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/portfolio/okr", (ClaimsPrincipal user, IUserContextService contextService, IPortfolioService service) =>
+        api.MapGet("/portfolio/okr", async (ClaimsPrincipal user, IUserContextService contextService, IPortfolioService service) =>
         {
-            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
-                ? Results.Ok(service.GetPortfolioOkr(context))
-                : errorResult!;
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetPortfolioOkr(context));
         });
 
         api.MapPost("/portfolio/okr", async (ClaimsPrincipal user, CreatePortfolioObjectiveRequest request, IUserContextService contextService, IPortfolioService service) =>

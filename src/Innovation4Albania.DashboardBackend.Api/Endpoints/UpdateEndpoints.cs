@@ -9,11 +9,12 @@ public static class UpdateEndpoints
 {
     public static RouteGroupBuilder MapUpdateEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/updates", (ClaimsPrincipal user, string? projectId, IUserContextService contextService, IUpdateService service) =>
+        api.MapGet("/updates", async (ClaimsPrincipal user, string? projectId, IUserContextService contextService, IUpdateService service) =>
         {
-            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
-                ? Results.Ok(service.GetWeeklyUpdates(context, projectId))
-                : errorResult!;
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetWeeklyUpdates(context, projectId));
         });
 
         api.MapPost("/updates", async (ClaimsPrincipal user, CreateWeeklyUpdateRequest request, IUserContextService contextService, IUpdateService service) =>
@@ -29,11 +30,12 @@ public static class UpdateEndpoints
                 : Results.BadRequest(new ApiErrorResponse("update_create_failed", result.Error!));
         });
 
-        api.MapGet("/change-proposals", (ClaimsPrincipal user, string? projectId, IUserContextService contextService, IUpdateService service) =>
+        api.MapGet("/change-proposals", async (ClaimsPrincipal user, string? projectId, IUserContextService contextService, IUpdateService service) =>
         {
-            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
-                ? Results.Ok(service.GetChangeProposals(context, projectId))
-                : errorResult!;
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetChangeProposals(context, projectId));
         });
 
         api.MapPost("/change-proposals", async (ClaimsPrincipal user, CreateProjectChangeProposalRequest request, IUserContextService contextService, IUpdateService service) =>

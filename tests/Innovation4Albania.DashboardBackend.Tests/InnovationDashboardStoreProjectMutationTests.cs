@@ -85,7 +85,7 @@ public sealed class InnovationDashboardStoreProjectMutationTests
 
         var deleted = await store.TryDeleteProjectAsync(context, "p3");
         var created = await store.TryCreateProjectAsync(context, StoreTestHelpers.ValidProjectRequest() with { Code = "AFTER-DELETE-001" });
-        var projectIds = store.GetProjects(context, null, null).Select(project => project.Id).ToList();
+        var projectIds = (await store.GetProjects(context, null, null)).Select(project => project.Id).ToList();
 
         Assert.True(deleted.IsSuccess);
         Assert.True(created.IsSuccess);
@@ -144,12 +144,12 @@ public sealed class InnovationDashboardStoreProjectMutationTests
                     $"Koment paralel {index}"))));
 
         var readTasks = Enumerable.Range(1, 40)
-            .Select(_ => Task.Run(() =>
+            .Select(_ => Task.Run(async () =>
             {
-                store.GetProjects(context, null, null);
-                store.GetWeeklyUpdates(context, "p1");
-                store.GetChangeProposals(context, null);
-                store.GetPortfolioOkr(context);
+                await store.GetProjects(context, null, null);
+                await store.GetWeeklyUpdates(context, "p1");
+                await store.GetChangeProposals(context, null);
+                await store.GetPortfolioOkr(context);
             }));
 
         var results = await Task.WhenAll(writeTasks);

@@ -7,25 +7,28 @@ public static class CalendarEndpoints
 {
     public static RouteGroupBuilder MapCalendarEndpoints(this RouteGroupBuilder api)
     {
-        api.MapGet("/calendar/month", (ClaimsPrincipal user, DateOnly? month, IUserContextService contextService, ICalendarService service) =>
+        api.MapGet("/calendar/month", async (ClaimsPrincipal user, DateOnly? month, IUserContextService contextService, ICalendarService service) =>
         {
-            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
-                ? Results.Ok(service.GetCalendarMonth(context, month ?? DateOnly.FromDateTime(DateTime.Today)))
-                : errorResult!;
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetCalendarMonth(context, month ?? DateOnly.FromDateTime(DateTime.Today)));
         });
 
-        api.MapGet("/calendar/upcoming", (ClaimsPrincipal user, int? limit, IUserContextService contextService, ICalendarService service) =>
+        api.MapGet("/calendar/upcoming", async (ClaimsPrincipal user, int? limit, IUserContextService contextService, ICalendarService service) =>
         {
-            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
-                ? Results.Ok(service.GetUpcomingEvents(context, Math.Clamp(limit.GetValueOrDefault(8), 1, 50)))
-                : errorResult!;
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetUpcomingEvents(context, Math.Clamp(limit.GetValueOrDefault(8), 1, 50)));
         });
 
-        api.MapGet("/calendar/past", (ClaimsPrincipal user, int? limit, IUserContextService contextService, ICalendarService service) =>
+        api.MapGet("/calendar/past", async (ClaimsPrincipal user, int? limit, IUserContextService contextService, ICalendarService service) =>
         {
-            return EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult)
-                ? Results.Ok(service.GetPastEvents(context, Math.Clamp(limit.GetValueOrDefault(12), 1, 50)))
-                : errorResult!;
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetPastEvents(context, Math.Clamp(limit.GetValueOrDefault(12), 1, 50)));
         });
 
         return api;

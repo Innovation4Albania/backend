@@ -77,12 +77,12 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
-    public void GetProjects_ReturnsNoProjectsForMinistryStaffWithoutMinistry()
+    public async Task GetProjects_ReturnsNoProjectsForMinistryStaffWithoutMinistry()
     {
         var store = StoreTestHelpers.CreateStore();
         var context = UserContext.From(ApplicationRoles.StafMinistrie, null);
 
-        var projects = store.GetProjects(context, null, null);
+        var projects = await store.GetProjects(context, null, null);
 
         Assert.Empty(projects);
     }
