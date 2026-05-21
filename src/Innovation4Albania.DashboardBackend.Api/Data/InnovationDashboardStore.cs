@@ -1268,6 +1268,11 @@ public sealed class InnovationDashboardStore
 
     public async Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request, string apiKey)
     {
+        if (!AiChatLimits.TryValidate(request, out var validationError))
+        {
+            throw new ArgumentException(validationError, nameof(request));
+        }
+
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             return await ExecuteReadAsync(() => BuildAiChatFallback(context, request));
