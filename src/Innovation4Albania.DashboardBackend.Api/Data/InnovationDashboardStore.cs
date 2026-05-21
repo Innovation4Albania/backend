@@ -862,21 +862,7 @@ public sealed class InnovationDashboardStore
             .Select(update =>
             {
                 var project = _projects.First(item => item.Id == update.ProjectId);
-                return new WeeklyUpdateResponse(
-                    update.Id,
-                    update.ProjectId,
-                    project.Code,
-                    project.Name,
-                    update.SubmittedBy,
-                    ApplicationRoles.ToDisplayLabel(update.SubmittedRole),
-                    update.ExpertName,
-                    update.SubmittedAt,
-                    update.Progress,
-                    ProjectStatuses.ToLabel(update.Status),
-                    GetOkrAverage(project),
-                    RiskLevels.ToLabel(update.Risk),
-                    update.Blockers,
-                    update.Comments);
+                return ToWeeklyUpdateResponse(update, project);
             })
             .ToList();
     });
@@ -929,26 +915,131 @@ public sealed class InnovationDashboardStore
             var updatesByProject = BuildUpdatesByProjectLookup();
             RecalculateProjectOkr(project, updatesByProject);
 
-            var response = new WeeklyUpdateResponse(
-                update.Id,
-                update.ProjectId,
-                project.Code,
-                project.Name,
-                update.SubmittedBy,
-                ApplicationRoles.ToDisplayLabel(update.SubmittedRole),
-                update.ExpertName,
-                update.SubmittedAt,
-                update.Progress,
-                ProjectStatuses.ToLabel(update.Status),
-                GetOkrAverage(project),
-                RiskLevels.ToLabel(update.Risk),
-                update.Blockers,
-                update.Comments);
+            var response = ToWeeklyUpdateResponse(update, project);
 
             return await PersistSnapshotAsync()
                 ? (true, response, null)
                 : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
         });
+    }
+
+    public async Task<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)> TryUpdateWeeklyUpdateAsync(UserContext context, string id, CreateWeeklyUpdateRequest request)
+    {
+        return await ExecuteMutationAsync<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)>(async () =>
+        {
+            if (!ApplicationRoles.CanSubmitUpdates(context.Role))
+            {
+                return (false, null, "Vetem ekspertet dhe drejtori mund te modifikojne perditesime.");
+            }
+
+            var visibleIds = GetVisibleProjects(context).Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var updateIndex = _updates.FindIndex(update => string.Equals(update.Id, id, StringComparison.OrdinalIgnoreCase) && visibleIds.Contains(update.ProjectId));
+            if (updateIndex < 0)
+            {
+                return (false, null, "Perditesimi nuk u gjet.");
+            }
+
+            var currentUpdate = _updates[updateIndex];
+            if (!string.Equals(currentUpdate.ProjectId, request.ProjectId, StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, null, "Projekti i perditesimit nuk mund te ndryshohet.");
+            }
+
+            var project = _projects.FirstOrDefault(item => string.Equals(item.Id, currentUpdate.ProjectId, StringComparison.OrdinalIgnoreCase));
+            if (project is null)
+            {
+                return (false, null, "Projekti nuk u gjet.");
+            }
+
+            var progress = Math.Clamp(request.Progress, 0, 100);
+            var expertName = string.IsNullOrWhiteSpace(request.ExpertName)
+                ? currentUpdate.ExpertName
+                : request.ExpertName.Trim();
+            var updated = currentUpdate with
+            {
+                ExpertName = expertName,
+                Progress = progress,
+                Status = ResolveStatusForProgress(request.Status, progress),
+                Risk = request.Risk,
+                Blockers = request.Blockers.Trim(),
+                Comments = request.Comments.Trim()
+            };
+
+            _updates[updateIndex] = updated;
+            ApplyLatestUpdateState(project);
+            RecalculateProjectOkr(project, BuildUpdatesByProjectLookup());
+
+            var response = ToWeeklyUpdateResponse(updated, project);
+            return await PersistSnapshotAsync()
+                ? (true, response, null)
+                : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
+        });
+    }
+
+    public async Task<(bool IsSuccess, string? Error)> TryDeleteWeeklyUpdateAsync(UserContext context, string id)
+    {
+        return await ExecuteMutationAsync<(bool IsSuccess, string? Error)>(async () =>
+        {
+            if (!ApplicationRoles.CanSubmitUpdates(context.Role))
+            {
+                return (false, "Vetem ekspertet dhe drejtori mund te fshijne perditesime.");
+            }
+
+            var visibleIds = GetVisibleProjects(context).Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var update = _updates.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase) && visibleIds.Contains(item.ProjectId));
+            if (update is null)
+            {
+                return (false, "Perditesimi nuk u gjet.");
+            }
+
+            var project = _projects.FirstOrDefault(item => string.Equals(item.Id, update.ProjectId, StringComparison.OrdinalIgnoreCase));
+            _updates.Remove(update);
+            if (project is not null)
+            {
+                ApplyLatestUpdateState(project);
+                RecalculateProjectOkr(project, BuildUpdatesByProjectLookup());
+            }
+
+            return await PersistSnapshotAsync()
+                ? (true, null)
+                : (false, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
+        });
+    }
+
+    private WeeklyUpdateResponse ToWeeklyUpdateResponse(WeeklyUpdateState update, ProjectState project) =>
+        new(
+            update.Id,
+            update.ProjectId,
+            project.Code,
+            project.Name,
+            update.SubmittedBy,
+            ApplicationRoles.ToDisplayLabel(update.SubmittedRole),
+            update.ExpertName,
+            update.SubmittedAt,
+            update.Progress,
+            ProjectStatuses.ToLabel(update.Status),
+            GetOkrAverage(project),
+            RiskLevels.ToLabel(update.Risk),
+            update.Blockers,
+            update.Comments);
+
+    private void ApplyLatestUpdateState(ProjectState project)
+    {
+        var latestUpdate = _updates
+            .Where(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(update => update.SubmittedAt)
+            .FirstOrDefault();
+
+        if (latestUpdate is null)
+        {
+            return;
+        }
+
+        project.Progress = latestUpdate.Progress;
+        project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
+        project.Status = latestUpdate.Status;
+        project.Risk = latestUpdate.Risk;
+        project.LastUpdated = latestUpdate.SubmittedAt;
     }
 
     private static string? ApplyWeeklyKeyResultUpdates(

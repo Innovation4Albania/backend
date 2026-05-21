@@ -30,6 +30,32 @@ public static class UpdateEndpoints
                 : Results.BadRequest(new ApiErrorResponse("update_create_failed", result.Error!));
         });
 
+        api.MapPut("/updates/{id}", async (string id, ClaimsPrincipal user, CreateWeeklyUpdateRequest request, IUserContextService contextService, IUpdateService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            var result = await service.TryUpdateWeeklyUpdateAsync(context, id, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("update_edit_failed", result.Error!));
+        });
+
+        api.MapDelete("/updates/{id}", async (string id, ClaimsPrincipal user, IUserContextService contextService, IUpdateService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            var result = await service.TryDeleteWeeklyUpdateAsync(context, id);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : Results.BadRequest(new ApiErrorResponse("update_delete_failed", result.Error!));
+        });
+
         api.MapGet("/change-proposals", async (ClaimsPrincipal user, string? projectId, IUserContextService contextService, IUpdateService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))

@@ -327,6 +327,59 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryUpdateWeeklyUpdateAsync_UpdatesProjectFromLatestUpdate()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var created = await store.TryCreateProjectAsync(
+            context,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "EDIT-UPD-001", Progress = 10, Status = ProjectStatuses.Active });
+        var update = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest(created.Response!.Id, "Ekspert", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment fillestar"));
+
+        var edited = await store.TryUpdateWeeklyUpdateAsync(
+            context,
+            update.Response!.Id,
+            new CreateWeeklyUpdateRequest(created.Response.Id, "Ekspert edit", 100, ProjectStatuses.Active, RiskLevels.Low, "Pa pengesa", "Koment edit"));
+        var project = await store.GetProjectById(created.Response.Id, context);
+
+        Assert.True(edited.IsSuccess);
+        Assert.Equal(100, edited.Response!.Progress);
+        Assert.Equal(ProjectStatuses.ToLabel(ProjectStatuses.Completed), edited.Response.Status);
+        Assert.Equal(ProjectStatuses.Completed, project!.Status);
+        Assert.Equal(100, project.Progress);
+    }
+
+    [Fact]
+    public async Task TryDeleteWeeklyUpdateAsync_ReappliesPreviousLatestUpdate()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var created = await store.TryCreateProjectAsync(
+            context,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "DELETE-UPD-001", Progress = 10, Status = ProjectStatuses.Active });
+        var first = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest(created.Response!.Id, "Ekspert 1", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment 1"));
+        await Task.Delay(1);
+        var second = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest(created.Response.Id, "Ekspert 2", 80, ProjectStatuses.AtRisk, RiskLevels.High, "Bllokim", "Koment 2"));
+
+        var deleted = await store.TryDeleteWeeklyUpdateAsync(context, second.Response!.Id);
+        var project = await store.GetProjectById(created.Response.Id, context);
+        var updates = await store.GetWeeklyUpdates(context, created.Response.Id);
+
+        Assert.True(first.IsSuccess);
+        Assert.True(deleted.IsSuccess);
+        Assert.Single(updates);
+        Assert.Equal(40, project!.Progress);
+        Assert.Equal(ProjectStatuses.Active, project.Status);
+        Assert.Equal(RiskLevels.Medium, project.Risk);
+    }
+
+    [Fact]
     public async Task Store_AllowsConcurrentReadsDuringMutations()
     {
         var store = StoreTestHelpers.CreateStore();

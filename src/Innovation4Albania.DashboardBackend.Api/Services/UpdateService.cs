@@ -8,6 +8,8 @@ public sealed class UpdateService(IInnovationDashboardRepository repository) : I
 {
     public Task<IReadOnlyList<WeeklyUpdateResponse>> GetWeeklyUpdates(UserContext context, string? projectId) => repository.GetWeeklyUpdates(context, projectId);
     public Task<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)> TryCreateWeeklyUpdateAsync(UserContext context, CreateWeeklyUpdateRequest request) => repository.TryCreateWeeklyUpdateAsync(context, request);
+    public Task<(bool IsSuccess, WeeklyUpdateResponse? Response, string? Error)> TryUpdateWeeklyUpdateAsync(UserContext context, string id, CreateWeeklyUpdateRequest request) => repository.TryUpdateWeeklyUpdateAsync(context, id, request);
+    public Task<(bool IsSuccess, string? Error)> TryDeleteWeeklyUpdateAsync(UserContext context, string id) => repository.TryDeleteWeeklyUpdateAsync(context, id);
     public Task<IReadOnlyList<ProjectChangeProposalResponse>> GetChangeProposals(UserContext context, string? projectId) => repository.GetChangeProposals(context, projectId);
     public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryCreateChangeProposalAsync(UserContext context, CreateProjectChangeProposalRequest request) => repository.TryCreateChangeProposalAsync(context, request);
     public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action) => repository.TryResolveChangeProposalAsync(context, id, action);
