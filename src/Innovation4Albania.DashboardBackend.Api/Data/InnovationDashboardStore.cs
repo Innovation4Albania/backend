@@ -343,12 +343,17 @@ public sealed class InnovationDashboardStore
 
         var visible = GetVisibleProjects(context);
 
-        return _ministries
+        var visibleMinistries = context.Role == ApplicationRoles.StafMinistrie
+            ? ResolveMinistry(context.Ministry) is { } ministry ? [ministry] : []
+            : _ministries
+                .Where(ministry => visible.Any(project => project.Ministries.Contains(ministry)))
+                .ToList();
+
+        return visibleMinistries
             .Select((ministry, index) => new MinistryDistributionItem(
                 ShortMinistryName(ministry),
                 visible.Count(project => project.Ministries.Contains(ministry)),
                 palette[index % palette.Length]))
-            .Where(item => item.Value > 0)
             .ToList();
     });
 
