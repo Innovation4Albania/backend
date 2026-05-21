@@ -734,7 +734,7 @@ public sealed class InnovationDashboardStore
                 return (false, null, error);
             }
 
-            var state = ToObjectiveState($"portfolio-{_portfolioObjectives.Count + 1}", new ObjectiveInput(request.Title, request.Owner, request.KeyResults));
+            var state = ToObjectiveState($"portfolio-{GetNextPortfolioObjectiveNumber()}", new ObjectiveInput(request.Title, request.Owner, request.KeyResults));
             _portfolioObjectives.Add(state);
             var response = ToObjectiveResponse(state);
             return await PersistSnapshotAsync()
@@ -809,6 +809,20 @@ public sealed class InnovationDashboardStore
         error = null;
         return true;
     }
+
+    private static int ParsePortfolioObjectiveNumber(string objectiveId)
+    {
+        var suffix = objectiveId.StartsWith("portfolio-", StringComparison.OrdinalIgnoreCase)
+            ? objectiveId["portfolio-".Length..]
+            : objectiveId;
+
+        return int.TryParse(suffix, out var number) ? number : 0;
+    }
+
+    private int GetNextPortfolioObjectiveNumber() =>
+        _portfolioObjectives.Count == 0
+            ? 1
+            : _portfolioObjectives.Max(objective => ParsePortfolioObjectiveNumber(objective.Id)) + 1;
 
     public Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context) =>
         ExecuteReadAsync<IReadOnlyList<RiskDeviationResponse>>(() => GetVisibleProjects(context)

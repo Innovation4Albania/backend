@@ -193,6 +193,28 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreatePortfolioObjectiveAsync_UsesNextHighestIdAfterDelete()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+
+        var deleted = await store.TryDeletePortfolioObjectiveAsync(context, "portfolio-1");
+        var created = await store.TryCreatePortfolioObjectiveAsync(
+            context,
+            new CreatePortfolioObjectiveRequest(
+                "Objektiv i ri",
+                "Drejtoria e Inovacionit",
+                [new KeyResultInput("KR i ri", 10, 100, "%")]));
+        var portfolio = await store.GetPortfolioOkr(context);
+        var objectiveIds = portfolio.Objectives.Select(objective => objective.Id).ToList();
+
+        Assert.True(deleted.IsSuccess);
+        Assert.True(created.IsSuccess);
+        Assert.Equal("portfolio-3", created.Response!.Id);
+        Assert.Equal(objectiveIds.Count, objectiveIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
     public async Task TryCreateWeeklyUpdateAsync_AssignsUniqueIdsForConcurrentUpdates()
     {
         var store = StoreTestHelpers.CreateStore();
