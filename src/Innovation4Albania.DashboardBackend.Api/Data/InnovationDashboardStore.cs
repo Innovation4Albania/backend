@@ -202,6 +202,11 @@ public sealed class InnovationDashboardStore
 
     private void RestoreSnapshot(DashboardStoreSnapshot snapshot)
     {
+        var projectIdsMissingOkr = snapshot.Projects
+            .Where(project => project.Okr is null)
+            .Select(project => project.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         _projects.Clear();
         _projects.AddRange(snapshot.Projects.Select(ToProjectState));
 
@@ -235,7 +240,14 @@ public sealed class InnovationDashboardStore
             proposal.Reason,
             ChangeProposalStatuses.Normalize(proposal.Status))));
 
-        RecalculateAllProjectOkrs();
+        if (projectIdsMissingOkr.Count > 0)
+        {
+            var updatesByProject = BuildUpdatesByProjectLookup();
+            foreach (var project in _projects.Where(project => projectIdsMissingOkr.Contains(project.Id)))
+            {
+                RecalculateProjectOkr(project, updatesByProject);
+            }
+        }
     }
 
     public IReadOnlyList<string> GetMinistries() => _ministries;
