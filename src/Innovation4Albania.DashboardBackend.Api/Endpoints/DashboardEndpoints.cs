@@ -1,3 +1,5 @@
+using Innovation4Albania.DashboardBackend.Api.Constants;
+using Innovation4Albania.DashboardBackend.Api.Models;
 using Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
 using System.Security.Claims;
 
@@ -62,6 +64,13 @@ public static class DashboardEndpoints
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
                 return errorResult!;
+
+            if (!ApplicationRoles.CanViewRiskDeviations(context.Role))
+            {
+                return Results.Json(
+                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje te shikoje devijimet e riskut."),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
 
             return Results.Ok(await service.GetRiskDeviations(context));
         });
