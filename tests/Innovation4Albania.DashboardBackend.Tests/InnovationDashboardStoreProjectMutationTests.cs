@@ -231,6 +231,25 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreateWeeklyUpdateAsync_UsesNextHighestIdAfterProjectDelete()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+
+        var deleted = await store.TryDeleteProjectAsync(context, "p1");
+        var result = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest("p3", "Ekspert pas fshirjes", 45, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
+        var updates = await store.GetWeeklyUpdates(context, null);
+        var updateIds = updates.Select(update => update.Id).ToList();
+
+        Assert.True(deleted.IsSuccess);
+        Assert.True(result.IsSuccess);
+        Assert.Equal("upd-4", result.Response!.Id);
+        Assert.Equal(updateIds.Count, updateIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    [Fact]
     public async Task TryCreateWeeklyUpdateAsync_RecalculatesStoredOkr()
     {
         var store = StoreTestHelpers.CreateStore();

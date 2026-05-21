@@ -56,6 +56,30 @@ public sealed class InnovationDashboardStoreChangeProposalTests
         Assert.Contains("approve ose reject", resolved.Error);
     }
 
-    private static CreateProjectChangeProposalRequest ValidContentProposal() =>
-        new("p1", "content", "old", "Pershkrim i ri.", "Arsye test.");
+    [Fact]
+    public async Task TryCreateChangeProposalAsync_UsesNextHighestIdAfterProjectDelete()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var staff = StoreTestHelpers.StaffContext();
+        var director = StoreTestHelpers.DirectorContext();
+
+        var first = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p1"));
+        var second = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p2"));
+        var third = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p3"));
+        var deleted = await store.TryDeleteProjectAsync(director, "p1");
+        var created = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p3"));
+        var proposals = await store.GetChangeProposals(director, null);
+        var proposalIds = proposals.Select(proposal => proposal.Id).ToList();
+
+        Assert.True(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.True(third.IsSuccess);
+        Assert.True(deleted.IsSuccess);
+        Assert.True(created.IsSuccess);
+        Assert.Equal("chg-4", created.Response!.Id);
+        Assert.Equal(proposalIds.Count, proposalIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    private static CreateProjectChangeProposalRequest ValidContentProposal(string projectId = "p1") =>
+        new(projectId, "content", "old", "Pershkrim i ri.", "Arsye test.");
 }

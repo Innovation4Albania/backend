@@ -652,6 +652,25 @@ public sealed class InnovationDashboardStore
     private int GetNextProjectNumber() =>
         _projects.Count == 0 ? 1 : _projects.Max(project => ParseProjectNumber(project.Id)) + 1;
 
+    private static int ParsePrefixedNumber(string id, string prefix)
+    {
+        var suffix = id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? id[prefix.Length..]
+            : id;
+
+        return int.TryParse(suffix, out var number) && number > 0 ? number : 0;
+    }
+
+    private int GetNextWeeklyUpdateNumber() =>
+        _updates.Count == 0
+            ? 1
+            : _updates.Max(update => ParsePrefixedNumber(update.Id, "upd-")) + 1;
+
+    private int GetNextChangeProposalNumber() =>
+        _changeProposals.Count == 0
+            ? 1
+            : _changeProposals.Max(proposal => ParsePrefixedNumber(proposal.Id, "chg-")) + 1;
+
     public Task<IReadOnlyList<ProjectEventResponse>> GetEventsForProject(string projectId, UserContext context) => ExecuteReadAsync(() =>
     {
         var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == projectId);
@@ -810,19 +829,10 @@ public sealed class InnovationDashboardStore
         return true;
     }
 
-    private static int ParsePortfolioObjectiveNumber(string objectiveId)
-    {
-        var suffix = objectiveId.StartsWith("portfolio-", StringComparison.OrdinalIgnoreCase)
-            ? objectiveId["portfolio-".Length..]
-            : objectiveId;
-
-        return int.TryParse(suffix, out var number) ? number : 0;
-    }
-
     private int GetNextPortfolioObjectiveNumber() =>
         _portfolioObjectives.Count == 0
             ? 1
-            : _portfolioObjectives.Max(objective => ParsePortfolioObjectiveNumber(objective.Id)) + 1;
+            : _portfolioObjectives.Max(objective => ParsePrefixedNumber(objective.Id, "portfolio-")) + 1;
 
     public Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context) =>
         ExecuteReadAsync<IReadOnlyList<RiskDeviationResponse>>(() => GetVisibleProjects(context)
@@ -892,7 +902,7 @@ public sealed class InnovationDashboardStore
 
             var progress = Math.Clamp(request.Progress, 0, 100);
             var update = new WeeklyUpdateState(
-                $"upd-{_updates.Count + 1}",
+                $"upd-{GetNextWeeklyUpdateNumber()}",
                 request.ProjectId,
                 ApplicationRoles.ToDisplayLabel(context.Role),
                 context.Role,
@@ -1007,7 +1017,7 @@ public sealed class InnovationDashboardStore
             }
 
             var proposal = new ProjectChangeProposalState(
-                $"chg-{_changeProposals.Count + 1}",
+                $"chg-{GetNextChangeProposalNumber()}",
                 request.ProjectId,
                 ApplicationRoles.ToDisplayLabel(context.Role),
                 context.Role,
