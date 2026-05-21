@@ -17,7 +17,7 @@ public static class AiEndpoints
             var apiKey = configuration["Gemini:ApiKey"] ?? string.Empty;
             var result = await service.GetChatReply(context, request, apiKey);
             return Results.Ok(result);
-        });
+        }).RequireRateLimiting("ai");
 
         return api;
     }

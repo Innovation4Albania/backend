@@ -3,7 +3,9 @@ using Innovation4Albania.DashboardBackend.Api.Endpoints;
 using Innovation4Albania.DashboardBackend.Api.Middleware;
 using Innovation4Albania.DashboardBackend.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
+using System.Threading.RateLimiting;
 
 LoadDotEnv(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
@@ -30,6 +32,28 @@ builder.Services
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("ai", httpContext =>
+    {
+        var userKey =
+            httpContext.User.FindFirst("sub")?.Value ??
+            httpContext.User.Identity?.Name ??
+            httpContext.Connection.RemoteIpAddress?.ToString() ??
+            "anonymous";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            userKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 10,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            });
+    });
+});
 builder.Services.AddOpenApi();
 
 builder.Services
@@ -49,6 +73,7 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 var api = app.MapGroup("/api");
 api.MapHealthEndpoints();

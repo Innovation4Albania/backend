@@ -116,7 +116,7 @@ public static class ProjectEndpoints
             return insights is null
                 ? Results.NotFound(new ApiErrorResponse("not_found", "Projekti nuk u gjet."))
                 : Results.Ok(insights);
-        });
+        }).RequireRateLimiting("ai");
 
         return api;
     }
