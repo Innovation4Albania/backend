@@ -36,7 +36,7 @@ public sealed class InnovationDashboardStoreChangeProposalTests
 
         Assert.True(resolved.IsSuccess);
         Assert.Null(resolved.Error);
-        Assert.Equal("Miratuar", resolved.Response!.Status);
+        Assert.Equal(ChangeProposalStatuses.Approved, resolved.Response!.Status);
         Assert.Equal(nextDescription, project!.Description);
     }
 

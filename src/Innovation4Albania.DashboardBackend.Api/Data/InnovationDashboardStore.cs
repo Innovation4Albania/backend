@@ -193,7 +193,7 @@ public sealed class InnovationDashboardStore
                 proposal.CurrentValue,
                 proposal.ProposedValue,
                 proposal.Reason,
-                proposal.Status)).ToList());
+            ChangeProposalStatuses.Normalize(proposal.Status))).ToList());
 
     private void RestoreSnapshot(DashboardStoreSnapshot snapshot)
     {
@@ -228,7 +228,7 @@ public sealed class InnovationDashboardStore
             proposal.CurrentValue,
             proposal.ProposedValue,
             proposal.Reason,
-            proposal.Status)));
+            ChangeProposalStatuses.Normalize(proposal.Status))));
 
         RecalculateAllProjectOkrs();
     }
@@ -1026,7 +1026,7 @@ public sealed class InnovationDashboardStore
                 request.CurrentValue.Trim(),
                 request.ProposedValue.Trim(),
                 request.Reason.Trim(),
-                "Në shqyrtim");
+                ChangeProposalStatuses.Pending);
 
             _changeProposals.Add(proposal);
             var response = ToChangeProposalResponse(proposal);
@@ -1057,8 +1057,7 @@ public sealed class InnovationDashboardStore
                 return (false, null, "Nuk keni akses te ky propozim.");
             }
 
-            if (!string.Equals(proposal.Status, "Në shqyrtim", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(proposal.Status, "Ne shqyrtim", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(proposal.Status, ChangeProposalStatuses.Pending, StringComparison.OrdinalIgnoreCase))
             {
                 return (false, null, "Ky propozim eshte zgjidhur tashme.");
             }
@@ -1073,11 +1072,11 @@ public sealed class InnovationDashboardStore
                 }
 
                 project.LastUpdated = DateTimeOffset.UtcNow;
-                proposal.Status = "Miratuar";
+                proposal.Status = ChangeProposalStatuses.Approved;
             }
             else if (normalizedAction is "reject" or "rejected" or "refuzo")
             {
-                proposal.Status = "Refuzuar";
+                proposal.Status = ChangeProposalStatuses.Rejected;
             }
             else
             {
