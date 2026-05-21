@@ -6,5 +6,5 @@ namespace Innovation4Albania.DashboardBackend.Api.Services;
 
 public sealed class AiService(IInnovationDashboardRepository repository) : IAiService
 {
-    public Task<AiChatResponse> GetChatReply(UserContext context, AiChatRequest request, string apiKey) => repository.GetAiChatReply(context, request, apiKey);
+    public Task<AiChatResponse> GetChatReply(UserContext context, AiChatRequest request) => repository.GetAiChatReply(context, request);
 }

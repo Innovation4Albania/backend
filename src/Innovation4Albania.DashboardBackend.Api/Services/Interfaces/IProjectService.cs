@@ -10,5 +10,5 @@ public interface IProjectService
     Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryUpdateProjectAsync(UserContext context, string id, CreateProjectRequest request);
     Task<(bool IsSuccess, string? Error)> TryDeleteProjectAsync(UserContext context, string id);
     Task<IReadOnlyList<ProjectEventResponse>> GetProjectEvents(string id, UserContext context);
-    Task<AiInsightResponse?> GetProjectAiInsights(string id, UserContext context, string apiKey);
+    Task<AiInsightResponse?> GetProjectAiInsights(string id, UserContext context);
 }

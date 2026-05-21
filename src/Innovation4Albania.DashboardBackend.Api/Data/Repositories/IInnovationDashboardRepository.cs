@@ -20,7 +20,7 @@ public interface IInnovationDashboardRepository
     Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryUpdateProjectAsync(UserContext context, string id, CreateProjectRequest request);
     Task<(bool IsSuccess, string? Error)> TryDeleteProjectAsync(UserContext context, string id);
     Task<IReadOnlyList<ProjectEventResponse>> GetEventsForProject(string projectId, UserContext context);
-    Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context, string apiKey);
+    Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context);
     Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context);
     Task<PortfolioOkrResponse> GetPortfolioOkr(UserContext context);
     Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryCreatePortfolioObjectiveAsync(UserContext context, CreatePortfolioObjectiveRequest request);
@@ -37,5 +37,5 @@ public interface IInnovationDashboardRepository
     Task<CalendarMonthResponse> GetCalendarMonth(UserContext context, DateOnly month);
     Task<IReadOnlyList<UpcomingEventResponse>> GetUpcomingEvents(UserContext context, int limit);
     Task<IReadOnlyList<UpcomingEventResponse>> GetPastEvents(UserContext context, int limit);
-    Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request, string apiKey);
+    Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request);
 }

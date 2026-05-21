@@ -10,7 +10,7 @@ public static class AiEndpoints
     public static RouteGroupBuilder MapAiEndpoints(this RouteGroupBuilder api)
     {
         api.MapPost("/ai/chat", async (ClaimsPrincipal user, AiChatRequest request,
-            IUserContextService contextService, IAiService service, IConfiguration configuration) =>
+            IUserContextService contextService, IAiService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
                 return errorResult!;
@@ -20,8 +20,7 @@ public static class AiEndpoints
                 return Results.BadRequest(new ApiErrorResponse("validation_error", validationError!));
             }
 
-            var apiKey = configuration["Gemini:ApiKey"] ?? string.Empty;
-            var result = await service.GetChatReply(context, request, apiKey);
+            var result = await service.GetChatReply(context, request);
             return Results.Ok(result);
         }).RequireRateLimiting("ai");
 

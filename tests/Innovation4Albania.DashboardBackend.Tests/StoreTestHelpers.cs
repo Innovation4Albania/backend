@@ -1,17 +1,19 @@
 using Innovation4Albania.DashboardBackend.Api.Constants;
+using Innovation4Albania.DashboardBackend.Api.Configuration;
 using Innovation4Albania.DashboardBackend.Api.Data;
 using Innovation4Albania.DashboardBackend.Api.Models;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Innovation4Albania.DashboardBackend.Tests;
 
 internal static class StoreTestHelpers
 {
     public static InnovationDashboardStore CreateStore() =>
-        new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>(), new TestDashboardStorePersistence());
+        new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>(), new TestDashboardStorePersistence(), Options.Create(new GeminiOptions()));
 
     public static InnovationDashboardStore CreateStore(IDashboardStorePersistence persistence) =>
-        new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>(), persistence);
+        new(new TestHttpClientFactory(), new TestLogger<InnovationDashboardStore>(), persistence, Options.Create(new GeminiOptions()));
 
     public static UserContext DirectorContext() => UserContext.From(ApplicationRoles.DrejtorAgjencie, null);
 

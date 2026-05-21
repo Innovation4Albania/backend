@@ -106,13 +106,12 @@ public static class ProjectEndpoints
         });
 
         api.MapGet("/projects/{id}/ai-insights", async (string id, ClaimsPrincipal user,
-            IUserContextService contextService, IProjectService service, IConfiguration configuration) =>
+            IUserContextService contextService, IProjectService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
                 return errorResult!;
 
-            var apiKey = configuration["Gemini:ApiKey"] ?? string.Empty;
-            var insights = await service.GetProjectAiInsights(id, context, apiKey);
+            var insights = await service.GetProjectAiInsights(id, context);
             return insights is null
                 ? Results.NotFound(new ApiErrorResponse("not_found", "Projekti nuk u gjet."))
                 : Results.Ok(insights);

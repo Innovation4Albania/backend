@@ -21,8 +21,8 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
     public Task<(bool IsSuccess, string? Error)> TryDeleteProjectAsync(UserContext context, string id) => store.TryDeleteProjectAsync(context, id);
     public Task<IReadOnlyList<ProjectEventResponse>> GetEventsForProject(string projectId, UserContext context) => store.GetEventsForProject(projectId, context);
 
-    public Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context, string apiKey)
-        => store.GetProjectAiInsights(projectId, context, apiKey);
+    public Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context)
+        => store.GetProjectAiInsights(projectId, context);
 
     public Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context)
         => store.GetPerformanceBoard(context);
@@ -42,6 +42,6 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
     public Task<CalendarMonthResponse> GetCalendarMonth(UserContext context, DateOnly month) => store.GetCalendarMonth(context, month);
     public Task<IReadOnlyList<UpcomingEventResponse>> GetUpcomingEvents(UserContext context, int limit) => store.GetUpcomingEvents(context, limit);
     public Task<IReadOnlyList<UpcomingEventResponse>> GetPastEvents(UserContext context, int limit) => store.GetPastEvents(context, limit);
-    public Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request, string apiKey)
-        => store.GetAiChatReply(context, request, apiKey);
+    public Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request)
+        => store.GetAiChatReply(context, request);
 }

@@ -10,6 +10,9 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddOptions<GeminiOptions>()
+            .BindConfiguration("Gemini");
+
         services.AddHttpClient(Options.DefaultName, client =>
         {
             client.Timeout = TimeSpan.FromSeconds(60);

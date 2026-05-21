@@ -1,8 +1,10 @@
 using System.Globalization;
 using Innovation4Albania.DashboardBackend.Api.Constants;
+using Innovation4Albania.DashboardBackend.Api.Configuration;
 using Innovation4Albania.DashboardBackend.Api.Models;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 namespace Innovation4Albania.DashboardBackend.Api.Data;
 
@@ -36,17 +38,20 @@ public sealed class InnovationDashboardStore
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<InnovationDashboardStore> _logger;
     private readonly IDashboardStorePersistence _persistence;
+    private readonly IOptions<GeminiOptions> _geminiOptions;
     private readonly SemaphoreSlim _mutationLock = new(1, 1);
     private readonly SemaphoreSlim _persistenceLock = new(1, 1);
 
     public InnovationDashboardStore(
         IHttpClientFactory httpClientFactory,
         ILogger<InnovationDashboardStore> logger,
-        IDashboardStorePersistence persistence)
+        IDashboardStorePersistence persistence,
+        IOptions<GeminiOptions> geminiOptions)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _persistence = persistence;
+        _geminiOptions = geminiOptions;
         _projects = BuildProjects();
         _portfolioObjectives = BuildPortfolioObjectives();
         _updates = BuildUpdates();
@@ -677,7 +682,7 @@ public sealed class InnovationDashboardStore
         return project is null ? [] : BuildProjectEvents(project);
     });
 
-    public async Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context, string apiKey)
+    public async Task<AiInsightResponse?> GetProjectAiInsights(string projectId, UserContext context)
     {
         var insightState = await ExecuteReadAsync(() =>
         {
@@ -694,7 +699,7 @@ public sealed class InnovationDashboardStore
 
         return insightState is null
             ? null
-            : await BuildAiInsights(insightState.Project, insightState.Response, apiKey);
+            : await BuildAiInsights(insightState.Project, insightState.Response);
     }
 
     public Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context) => ExecuteReadAsync<IReadOnlyList<PerformanceBoardColumnResponse>>(() =>
@@ -1266,13 +1271,14 @@ public sealed class InnovationDashboardStore
             .ToList();
     });
 
-    public async Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request, string apiKey)
+    public async Task<AiChatResponse> GetAiChatReply(UserContext context, AiChatRequest request)
     {
         if (!AiChatLimits.TryValidate(request, out var validationError))
         {
             throw new ArgumentException(validationError, nameof(request));
         }
 
+        var apiKey = _geminiOptions.Value.ApiKey;
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             return await ExecuteReadAsync(() => BuildAiChatFallback(context, request));
@@ -1932,8 +1938,7 @@ public sealed class InnovationDashboardStore
 
     private async Task<AiInsightResponse> BuildAiInsights(
         ProjectState project,
-        ProjectResponse snapshotResponse,
-        string apiKey)
+        ProjectResponse snapshotResponse)
     {
         var response = snapshotResponse;
         var weakest = new Dictionary<string, int>
@@ -1954,6 +1959,7 @@ public sealed class InnovationDashboardStore
 
         var jsonStructure = "{\"summary\":\"max 1 fjali\",\"riskExplanation\":\"max 1 fjali\",\"riskScore\":0-100,\"riskPrediction\":\"max 1 fjali\",\"positives\":[\"1 fjali\",\"1 fjali\"],\"concerns\":[\"1 fjali\"],\"recommendations\":[\"1 fjali\",\"1 fjali\"]}";
 
+        var apiKey = _geminiOptions.Value.ApiKey;
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             return BuildAiInsightsFallback(project, response, weakest, strongest);

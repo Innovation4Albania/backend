@@ -12,7 +12,7 @@ public sealed class InnovationDashboardStoreAiChatTests
         var request = new AiChatRequest(new string('a', AiChatLimits.MaxMessageLength + 1));
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            store.GetAiChatReply(StoreTestHelpers.DirectorContext(), request, "fake-api-key"));
+            store.GetAiChatReply(StoreTestHelpers.DirectorContext(), request));
 
         Assert.Contains(AiChatLimits.MaxMessageLength.ToString(), exception.Message);
     }
@@ -26,7 +26,7 @@ public sealed class InnovationDashboardStoreAiChatTests
             [new AiChatMessageRequest("user", new string('h', AiChatLimits.MaxHistoryMessageLength + 1))]);
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            store.GetAiChatReply(StoreTestHelpers.DirectorContext(), request, "fake-api-key"));
+            store.GetAiChatReply(StoreTestHelpers.DirectorContext(), request));
 
         Assert.Contains(AiChatLimits.MaxHistoryMessageLength.ToString(), exception.Message);
     }

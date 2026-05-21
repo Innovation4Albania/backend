@@ -12,5 +12,5 @@ public sealed class ProjectService(IInnovationDashboardRepository repository) : 
     public Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryUpdateProjectAsync(UserContext context, string id, CreateProjectRequest request) => repository.TryUpdateProjectAsync(context, id, request);
     public Task<(bool IsSuccess, string? Error)> TryDeleteProjectAsync(UserContext context, string id) => repository.TryDeleteProjectAsync(context, id);
     public Task<IReadOnlyList<ProjectEventResponse>> GetProjectEvents(string id, UserContext context) => repository.GetEventsForProject(id, context);
-    public Task<AiInsightResponse?> GetProjectAiInsights(string id, UserContext context, string apiKey) => repository.GetProjectAiInsights(id, context, apiKey);
+    public Task<AiInsightResponse?> GetProjectAiInsights(string id, UserContext context) => repository.GetProjectAiInsights(id, context);
 }
