@@ -41,7 +41,7 @@ builder.Services.AddRateLimiter(options =>
             httpContext.User.FindFirst("sub")?.Value ??
             httpContext.User.Identity?.Name ??
             httpContext.Connection.RemoteIpAddress?.ToString() ??
-            "anonymous";
+            $"conn:{httpContext.Connection.Id}";
 
         return RateLimitPartition.GetFixedWindowLimiter(
             userKey,
