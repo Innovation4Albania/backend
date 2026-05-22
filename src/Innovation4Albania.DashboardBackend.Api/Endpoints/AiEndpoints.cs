@@ -22,7 +22,7 @@ public static class AiEndpoints
 
             var result = await service.GetChatReply(context, request);
             return Results.Ok(result);
-        }).RequireRateLimiting("ai");
+        }).RequireRateLimiting("ai-chat");
 
         return api;
     }

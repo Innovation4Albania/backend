@@ -9,6 +9,25 @@ using System.Threading.RateLimiting;
 
 LoadDotEnv(Path.Combine(Directory.GetCurrentDirectory(), ".env"));
 
+static RateLimitPartition<string> GetAiRateLimitPartition(HttpContext httpContext, string endpointKey)
+{
+    var userKey =
+        httpContext.User.FindFirst("sub")?.Value ??
+        httpContext.User.Identity?.Name ??
+        httpContext.Connection.RemoteIpAddress?.ToString() ??
+        $"conn:{httpContext.Connection.Id}";
+
+    return RateLimitPartition.GetFixedWindowLimiter(
+        $"{endpointKey}:{userKey}",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            AutoReplenishment = true,
+            PermitLimit = 10,
+            QueueLimit = 0,
+            Window = TimeSpan.FromMinutes(1)
+        });
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
@@ -35,24 +54,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy("ai", httpContext =>
-    {
-        var userKey =
-            httpContext.User.FindFirst("sub")?.Value ??
-            httpContext.User.Identity?.Name ??
-            httpContext.Connection.RemoteIpAddress?.ToString() ??
-            $"conn:{httpContext.Connection.Id}";
-
-        return RateLimitPartition.GetFixedWindowLimiter(
-            userKey,
-            _ => new FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 10,
-                QueueLimit = 0,
-                Window = TimeSpan.FromMinutes(1)
-            });
-    });
+    options.AddPolicy("ai-chat", httpContext => GetAiRateLimitPartition(httpContext, "chat"));
+    options.AddPolicy("ai-insights", httpContext => GetAiRateLimitPartition(httpContext, "insights"));
 });
 builder.Services.AddOpenApi();
 
