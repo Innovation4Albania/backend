@@ -987,6 +987,12 @@ public sealed class InnovationDashboardStore
                 Comments = request.Comments.Trim()
             };
 
+            var keyResultUpdateError = ApplyWeeklyKeyResultUpdates(project, request.KeyResults);
+            if (keyResultUpdateError is not null)
+            {
+                return (false, null, keyResultUpdateError);
+            }
+
             _updates[updateIndex] = updated;
             ApplyLatestUpdateState(project);
             RecalculateProjectOkr(project, BuildUpdatesByProjectLookup());
