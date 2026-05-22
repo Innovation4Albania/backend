@@ -61,7 +61,7 @@ builder.Services.AddOpenApi();
 
 builder.Services
     .AddApiJsonConfiguration()
-    .AddConfiguredCors()
+    .AddConfiguredCors(builder.Environment)
     .AddApplicationServices();
 
 var app = builder.Build();

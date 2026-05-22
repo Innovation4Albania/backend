@@ -48,6 +48,8 @@ Shiko:
 - `ALLOWED_ORIGINS`
   Vendos URL-në e frontend-it të Render, p.sh.
   `https://innovation4albania-frontend.onrender.com`
+  E detyrueshme ne production/staging. Nese mungon jashte `Development`, backend-i ndalon ne startup.
+  Fallback me localhost perdoret vetem gjate zhvillimit lokal.
 
 - `PORT`
   `10000`

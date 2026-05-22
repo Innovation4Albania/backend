@@ -21,6 +21,7 @@ Krijo një `Web Service` me këto vlera:
 - `ALLOWED_ORIGINS`
   vendos URL-në e frontend-it në Render, p.sh.:
   `https://innovation4albania-frontend.onrender.com`
+  Kjo vlere eshte e detyrueshme ne production/staging. Pa te, backend-i ndalon ne startup per te shmangur fallback-un me localhost.
 
 Nëse Render nuk e vendos portin automatikisht për .NET, shto:
 

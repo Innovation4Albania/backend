@@ -2,7 +2,7 @@ namespace Innovation4Albania.DashboardBackend.Api.Configuration;
 
 public static class CorsConfiguration
 {
-    public static IServiceCollection AddConfiguredCors(this IServiceCollection services)
+    public static IServiceCollection AddConfiguredCors(this IServiceCollection services, IWebHostEnvironment environment)
     {
         services.AddCors(options =>
         {
@@ -21,6 +21,11 @@ public static class CorsConfiguration
                     "http://localhost:3000",
                     "https://localhost:3000"
                 };
+
+                if (allowedOrigins.Length == 0 && !environment.IsDevelopment())
+                {
+                    throw new InvalidOperationException("ALLOWED_ORIGINS must be configured outside Development.");
+                }
 
                 var origins = allowedOrigins.Length > 0 ? allowedOrigins : defaultOrigins;
 
