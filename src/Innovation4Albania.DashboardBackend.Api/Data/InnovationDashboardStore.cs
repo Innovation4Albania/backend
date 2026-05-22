@@ -198,7 +198,7 @@ public sealed class InnovationDashboardStore
                 proposal.CurrentValue,
                 proposal.ProposedValue,
                 proposal.Reason,
-            ChangeProposalStatuses.Normalize(proposal.Status))).ToList());
+            NormalizeProposalStatus(proposal.Status))).ToList());
 
     private void RestoreSnapshot(DashboardStoreSnapshot snapshot)
     {
@@ -238,7 +238,7 @@ public sealed class InnovationDashboardStore
             proposal.CurrentValue,
             proposal.ProposedValue,
             proposal.Reason,
-            ChangeProposalStatuses.Normalize(proposal.Status))));
+            NormalizeProposalStatus(proposal.Status))));
 
         if (projectIdsMissingOkr.Count > 0)
         {
@@ -1468,6 +1468,17 @@ public sealed class InnovationDashboardStore
 
         var normalized = NormalizeForMinistryMatch(ministry);
         return _ministries.FirstOrDefault(item => NormalizeForMinistryMatch(item) == normalized);
+    }
+
+    private string NormalizeProposalStatus(string status)
+    {
+        var result = ChangeProposalStatuses.Normalize(status);
+        if (!ChangeProposalStatuses.IsKnown(result))
+        {
+            _logger.LogWarning("Unrecognised change proposal status '{Status}' in snapshot — storing as-is.", status);
+        }
+
+        return result;
     }
 
     private static string NormalizeForMinistryMatch(string value)
