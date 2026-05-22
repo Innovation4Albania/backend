@@ -187,7 +187,8 @@ public sealed class InnovationDashboardStore
                 update.Risk,
                 update.Blockers,
                 update.Comments,
-                update.ExpertName)).ToList(),
+                update.ExpertName,
+                update.KeyResults.Select(kr => new WeeklyUpdateKeyResultInput(kr.KeyResultId, kr.CurrentValue)).ToList())).ToList(),
             _changeProposals.Select(proposal => new ProjectChangeProposalSnapshot(
                 proposal.Id,
                 proposal.ProjectId,
@@ -225,7 +226,8 @@ public sealed class InnovationDashboardStore
             update.Status,
             update.Risk,
             update.Blockers,
-            update.Comments)));
+            update.Comments,
+            update.KeyResults?.Select(kr => new WeeklyUpdateKeyResultState(kr.KeyResultId, kr.CurrentValue)).ToList() ?? [])));
 
         _changeProposals.Clear();
         _changeProposals.AddRange(snapshot.ChangeProposals.Select(proposal => new ProjectChangeProposalState(
@@ -909,6 +911,12 @@ public sealed class InnovationDashboardStore
                 : request.ExpertName.Trim();
 
             var progress = Math.Clamp(request.Progress, 0, 100);
+            var keyResultUpdateError = ApplyWeeklyKeyResultUpdates(project, request.KeyResults);
+            if (keyResultUpdateError is not null)
+            {
+                return (false, null, keyResultUpdateError);
+            }
+
             var update = new WeeklyUpdateState(
                 $"upd-{GetNextWeeklyUpdateNumber()}",
                 request.ProjectId,
@@ -920,13 +928,8 @@ public sealed class InnovationDashboardStore
                 ResolveStatusForProgress(request.Status, progress),
                 request.Risk,
                 request.Blockers.Trim(),
-                request.Comments.Trim());
-
-            var keyResultUpdateError = ApplyWeeklyKeyResultUpdates(project, request.KeyResults);
-            if (keyResultUpdateError is not null)
-            {
-                return (false, null, keyResultUpdateError);
-            }
+                request.Comments.Trim(),
+                ToWeeklyKeyResultStates(request.KeyResults));
 
             _updates.Add(update);
             project.Progress = progress;
@@ -984,7 +987,10 @@ public sealed class InnovationDashboardStore
                 Status = ResolveStatusForProgress(request.Status, progress),
                 Risk = request.Risk,
                 Blockers = request.Blockers.Trim(),
-                Comments = request.Comments.Trim()
+                Comments = request.Comments.Trim(),
+                KeyResults = request.KeyResults is null
+                    ? currentUpdate.KeyResults
+                    : ToWeeklyKeyResultStates(request.KeyResults)
             };
 
             var keyResultUpdateError = ApplyWeeklyKeyResultUpdates(project, request.KeyResults);
@@ -1049,7 +1055,8 @@ public sealed class InnovationDashboardStore
             GetOkrAverage(project),
             RiskLevels.ToLabel(update.Risk),
             update.Blockers,
-            update.Comments);
+            update.Comments,
+            update.KeyResults.Select(kr => new WeeklyUpdateKeyResultInput(kr.KeyResultId, kr.CurrentValue)).ToList());
 
     private void ApplyLatestUpdateState(ProjectState project)
     {
@@ -1096,6 +1103,12 @@ public sealed class InnovationDashboardStore
 
         return null;
     }
+
+    private static List<WeeklyUpdateKeyResultState> ToWeeklyKeyResultStates(IReadOnlyList<WeeklyUpdateKeyResultInput>? keyResultUpdates) =>
+        keyResultUpdates?
+            .Where(update => !string.IsNullOrWhiteSpace(update.KeyResultId))
+            .Select(update => new WeeklyUpdateKeyResultState(update.KeyResultId.Trim(), Math.Max(0, update.CurrentValue)))
+            .ToList() ?? [];
 
     public Task<IReadOnlyList<ProjectChangeProposalResponse>> GetChangeProposals(UserContext context, string? projectId) => ExecuteReadAsync<IReadOnlyList<ProjectChangeProposalResponse>>(() =>
     {
@@ -2473,9 +2486,9 @@ public sealed class InnovationDashboardStore
 
     private List<WeeklyUpdateState> BuildUpdates() =>
     [
-        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, "Drejtori i Inovacionit", IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme."),
-        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-6), 33, ProjectStatuses.Active, RiskLevels.High, "Ka vonesë në miratimin e dokumenteve përgatitore.", "Duhet ndjekje e përditshme me njësinë përkatëse."),
-        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-8), 41, ProjectStatuses.Blocked, RiskLevels.High, "Bllokim në furnizim dhe mungesë aprovimesh.", "Kërkohet vendim drejtues për të zhbllokuar varësitë.")
+        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, "Drejtori i Inovacionit", IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme.", []),
+        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-6), 33, ProjectStatuses.Active, RiskLevels.High, "Ka vonesë në miratimin e dokumenteve përgatitore.", "Duhet ndjekje e përditshme me njësinë përkatëse.", []),
+        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-8), 41, ProjectStatuses.Blocked, RiskLevels.High, "Bllokim në furnizim dhe mungesë aprovimesh.", "Kërkohet vendim drejtues për të zhbllokuar varësitë.", [])
     ];
 
     private static List<ObjectiveState> BuildSampleObjectives(string prefix, string title) =>
@@ -2528,7 +2541,8 @@ public sealed class InnovationDashboardStore
         string Risk,
         string Blockers,
         string Comments,
-        string? ExpertName = null);
+        string? ExpertName = null,
+        IReadOnlyList<WeeklyUpdateKeyResultInput>? KeyResults = null);
 
     private sealed record ProjectChangeProposalSnapshot(
         string Id,
@@ -2621,7 +2635,10 @@ public sealed class InnovationDashboardStore
         string Status,
         string Risk,
         string Blockers,
-        string Comments);
+        string Comments,
+        List<WeeklyUpdateKeyResultState> KeyResults);
+
+    private sealed record WeeklyUpdateKeyResultState(string KeyResultId, int CurrentValue);
 
     private sealed class ProjectChangeProposalState(
         string Id,

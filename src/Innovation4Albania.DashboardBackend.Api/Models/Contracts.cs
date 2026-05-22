@@ -213,7 +213,8 @@ public sealed record WeeklyUpdateResponse(
     int OkrAverage,
     string Risk,
     string Blockers,
-    string Comments);
+    string Comments,
+    IReadOnlyList<WeeklyUpdateKeyResultInput> KeyResults);
 
 public sealed record ProjectChangeProposalResponse(
     string Id,
