@@ -686,12 +686,12 @@ public sealed class InnovationDashboardStore
     private int GetNextWeeklyUpdateNumber() =>
         _updates.Count == 0
             ? 1
-            : _updates.Max(update => ParsePrefixedNumber(update.Id, "upd-")) + 1;
+            : Math.Max(_updates.Count, _updates.Max(update => ParsePrefixedNumber(update.Id, "upd-"))) + 1;
 
     private int GetNextChangeProposalNumber() =>
         _changeProposals.Count == 0
             ? 1
-            : _changeProposals.Max(proposal => ParsePrefixedNumber(proposal.Id, "chg-")) + 1;
+            : Math.Max(_changeProposals.Count, _changeProposals.Max(proposal => ParsePrefixedNumber(proposal.Id, "chg-"))) + 1;
 
     public Task<IReadOnlyList<ProjectEventResponse>> GetEventsForProject(string projectId, UserContext context) => ExecuteReadAsync(() =>
     {
