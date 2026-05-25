@@ -13,8 +13,8 @@ public static class ProjectPriorities
     {
         Critical => "Kritike",
         High => "E lartë",
-        Medium => "Mesatare",
-        Low => "E ulët",
+        Medium => "Mesatar",
+        Low => "Progresiv",
         _ => value
     };
 }
