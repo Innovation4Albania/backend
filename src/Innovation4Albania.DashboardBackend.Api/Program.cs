@@ -3,6 +3,7 @@ using Innovation4Albania.DashboardBackend.Api.Endpoints;
 using Innovation4Albania.DashboardBackend.Api.Middleware;
 using Innovation4Albania.DashboardBackend.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Threading.RateLimiting;
@@ -47,6 +48,13 @@ static RateLimitPartition<string> GetLoginRateLimitPartition(HttpContext httpCon
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -89,6 +97,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseForwardedHeaders();
 app.UseMiddleware<JsonCharsetMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseCors();
