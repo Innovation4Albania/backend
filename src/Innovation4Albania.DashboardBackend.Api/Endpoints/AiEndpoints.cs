@@ -10,7 +10,7 @@ public static class AiEndpoints
     public static RouteGroupBuilder MapAiEndpoints(this RouteGroupBuilder api)
     {
         api.MapPost("/ai/chat", async (ClaimsPrincipal user, AiChatRequest request,
-            IUserContextService contextService, IAiService service) =>
+            IUserContextService contextService, IAiService service, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
                 return errorResult!;
@@ -21,6 +21,7 @@ public static class AiEndpoints
             }
 
             var result = await service.GetChatReply(context, request);
+            auditLogger.LogInformation("AI chat reply generated for role {Role}.", context.Role);
             return Results.Ok(result);
         }).RequireRateLimiting("ai-chat");
 

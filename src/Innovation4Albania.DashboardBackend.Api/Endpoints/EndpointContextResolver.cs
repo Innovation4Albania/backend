@@ -15,7 +15,9 @@ internal static class EndpointContextResolver
         if (string.IsNullOrWhiteSpace(role))
         {
             context = new UserContext(string.Empty, null);
-            errorResult = Results.Unauthorized();
+            errorResult = Results.Json(
+                new ApiErrorResponse("unauthorized", "Sesioni nuk është i vlefshëm ose ka skaduar."),
+                statusCode: StatusCodes.Status401Unauthorized);
             return false;
         }
 

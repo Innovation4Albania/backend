@@ -30,7 +30,7 @@ public static class ProjectEndpoints
                 : Results.Ok(project);
         });
 
-        api.MapPost("/projects", async (ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
+        api.MapPost("/projects", async (ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
@@ -45,12 +45,17 @@ public static class ProjectEndpoints
             }
 
             var result = await service.TryCreateProjectAsync(context, request);
+            if (result.IsSuccess)
+            {
+                auditLogger.LogInformation("Project {ProjectId} created by role {Role}.", result.Response!.Id, context.Role);
+            }
+
             return result.IsSuccess
                 ? Results.Ok(result.Response)
                 : Results.BadRequest(new ApiErrorResponse("project_create_failed", result.Error!));
         });
 
-        api.MapPut("/projects/{id}", async (string id, ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service) =>
+        api.MapPut("/projects/{id}", async (string id, ClaimsPrincipal user, CreateProjectRequest request, IUserContextService contextService, IProjectService service, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
@@ -65,12 +70,17 @@ public static class ProjectEndpoints
             }
 
             var result = await service.TryUpdateProjectAsync(context, id, request);
+            if (result.IsSuccess)
+            {
+                auditLogger.LogInformation("Project {ProjectId} updated by role {Role}.", id, context.Role);
+            }
+
             return result.IsSuccess
                 ? Results.Ok(result.Response)
                 : Results.BadRequest(new ApiErrorResponse("project_update_failed", result.Error!));
         });
 
-        api.MapDelete("/projects/{id}", async (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service) =>
+        api.MapDelete("/projects/{id}", async (string id, ClaimsPrincipal user, IUserContextService contextService, IProjectService service, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
@@ -85,6 +95,11 @@ public static class ProjectEndpoints
             }
 
             var result = await service.TryDeleteProjectAsync(context, id);
+            if (result.IsSuccess)
+            {
+                auditLogger.LogInformation("Project {ProjectId} deleted by role {Role}.", id, context.Role);
+            }
+
             return result.IsSuccess
                 ? Results.NoContent()
                 : Results.BadRequest(new ApiErrorResponse("project_delete_failed", result.Error!));
@@ -106,12 +121,17 @@ public static class ProjectEndpoints
         });
 
         api.MapGet("/projects/{id}/ai-insights", async (string id, ClaimsPrincipal user,
-            IUserContextService contextService, IProjectService service) =>
+            IUserContextService contextService, IProjectService service, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
                 return errorResult!;
 
             var insights = await service.GetProjectAiInsights(id, context);
+            if (insights is not null)
+            {
+                auditLogger.LogInformation("AI insights generated for project {ProjectId} by role {Role}.", id, context.Role);
+            }
+
             return insights is null
                 ? Results.NotFound(new ApiErrorResponse("not_found", "Projekti nuk u gjet."))
                 : Results.Ok(insights);
