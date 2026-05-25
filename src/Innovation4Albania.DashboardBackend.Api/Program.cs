@@ -28,6 +28,23 @@ static RateLimitPartition<string> GetAiRateLimitPartition(HttpContext httpContex
         });
 }
 
+static RateLimitPartition<string> GetLoginRateLimitPartition(HttpContext httpContext)
+{
+    var clientKey =
+        httpContext.Connection.RemoteIpAddress?.ToString() ??
+        $"conn:{httpContext.Connection.Id}";
+
+    return RateLimitPartition.GetFixedWindowLimiter(
+        $"login:{clientKey}",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            AutoReplenishment = true,
+            PermitLimit = 5,
+            QueueLimit = 0,
+            Window = TimeSpan.FromMinutes(1)
+        });
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
@@ -56,6 +73,7 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("ai-chat", httpContext => GetAiRateLimitPartition(httpContext, "chat"));
     options.AddPolicy("ai-insights", httpContext => GetAiRateLimitPartition(httpContext, "insights"));
+    options.AddPolicy("auth-login", GetLoginRateLimitPartition);
 });
 builder.Services.AddOpenApi();
 

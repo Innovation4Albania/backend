@@ -16,7 +16,7 @@ public static class AuthEndpoints
             }
 
             return Results.Ok(service.Login(request));
-        });
+        }).RequireRateLimiting("auth-login");
 
         api.MapPost("/auth/view-link", (LoginRequest request, IAuthService service) =>
         {
