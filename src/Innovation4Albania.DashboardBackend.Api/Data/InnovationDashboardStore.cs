@@ -1166,7 +1166,7 @@ public sealed class InnovationDashboardStore
             var proposal = new ProjectChangeProposalState(
                 $"chg-{GetNextChangeProposalNumber()}",
                 request.ProjectId,
-                ApplicationRoles.ToDisplayLabel(context.Role),
+                context.Username ?? ApplicationRoles.ToDisplayLabel(context.Role),
                 context.Role,
                 DateTimeOffset.UtcNow,
                 type,
@@ -1258,12 +1258,23 @@ public sealed class InnovationDashboardStore
                 return (false, "Nuk keni akses te ky propozim.");
             }
 
+            if (!CanDeleteChangeProposal(context, proposal))
+            {
+                return (false, "Mund te fshini vetem propozimet qe keni derguar ju.");
+            }
+
             _changeProposals.Remove(proposal);
             return await PersistSnapshotAsync()
                 ? (true, null)
                 : (false, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
         });
     }
+
+    private static bool CanDeleteChangeProposal(UserContext context, ProjectChangeProposalState proposal) =>
+        ApplicationRoles.CanManagePortfolio(context.Role) ||
+        (context.Role == ApplicationRoles.StafAgjencie &&
+         !string.IsNullOrWhiteSpace(context.Username) &&
+         string.Equals(proposal.SubmittedBy, context.Username, StringComparison.OrdinalIgnoreCase));
 
     public Task<CalendarMonthResponse> GetCalendarMonth(UserContext context, DateOnly month) => ExecuteReadAsync(() =>
     {

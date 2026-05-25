@@ -80,6 +80,35 @@ public sealed class InnovationDashboardStoreChangeProposalTests
         Assert.Equal(proposalIds.Count, proposalIds.Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
 
+    [Fact]
+    public async Task TryDeleteChangeProposalAsync_AllowsStaffToDeleteOwnProposal()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var staff = StoreTestHelpers.StaffContext("staff-a");
+        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal());
+
+        var deleted = await store.TryDeleteChangeProposalAsync(staff, proposal.Response!.Id);
+
+        Assert.True(deleted.IsSuccess);
+    }
+
+    [Fact]
+    public async Task TryDeleteChangeProposalAsync_RejectsStaffDeletingAnotherStaffProposal()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var staffA = StoreTestHelpers.StaffContext("staff-a");
+        var staffB = StoreTestHelpers.StaffContext("staff-b");
+        var director = StoreTestHelpers.DirectorContext();
+        var proposal = await store.TryCreateChangeProposalAsync(staffA, ValidContentProposal());
+
+        var deleted = await store.TryDeleteChangeProposalAsync(staffB, proposal.Response!.Id);
+        var proposals = await store.GetChangeProposals(director, null);
+
+        Assert.False(deleted.IsSuccess);
+        Assert.Contains("vetem propozimet", deleted.Error);
+        Assert.Single(proposals);
+    }
+
     private static CreateProjectChangeProposalRequest ValidContentProposal(string projectId = "p1") =>
         new(projectId, "content", "old", "Pershkrim i ri.", "Arsye test.");
 }
