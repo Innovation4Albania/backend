@@ -1221,6 +1221,35 @@ public sealed class InnovationDashboardStore
                 : (false, null, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
         });
     }
+
+    public async Task<(bool IsSuccess, string? Error)> TryDeleteChangeProposalAsync(UserContext context, string id)
+    {
+        return await ExecuteMutationAsync<(bool IsSuccess, string? Error)>(async () =>
+        {
+            if (!ApplicationRoles.CanDeleteChangeProposals(context.Role))
+            {
+                return (false, "Ky rol nuk mund te fshije propozime.");
+            }
+
+            var proposal = _changeProposals.FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (proposal is null)
+            {
+                return (false, "Propozimi nuk u gjet.");
+            }
+
+            var visibleProjectIds = GetVisibleProjects(context).Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (!visibleProjectIds.Contains(proposal.ProjectId))
+            {
+                return (false, "Nuk keni akses te ky propozim.");
+            }
+
+            _changeProposals.Remove(proposal);
+            return await PersistSnapshotAsync()
+                ? (true, null)
+                : (false, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
+        });
+    }
+
     public Task<CalendarMonthResponse> GetCalendarMonth(UserContext context, DateOnly month) => ExecuteReadAsync(() =>
     {
         var events = GetVisibleProjects(context)

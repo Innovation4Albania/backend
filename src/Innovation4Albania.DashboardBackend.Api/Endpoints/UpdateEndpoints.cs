@@ -95,6 +95,24 @@ public static class UpdateEndpoints
                 : Results.BadRequest(new ApiErrorResponse("change_proposal_resolution_failed", result.Error!));
         });
 
+        api.MapDelete("/change-proposals/{id}", async (string id, ClaimsPrincipal user, IUserContextService contextService, IUpdateService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            if (!ApplicationRoles.CanDeleteChangeProposals(context.Role))
+            {
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            }
+
+            var result = await service.TryDeleteChangeProposalAsync(context, id);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : Results.BadRequest(new ApiErrorResponse("change_proposal_delete_failed", result.Error!));
+        });
+
         return api;
     }
 }
