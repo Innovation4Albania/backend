@@ -142,3 +142,5 @@ static void LoadDotEnv(string path)
         Environment.SetEnvironmentVariable(key, value);
     }
 }
+
+public partial class Program;
