@@ -34,7 +34,7 @@ public static class ApplicationRoles
         Kryeminister => "Kryeministër",
         Minister => "Ministër",
         DrejtorAgjencie => "Drejtor Agjencie",
-        DrejtorInovacioniPublik => "Drejtor i Inovacionit Publik",
+        DrejtorInovacioniPublik => "Drejtor i Drejtorisë së Inovacionit Publik",
         StafAgjencie => "Ekspert Agjencie",
         StafMinistrie => "Staf Ministrie",
         _ => role

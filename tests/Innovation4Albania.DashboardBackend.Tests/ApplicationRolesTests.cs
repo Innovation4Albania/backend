@@ -53,4 +53,12 @@ public sealed class ApplicationRolesTests
     {
         Assert.Equal(expected, ApplicationRoles.CanUseInteractiveLogin(role));
     }
+
+    [Fact]
+    public void ToDisplayLabel_PublicInnovationDirectorUsesFullDirectorateLabel()
+    {
+        Assert.Equal(
+            "Drejtor i Drejtorisë së Inovacionit Publik",
+            ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorInovacioniPublik));
+    }
 }
