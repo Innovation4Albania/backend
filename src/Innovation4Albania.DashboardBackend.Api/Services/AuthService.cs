@@ -119,7 +119,7 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
 
     public string RefreshToken(UserContext context)
     {
-        var user = repository.Login(new LoginRequest(context.Role, context.Ministry, null));
+        var user = repository.Login(new LoginRequest(context.Role, context.Ministry, Name: null));
         return CreateToken(user, context.Username);
     }
 }
