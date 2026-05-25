@@ -53,3 +53,11 @@ Shiko:
 
 - `PORT`
   `10000`
+
+## Performance Tests
+
+Testi i ngarkeses me `k6` simulon mbi 50 perdorues njekohesisht ne dashboard,
+projects, risk deviations dhe, ne menyre opsionale, weekly updates.
+
+Shiko `performance/README.md` per ekzekutimin, pragjet dhe interpretimin e
+rezultateve.

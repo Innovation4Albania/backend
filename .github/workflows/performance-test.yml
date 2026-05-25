@@ -1,0 +1,61 @@
+name: Backend Performance Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      enable_writes:
+        description: Create weekly updates during the load test
+        required: true
+        type: boolean
+        default: false
+      read_vus:
+        description: Concurrent dashboard readers
+        required: true
+        type: string
+        default: "55"
+      write_vus:
+        description: Concurrent update submitters when writes are enabled
+        required: true
+        type: string
+        default: "5"
+      steady_duration:
+        description: Steady-state duration, for example 2m or 10m
+        required: true
+        type: string
+        default: "2m"
+
+permissions:
+  contents: read
+
+jobs:
+  load-test:
+    name: Run k6 Load Test
+    runs-on: ubuntu-latest
+    environment: performance
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run load test
+        env:
+          BASE_URL: ${{ secrets.PERFORMANCE_BASE_URL }}
+          USERNAME: ${{ secrets.PERFORMANCE_USERNAME }}
+          PASSWORD: ${{ secrets.PERFORMANCE_PASSWORD }}
+          ROLE: ${{ secrets.PERFORMANCE_ROLE }}
+          MINISTRY: ${{ secrets.PERFORMANCE_MINISTRY }}
+          ENABLE_WRITES: ${{ inputs.enable_writes }}
+          READ_VUS: ${{ inputs.read_vus }}
+          WRITE_VUS: ${{ inputs.write_vus }}
+          STEADY_DURATION: ${{ inputs.steady_duration }}
+        run: k6 run --summary-export=performance/results/summary.json performance/k6/dashboard-load.js
+
+      - name: Upload result summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-performance-summary
+          path: performance/results/summary.json
+          if-no-files-found: warn
