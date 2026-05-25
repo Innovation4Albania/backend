@@ -42,16 +42,16 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
     public AuthResponse Login(LoginRequest request)
     {
         var user = repository.Login(request);
-        return new AuthResponse(CreateToken(user), user);
+        return new AuthResponse(CreateToken(user, request.Username), user);
     }
 
     public AuthResponse CreateViewLinkSession(LoginRequest request)
     {
         var user = repository.Login(request);
-        return new AuthResponse(CreateToken(user), user);
+        return new AuthResponse(CreateToken(user, null), user);
     }
 
-    private string CreateToken(UserResponse user)
+    private string CreateToken(UserResponse user, string? username)
     {
         var signingKey = GetSigningKey(configuration);
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
@@ -68,6 +68,11 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
         if (!string.IsNullOrWhiteSpace(user.Ministry))
         {
             claims.Add(new Claim("ministry", user.Ministry));
+        }
+
+        if (!string.IsNullOrWhiteSpace(username))
+        {
+            claims.Add(new Claim("username", username.Trim()));
         }
 
         var token = new JwtSecurityToken(
@@ -115,6 +120,6 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
     public string RefreshToken(UserContext context)
     {
         var user = repository.Login(new LoginRequest(context.Role, context.Ministry, null));
-        return CreateToken(user);
+        return CreateToken(user, context.Username);
     }
 }

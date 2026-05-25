@@ -2,10 +2,13 @@
 
 public sealed record LoginRequest(string Role, string? Ministry, string? Name, string? Username = null, string? Password = null);
 
-public sealed record UserContext(string Role, string? Ministry)
+public sealed record UserContext(string Role, string? Ministry, string? Username = null)
 {
-    public static UserContext From(string role, string? ministry) =>
-        new(role.Trim(), string.IsNullOrWhiteSpace(ministry) ? null : ministry.Trim());
+    public static UserContext From(string role, string? ministry, string? username = null) =>
+        new(
+            role.Trim(),
+            string.IsNullOrWhiteSpace(ministry) ? null : ministry.Trim(),
+            string.IsNullOrWhiteSpace(username) ? null : username.Trim());
 }
 
 public sealed record UserResponse(

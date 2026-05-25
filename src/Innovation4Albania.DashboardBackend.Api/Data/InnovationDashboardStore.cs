@@ -920,7 +920,7 @@ public sealed class InnovationDashboardStore
             var update = new WeeklyUpdateState(
                 $"upd-{GetNextWeeklyUpdateNumber()}",
                 request.ProjectId,
-                ApplicationRoles.ToDisplayLabel(context.Role),
+                context.Username ?? ApplicationRoles.ToDisplayLabel(context.Role),
                 context.Role,
                 expertName,
                 DateTimeOffset.UtcNow,
@@ -965,6 +965,11 @@ public sealed class InnovationDashboardStore
             }
 
             var currentUpdate = _updates[updateIndex];
+            if (!CanMutateWeeklyUpdate(context, currentUpdate))
+            {
+                return (false, null, "Mund te modifikoni vetem perditesimet qe keni derguar ju.");
+            }
+
             if (!string.Equals(currentUpdate.ProjectId, request.ProjectId, StringComparison.OrdinalIgnoreCase))
             {
                 return (false, null, "Projekti i perditesimit nuk mund te ndryshohet.");
@@ -1026,6 +1031,11 @@ public sealed class InnovationDashboardStore
                 return (false, "Perditesimi nuk u gjet.");
             }
 
+            if (!CanMutateWeeklyUpdate(context, update))
+            {
+                return (false, "Mund te fshini vetem perditesimet qe keni derguar ju.");
+            }
+
             var project = _projects.FirstOrDefault(item => string.Equals(item.Id, update.ProjectId, StringComparison.OrdinalIgnoreCase));
             _updates.Remove(update);
             if (project is not null)
@@ -1039,6 +1049,11 @@ public sealed class InnovationDashboardStore
                 : (false, "Ndryshimi nuk u ruajt ne PostgreSQL. Provo perseri.");
         });
     }
+
+    private static bool CanMutateWeeklyUpdate(UserContext context, WeeklyUpdateState update) =>
+        context.Role != ApplicationRoles.StafAgjencie ||
+        (!string.IsNullOrWhiteSpace(context.Username) &&
+         string.Equals(update.SubmittedBy, context.Username, StringComparison.OrdinalIgnoreCase));
 
     private WeeklyUpdateResponse ToWeeklyUpdateResponse(WeeklyUpdateState update, ProjectState project) =>
         new(

@@ -380,6 +380,72 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryUpdateWeeklyUpdateAsync_AllowsStaffToEditOwnUpdate()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var staff = StoreTestHelpers.StaffContext("staff-a");
+        var project = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "OWN-UPD-001" });
+        var update = await store.TryCreateWeeklyUpdateAsync(
+            staff,
+            new CreateWeeklyUpdateRequest(project.Response!.Id, "Ekspert A", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
+
+        var edited = await store.TryUpdateWeeklyUpdateAsync(
+            staff,
+            update.Response!.Id,
+            new CreateWeeklyUpdateRequest(project.Response.Id, "Ekspert A", 55, ProjectStatuses.Active, RiskLevels.Low, "", "Koment i ri"));
+
+        Assert.True(edited.IsSuccess);
+        Assert.Equal(55, edited.Response!.Progress);
+    }
+
+    [Fact]
+    public async Task TryUpdateWeeklyUpdateAsync_RejectsStaffEditingAnotherStaffUpdate()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var staffA = StoreTestHelpers.StaffContext("staff-a");
+        var staffB = StoreTestHelpers.StaffContext("staff-b");
+        var project = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "OTHER-UPD-001" });
+        var update = await store.TryCreateWeeklyUpdateAsync(
+            staffA,
+            new CreateWeeklyUpdateRequest(project.Response!.Id, "Ekspert A", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
+
+        var edited = await store.TryUpdateWeeklyUpdateAsync(
+            staffB,
+            update.Response!.Id,
+            new CreateWeeklyUpdateRequest(project.Response.Id, "Ekspert B", 75, ProjectStatuses.Active, RiskLevels.Low, "", "Ndryshim"));
+
+        Assert.False(edited.IsSuccess);
+        Assert.Contains("vetem perditesimet", edited.Error);
+    }
+
+    [Fact]
+    public async Task TryDeleteWeeklyUpdateAsync_RejectsStaffDeletingAnotherStaffUpdate()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var staffA = StoreTestHelpers.StaffContext("staff-a");
+        var staffB = StoreTestHelpers.StaffContext("staff-b");
+        var project = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "DELETE-OTHER-001" });
+        var update = await store.TryCreateWeeklyUpdateAsync(
+            staffA,
+            new CreateWeeklyUpdateRequest(project.Response!.Id, "Ekspert A", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
+
+        var deleted = await store.TryDeleteWeeklyUpdateAsync(staffB, update.Response!.Id);
+        var updates = await store.GetWeeklyUpdates(director, project.Response.Id);
+
+        Assert.False(deleted.IsSuccess);
+        Assert.Single(updates);
+    }
+
+    [Fact]
     public async Task Store_AllowsConcurrentReadsDuringMutations()
     {
         var store = StoreTestHelpers.CreateStore();

@@ -17,7 +17,7 @@ internal static class StoreTestHelpers
 
     public static UserContext DirectorContext() => UserContext.From(ApplicationRoles.DrejtorAgjencie, null);
 
-    public static UserContext StaffContext() => UserContext.From(ApplicationRoles.StafAgjencie, null);
+    public static UserContext StaffContext(string username = "staff-a") => UserContext.From(ApplicationRoles.StafAgjencie, null, username);
 
     public static CreateProjectRequest ValidProjectRequest(
         DateTimeOffset? startDate = null,

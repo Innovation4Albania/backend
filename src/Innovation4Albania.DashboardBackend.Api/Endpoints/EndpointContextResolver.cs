@@ -10,6 +10,7 @@ internal static class EndpointContextResolver
     {
         var role = user.FindFirstValue("role");
         var ministry = user.FindFirstValue("ministry");
+        var username = user.FindFirstValue("username");
 
         if (string.IsNullOrWhiteSpace(role))
         {
@@ -18,7 +19,7 @@ internal static class EndpointContextResolver
             return false;
         }
 
-        if (contextService.TryCreateContext(role, ministry, out context, out var error))
+        if (contextService.TryCreateContext(role, ministry, username, out context, out var error))
         {
             errorResult = null;
             return true;
