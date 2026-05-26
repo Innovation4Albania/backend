@@ -384,7 +384,7 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
-        var staff = StoreTestHelpers.StaffContext("staff-a");
+        var staff = StoreTestHelpers.StaffContext("staff-a", "Test Lead");
         var project = await store.TryCreateProjectAsync(
             director,
             StoreTestHelpers.ValidProjectRequest() with { Code = "OWN-UPD-001" });
@@ -406,8 +406,8 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
-        var staffA = StoreTestHelpers.StaffContext("staff-a");
-        var staffB = StoreTestHelpers.StaffContext("staff-b");
+        var staffA = StoreTestHelpers.StaffContext("staff-a", "Test Lead");
+        var staffB = StoreTestHelpers.StaffContext("staff-b", "Test Lead");
         var project = await store.TryCreateProjectAsync(
             director,
             StoreTestHelpers.ValidProjectRequest() with { Code = "OTHER-UPD-001" });
@@ -429,8 +429,8 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
-        var staffA = StoreTestHelpers.StaffContext("staff-a");
-        var staffB = StoreTestHelpers.StaffContext("staff-b");
+        var staffA = StoreTestHelpers.StaffContext("staff-a", "Test Lead");
+        var staffB = StoreTestHelpers.StaffContext("staff-b", "Test Lead");
         var project = await store.TryCreateProjectAsync(
             director,
             StoreTestHelpers.ValidProjectRequest() with { Code = "DELETE-OTHER-001" });

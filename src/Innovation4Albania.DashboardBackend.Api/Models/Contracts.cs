@@ -2,13 +2,15 @@
 
 public sealed record LoginRequest(string Role, string? Ministry, string? Name, string? Username = null, string? Password = null);
 
-public sealed record UserContext(string Role, string? Ministry, string? Username = null)
+public sealed record UserContext(string Role, string? Ministry, string? Username = null, string? FullName = null, string? UserId = null)
 {
-    public static UserContext From(string role, string? ministry, string? username = null) =>
+    public static UserContext From(string role, string? ministry, string? username = null, string? fullName = null, string? userId = null) =>
         new(
             role.Trim(),
             string.IsNullOrWhiteSpace(ministry) ? null : ministry.Trim(),
-            string.IsNullOrWhiteSpace(username) ? null : username.Trim());
+            string.IsNullOrWhiteSpace(username) ? null : username.Trim(),
+            string.IsNullOrWhiteSpace(fullName) ? null : fullName.Trim(),
+            string.IsNullOrWhiteSpace(userId) ? null : userId.Trim());
 }
 
 public sealed record UserResponse(
@@ -78,7 +80,8 @@ public sealed record WorkgroupMemberResponse(
     string Role,
     string RoleLabel,
     string Unit,
-    int AllocationPercent);
+    int AllocationPercent,
+    string? UserId = null);
 
 public sealed record ResourceCapacitySummaryResponse(
     int TotalPeople,
@@ -291,7 +294,8 @@ public sealed record WorkgroupMemberInput(
     string Name,
     string Role,
     string Unit,
-    int AllocationPercent);
+    int AllocationPercent,
+    string? UserId = null);
 
 public sealed record CreateProjectRequest(
     string Code,

@@ -35,7 +35,7 @@ public sealed class AuthService(
             return (false, null, "Username ose fjalëkalimi nuk është i saktë.");
         }
 
-        var context = UserContext.From(account.Role, account.Ministry, account.Username);
+        var context = UserContext.From(account.Role, account.Ministry, account.Username, account.FullName, account.Id);
         if (!dashboardRepository.IsValidContext(context, out var contextError))
         {
             return (false, null, contextError);

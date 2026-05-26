@@ -88,10 +88,10 @@ public sealed class InnovationDashboardStoreChangeProposalTests
         var director = StoreTestHelpers.DirectorContext();
 
         var first = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p1"));
-        var second = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p2"));
-        var third = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p3"));
+        var second = await store.TryCreateChangeProposalAsync(StoreTestHelpers.StaffContext(fullName: "Eralda Alhysa"), ValidContentProposal("p2"));
+        var third = await store.TryCreateChangeProposalAsync(StoreTestHelpers.StaffContext(fullName: "Evjenia Gjici"), ValidContentProposal("p3"));
         var deleted = await store.TryDeleteProjectAsync(director, "p1");
-        var created = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p3"));
+        var created = await store.TryCreateChangeProposalAsync(StoreTestHelpers.StaffContext(fullName: "Evjenia Gjici"), ValidContentProposal("p3"));
         var proposals = await store.GetChangeProposals(director, null);
         var proposalIds = proposals.Select(proposal => proposal.Id).ToList();
 

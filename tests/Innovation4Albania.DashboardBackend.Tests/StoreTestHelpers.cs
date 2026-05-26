@@ -17,7 +17,8 @@ internal static class StoreTestHelpers
 
     public static UserContext DirectorContext() => UserContext.From(ApplicationRoles.DrejtorAgjencie, null);
 
-    public static UserContext StaffContext(string username = "staff-a") => UserContext.From(ApplicationRoles.StafAgjencie, null, username);
+    public static UserContext StaffContext(string username = "staff-a", string fullName = "Erblin Malkurti", string? userId = null) =>
+        UserContext.From(ApplicationRoles.StafAgjencie, null, username, fullName, userId);
 
     public static UserContext MinistryRepresentativeContext(string ministry = "Ministria e Financave") =>
         UserContext.From(ApplicationRoles.StafMinistrie, ministry);

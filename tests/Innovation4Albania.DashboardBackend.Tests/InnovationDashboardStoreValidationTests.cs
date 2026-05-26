@@ -113,6 +113,44 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_ReturnsOnlyWorkgroupProjectsForAgencyExpert()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "ASSIGNED-001",
+            TeamMembers = [new WorkgroupMemberInput("Ekspert Test", WorkgroupRoles.ProjectOfficer, "Agjenci", 100, "expert-1")]
+        };
+        var created = await store.TryCreateProjectAsync(director, request);
+        var context = StoreTestHelpers.StaffContext("expert.test", "Ekspert Test", "expert-1");
+
+        var projects = await store.GetProjects(context, null, null);
+
+        Assert.Single(projects);
+        Assert.Equal(created.Response!.Id, projects[0].Id);
+        Assert.Contains(projects[0].TeamMembers, member => member.UserId == "expert-1");
+    }
+
+    [Fact]
+    public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "ASSIGNED-002",
+            TeamMembers = [new WorkgroupMemberInput("Emër i Njëjtë", WorkgroupRoles.ProjectOfficer, "Agjenci", 100, "expert-1")]
+        };
+        var created = await store.TryCreateProjectAsync(director, request);
+        var context = StoreTestHelpers.StaffContext("expert.other", "Emër i Njëjtë", "expert-2");
+
+        var project = await store.GetProjectById(created.Response!.Id, context);
+
+        Assert.Null(project);
+    }
+
+    [Fact]
     public void Login_CanonicalizesMinistryWithReplacementCharacters()
     {
         var store = StoreTestHelpers.CreateStore();

@@ -1517,6 +1517,27 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
+        if (context.Role == ApplicationRoles.StafAgjencie)
+        {
+            if (!string.IsNullOrWhiteSpace(context.UserId))
+            {
+                return _projects
+                    .Where(project => project.TeamMembers.Any(member =>
+                        string.Equals(member.UserId, context.UserId, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+            }
+
+            if (string.IsNullOrWhiteSpace(context.FullName))
+            {
+                return [];
+            }
+
+            return _projects
+                .Where(project => project.TeamMembers.Any(member =>
+                    string.Equals(member.Name, context.FullName, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+
         if (!ApplicationRoles.RequiresMinistry(context.Role))
         {
             return _projects;
@@ -1919,7 +1940,8 @@ public sealed class InnovationDashboardStore
             response.Name,
             response.Role,
             response.Unit,
-            response.AllocationPercent);
+            response.AllocationPercent,
+            response.UserId);
 
     private static List<WorkgroupMemberState> BuildTeamMembersForRequest(int projectNumber, CreateProjectRequest request)
     {
@@ -1930,7 +1952,8 @@ public sealed class InnovationDashboardStore
                 member.Name.Trim(),
                 WorkgroupRoles.All.Contains(member.Role) ? member.Role : WorkgroupRoles.ProjectOfficer,
                 string.IsNullOrWhiteSpace(member.Unit) ? "Njësi qendrore" : member.Unit.Trim(),
-                Math.Clamp(member.AllocationPercent, 10, 100)))
+                Math.Clamp(member.AllocationPercent, 10, 100),
+                member.UserId))
             .ToList();
 
         if (structuredMembers.Count > 0)
@@ -1946,7 +1969,8 @@ public sealed class InnovationDashboardStore
                 name,
                 index == 0 ? WorkgroupRoles.ProjectLead : WorkgroupRoles.ProjectOfficer,
                 "Njësi qendrore",
-                index == 0 ? 80 : 50))
+                index == 0 ? 80 : 50,
+                null))
             .ToList();
     }
 
@@ -1957,7 +1981,8 @@ public sealed class InnovationDashboardStore
             member.Role,
             WorkgroupRoles.ToLabel(member.Role),
             member.Unit,
-            member.AllocationPercent);
+            member.AllocationPercent,
+            member.UserId);
 
     private static bool TryApplyApprovedChangeProposal(ProjectState project, ProjectChangeProposalState proposal, out string? error)
     {
@@ -2677,7 +2702,8 @@ public sealed class InnovationDashboardStore
         string Name,
         string Role,
         string Unit,
-        int AllocationPercent);
+        int AllocationPercent,
+        string? UserId = null);
 
     private sealed record WeeklyUpdateState(
         string Id,
