@@ -78,6 +78,25 @@ public sealed class AuthServiceTests
         Assert.NotNull(await users.GetUserByUsername("expert.test"));
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.Ekspert)]
+    [InlineData(ApplicationRoles.Specialist)]
+    public async Task CreateUserAsync_DirectorCreatesAdditionalAgencyContributorAccounts(string role)
+    {
+        var users = new InMemoryUserRepository();
+        var service = CreateService(users: users);
+        var username = $"account.{role}";
+
+        var result = await service.CreateUserAsync(
+            StoreTestHelpers.DirectorContext(),
+            new CreateUserRequest("PunonjÃ«s Test", username, "password123", role));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(username, result.Response!.Username);
+        Assert.Equal(role, result.Response.Role);
+        Assert.NotNull(await users.GetUserByUsername(username));
+    }
+
     [Fact]
     public async Task CreateUserAsync_DirectorCreatesMinistryRepresentativeWithMinistry()
     {

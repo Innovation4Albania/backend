@@ -1051,7 +1051,7 @@ public sealed class InnovationDashboardStore
     }
 
     private static bool CanMutateWeeklyUpdate(UserContext context, WeeklyUpdateState update) =>
-        context.Role != ApplicationRoles.StafAgjencie ||
+        !ApplicationRoles.IsAgencyContributor(context.Role) ||
         (!string.IsNullOrWhiteSpace(context.Username) &&
          string.Equals(update.SubmittedBy, context.Username, StringComparison.OrdinalIgnoreCase));
 
@@ -1272,7 +1272,7 @@ public sealed class InnovationDashboardStore
 
     private static bool CanDeleteChangeProposal(UserContext context, ProjectChangeProposalState proposal) =>
         ApplicationRoles.CanManagePortfolio(context.Role) ||
-        (context.Role == ApplicationRoles.StafAgjencie &&
+        (ApplicationRoles.IsAgencyContributor(context.Role) &&
          !string.IsNullOrWhiteSpace(context.Username) &&
          string.Equals(proposal.SubmittedBy, context.Username, StringComparison.OrdinalIgnoreCase));
 
@@ -1517,7 +1517,7 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
-        if (context.Role == ApplicationRoles.StafAgjencie)
+        if (ApplicationRoles.IsAgencyContributor(context.Role))
         {
             if (!string.IsNullOrWhiteSpace(context.UserId))
             {

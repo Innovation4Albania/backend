@@ -87,7 +87,7 @@ public sealed class AuthService(
         }
 
         return (await userRepository.GetUsers())
-            .Where(user => user.Role is ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie)
+            .Where(user => ApplicationRoles.IsAgencyContributor(user.Role) || user.Role == ApplicationRoles.StafMinistrie)
             .ToList();
     }
 
@@ -98,9 +98,9 @@ public sealed class AuthService(
             return (false, null, "Ky rol nuk mund të krijojë llogari.");
         }
 
-        if (request.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        if (!ApplicationRoles.IsAgencyContributor(request.Role) && request.Role != ApplicationRoles.StafMinistrie)
         {
-            return (false, null, "Mund të krijohen vetëm llogari eksperti ose përfaqësuesi ministrie.");
+            return (false, null, "Mund të krijohen vetëm llogari eksperti, specialisti ose përfaqësuesi ministrie.");
         }
 
         var validationError = ValidateNewCredentials(request.FullName, request.Username, request.Password);
@@ -130,7 +130,7 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || account.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        if (account is null || (!ApplicationRoles.IsAgencyContributor(account.Role) && account.Role != ApplicationRoles.StafMinistrie))
         {
             return (false, null, "Llogaria e menaxhueshme nuk u gjet.");
         }
@@ -179,7 +179,7 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || account.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        if (account is null || (!ApplicationRoles.IsAgencyContributor(account.Role) && account.Role != ApplicationRoles.StafMinistrie))
         {
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
@@ -195,7 +195,7 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || account.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        if (account is null || (!ApplicationRoles.IsAgencyContributor(account.Role) && account.Role != ApplicationRoles.StafMinistrie))
         {
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
