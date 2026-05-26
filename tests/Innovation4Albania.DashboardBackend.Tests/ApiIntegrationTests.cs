@@ -1,5 +1,6 @@
 using Innovation4Albania.DashboardBackend.Api.Constants;
 using Innovation4Albania.DashboardBackend.Api.Data;
+using Innovation4Albania.DashboardBackend.Api.Data.Repositories;
 using Innovation4Albania.DashboardBackend.Api.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -99,6 +100,28 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
         Assert.NotEmpty(error.Message);
     }
 
+    [Fact]
+    public async Task Director_can_create_list_and_deactivate_expert_account()
+    {
+        using var client = await CreateAuthenticatedDirectorClient();
+        var username = $"expert-{Guid.NewGuid():N}";
+        var request = new CreateUserRequest("Ekspert Integrimi", username, "password123", ApplicationRoles.StafAgjencie);
+
+        var createResponse = await client.PostAsJsonAsync("/api/auth/users", request);
+
+        Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<ManagedUserResponse>();
+        Assert.NotNull(created);
+        Assert.Equal(username, created.Username);
+
+        var accounts = await client.GetFromJsonAsync<List<ManagedUserResponse>>("/api/auth/users");
+        Assert.NotNull(accounts);
+        Assert.Contains(accounts, item => item.Id == created.Id);
+
+        var deactivateResponse = await client.DeleteAsync($"/api/auth/users/{created.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deactivateResponse.StatusCode);
+    }
+
     private async Task<HttpClient> CreateAuthenticatedDirectorClient()
     {
         var client = _factory.CreateClient();
@@ -155,8 +178,6 @@ public sealed class DashboardApiFactory : WebApplicationFactory<Program>
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Jwt:SigningKey"] = "integration-test-signing-key-with-at-least-32-bytes",
-                [$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Username"] = DirectorUsername,
-                [$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Password"] = BCrypt.Net.BCrypt.HashPassword(DirectorPassword),
                 ["Database:ConnectionString"] = string.Empty,
                 ["ConnectionStrings:DefaultConnection"] = string.Empty
             });
@@ -166,6 +187,14 @@ public sealed class DashboardApiFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<IDashboardStorePersistence>();
             services.AddSingleton<IDashboardStorePersistence, InMemoryDashboardStorePersistence>();
+            services.RemoveAll<IUserRepository>();
+            services.AddSingleton<IUserRepository>(new InMemoryUserRepository(
+                InMemoryUserRepository.Account(
+                    "integration-director-id",
+                    DirectorUsername,
+                    DirectorPassword,
+                    ApplicationRoles.DrejtorAgjencie,
+                    "Drejtor Integrimi")));
         });
     }
 

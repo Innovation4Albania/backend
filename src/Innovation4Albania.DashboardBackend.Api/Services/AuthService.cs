@@ -1,54 +1,208 @@
-using Innovation4Albania.DashboardBackend.Api.Data.Repositories;
 using Innovation4Albania.DashboardBackend.Api.Constants;
+using Innovation4Albania.DashboardBackend.Api.Data.Repositories;
 using Innovation4Albania.DashboardBackend.Api.Models;
-using Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
 namespace Innovation4Albania.DashboardBackend.Api.Services;
 
-public sealed class AuthService(IInnovationDashboardRepository repository, IConfiguration configuration) : IAuthService
+public sealed class AuthService(
+    IInnovationDashboardRepository dashboardRepository,
+    IUserRepository userRepository,
+    IConfiguration configuration) : Interfaces.IAuthService
 {
-    public string? ValidateLogin(LoginRequest request)
+    public async Task<(bool IsSuccess, AuthResponse? Response, string? Error)> TryLoginAsync(LoginRequest request)
     {
-        var context = UserContext.From(request.Role, request.Ministry);
-        if (!ApplicationRoles.CanUseInteractiveLogin(context.Role))
+        var role = request.Role.Trim();
+        if (!ApplicationRoles.CanUseInteractiveLogin(role))
         {
-            return "Ky rol ka akses vetëm me link view.";
+            return (false, null, "Ky rol ka akses vetëm me link view.");
         }
 
-        var validationError = repository.ValidateLogin(request);
-        if (validationError is not null)
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return validationError;
+            return (false, null, "Username dhe fjalëkalimi janë të detyrueshme.");
         }
 
-        return ValidateCredentials(context.Role, request.Username, request.Password);
+        var account = await userRepository.GetUserByUsername(request.Username);
+        if (account is null ||
+            !account.IsActive ||
+            !string.Equals(account.Role, role, StringComparison.Ordinal) ||
+            !BCrypt.Net.BCrypt.Verify(request.Password, account.PasswordHash))
+        {
+            return (false, null, "Username ose fjalëkalimi nuk është i saktë.");
+        }
+
+        var context = UserContext.From(account.Role, account.Ministry, account.Username);
+        if (!dashboardRepository.IsValidContext(context, out var contextError))
+        {
+            return (false, null, contextError);
+        }
+
+        var user = ToUserResponse(account);
+        return (true, new AuthResponse(CreateToken(user, account.Username), user), null);
     }
 
     public string? ValidateViewLink(LoginRequest request)
     {
         var context = UserContext.From(request.Role, request.Ministry);
-        if (!ApplicationRoles.IsViewOnlyRole(context.Role))
+        if (!ApplicationRoles.IsViewOnlyRole(context.Role) || context.Role == ApplicationRoles.StafMinistrie)
         {
             return "Ky rol duhet të përdorë login.";
         }
 
-        return repository.ValidateLogin(request);
-    }
-
-    public AuthResponse Login(LoginRequest request)
-    {
-        var user = repository.Login(request);
-        return new AuthResponse(CreateToken(user, request.Username), user);
+        return dashboardRepository.ValidateLogin(request);
     }
 
     public AuthResponse CreateViewLinkSession(LoginRequest request)
     {
-        var user = repository.Login(request);
+        var user = dashboardRepository.Login(request);
         return new AuthResponse(CreateToken(user, null), user);
+    }
+
+    public async Task<string?> RefreshTokenAsync(UserContext context)
+    {
+        if (!string.IsNullOrWhiteSpace(context.Username))
+        {
+            var account = await userRepository.GetUserByUsername(context.Username);
+            if (account is null || !account.IsActive || !string.Equals(account.Role, context.Role, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return CreateToken(ToUserResponse(account), account.Username);
+        }
+
+        var viewUser = dashboardRepository.Login(new LoginRequest(context.Role, context.Ministry, Name: null));
+        return CreateToken(viewUser, null);
+    }
+
+    public async Task<IReadOnlyList<ManagedUserResponse>> GetManagedUsersAsync(UserContext context)
+    {
+        if (!ApplicationRoles.CanManageUsers(context.Role))
+        {
+            return [];
+        }
+
+        return (await userRepository.GetUsers())
+            .Where(user => user.Role is ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie)
+            .ToList();
+    }
+
+    public async Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUserAsync(UserContext context, CreateUserRequest request)
+    {
+        if (!ApplicationRoles.CanManageUsers(context.Role))
+        {
+            return (false, null, "Ky rol nuk mund të krijojë llogari.");
+        }
+
+        if (request.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        {
+            return (false, null, "Mund të krijohen vetëm llogari eksperti ose përfaqësuesi ministrie.");
+        }
+
+        var validationError = ValidateNewCredentials(request.FullName, request.Username, request.Password);
+        if (validationError is not null)
+        {
+            return (false, null, validationError);
+        }
+
+        var ministry = request.Role == ApplicationRoles.StafMinistrie ? request.Ministry : null;
+        if (request.Role == ApplicationRoles.StafMinistrie &&
+            !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
+        {
+            return (false, null, ministryError);
+        }
+
+        return await userRepository.CreateUser(request with { Ministry = ministry }, BCrypt.Net.BCrypt.HashPassword(request.Password));
+    }
+
+    public async Task<(bool IsSuccess, string? Error)> ResetPasswordAsync(UserContext context, string id, AdminResetPasswordRequest request)
+    {
+        if (!ApplicationRoles.CanManageUsers(context.Role))
+        {
+            return (false, "Ky rol nuk mund të ndryshojë fjalëkalime.");
+        }
+
+        var passwordError = ValidatePassword(request.Password);
+        if (passwordError is not null)
+        {
+            return (false, passwordError);
+        }
+
+        var account = await userRepository.GetUserById(id);
+        if (account is null || account.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        {
+            return (false, "Llogaria e menaxhueshme nuk u gjet.");
+        }
+
+        return await userRepository.UpdatePassword(id, BCrypt.Net.BCrypt.HashPassword(request.Password));
+    }
+
+    public async Task<(bool IsSuccess, string? Error)> DeactivateUserAsync(UserContext context, string id)
+    {
+        if (!ApplicationRoles.CanManageUsers(context.Role))
+        {
+            return (false, "Ky rol nuk mund të çaktivizojë llogari.");
+        }
+
+        var account = await userRepository.GetUserById(id);
+        if (account is null || account.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        {
+            return (false, "Llogaria e menaxhueshme nuk u gjet.");
+        }
+
+        return await userRepository.DeactivateUser(id);
+    }
+
+    public async Task<(bool IsSuccess, AuthResponse? Response, string? Error)> ChangeOwnCredentialsAsync(
+        UserContext context,
+        ChangeOwnCredentialsRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(context.Username))
+        {
+            return (false, null, "Pamjet pa kredenciale nuk kanë llogari për të ndryshuar.");
+        }
+
+        var account = await userRepository.GetUserByUsername(context.Username);
+        if (account is null || !account.IsActive || !BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.PasswordHash))
+        {
+            return (false, null, "Fjalëkalimi aktual nuk është i saktë.");
+        }
+
+        var username = string.IsNullOrWhiteSpace(request.Username) ? account.Username : request.Username.Trim();
+        if (username.Length < 3)
+        {
+            return (false, null, "Username duhet të ketë të paktën 3 karaktere.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword) && string.Equals(username, account.Username, StringComparison.Ordinal))
+        {
+            return (false, null, "Vendos username të ri ose fjalëkalim të ri.");
+        }
+
+        var passwordHash = default(string);
+        if (!string.IsNullOrWhiteSpace(request.NewPassword))
+        {
+            var passwordError = ValidatePassword(request.NewPassword);
+            if (passwordError is not null)
+            {
+                return (false, null, passwordError);
+            }
+
+            passwordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        }
+
+        var updated = await userRepository.UpdateCredentials(account.Id, username, passwordHash);
+        if (!updated.IsSuccess)
+        {
+            return (false, null, updated.Error);
+        }
+
+        var nextUser = new UserResponse(account.Id, account.FullName, account.Role, account.Ministry, ApplicationRoles.ToDisplayLabel(account.Role));
+        return (true, new AuthResponse(CreateToken(nextUser, username), nextUser), null);
     }
 
     private string CreateToken(UserResponse user, string? username)
@@ -97,29 +251,26 @@ public sealed class AuthService(IInnovationDashboardRepository repository, IConf
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
     }
 
-    private string? ValidateCredentials(string role, string? username, string? password)
+    private static UserResponse ToUserResponse(StoredUser account) =>
+        new(account.Id, account.FullName, account.Role, account.Ministry, ApplicationRoles.ToDisplayLabel(account.Role));
+
+    private static string? ValidateNewCredentials(string fullName, string username, string password)
     {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(fullName))
         {
-            return "Username dhe password janë të detyrueshme.";
+            return "Emri i plotë është i detyrueshëm.";
         }
 
-        var configuredUsername = configuration[$"Auth:Users:{role}:Username"];
-        var configuredPassword = configuration[$"Auth:Users:{role}:Password"];
-        if (string.IsNullOrWhiteSpace(configuredUsername) || string.IsNullOrWhiteSpace(configuredPassword))
+        if (string.IsNullOrWhiteSpace(username) || username.Trim().Length < 3)
         {
-            return "Kredencialet për këtë rol nuk janë konfiguruar.";
+            return "Username duhet të ketë të paktën 3 karaktere.";
         }
 
-        return string.Equals(username.Trim(), configuredUsername, StringComparison.Ordinal) &&
-        BCrypt.Net.BCrypt.Verify(password, configuredPassword)
-     ? null
-     : "Username ose password nuk është i saktë.";
+        return ValidatePassword(password);
     }
 
-    public string RefreshToken(UserContext context)
-    {
-        var user = repository.Login(new LoginRequest(context.Role, context.Ministry, Name: null));
-        return CreateToken(user, context.Username);
-    }
+    private static string? ValidatePassword(string? password) =>
+        string.IsNullOrWhiteSpace(password) || password.Length < 8
+            ? "Fjalëkalimi duhet të ketë të paktën 8 karaktere."
+            : null;
 }

@@ -36,7 +36,7 @@ public sealed class ApplicationRolesTests
     [Theory]
     [InlineData(ApplicationRoles.Kryeminister, true)]
     [InlineData(ApplicationRoles.Minister, true)]
-    [InlineData(ApplicationRoles.StafMinistrie, true)]
+    [InlineData(ApplicationRoles.StafMinistrie, false)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
     [InlineData(ApplicationRoles.StafAgjencie, false)]
     public void IsViewOnlyRole_OnlyExecutiveAndMinistryViewerRolesUseViewLinks(string role, bool expected)
@@ -49,10 +49,19 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
     [InlineData(ApplicationRoles.StafAgjencie, true)]
     [InlineData(ApplicationRoles.Kryeminister, false)]
-    [InlineData(ApplicationRoles.StafMinistrie, false)]
-    public void CanUseInteractiveLogin_OnlyAgencyRolesCanLogin(string role, bool expected)
+    [InlineData(ApplicationRoles.StafMinistrie, true)]
+    public void CanUseInteractiveLogin_CredentialRolesCanLogin(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.CanUseInteractiveLogin(role));
+    }
+
+    [Theory]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, false)]
+    [InlineData(ApplicationRoles.StafAgjencie, false)]
+    public void CanManageUsers_OnlyInnovation4AlbaniaCanManageUsers(string role, bool expected)
+    {
+        Assert.Equal(expected, ApplicationRoles.CanManageUsers(role));
     }
 
     [Fact]

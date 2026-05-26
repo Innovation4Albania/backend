@@ -20,6 +20,29 @@ public sealed record UserResponse(
 
 public sealed record AuthResponse(string Token, UserResponse User);
 
+public sealed record ManagedUserResponse(
+    string Id,
+    string Username,
+    string Role,
+    string? Ministry,
+    string FullName,
+    DateTimeOffset CreatedAt,
+    bool IsActive);
+
+public sealed record CreateUserRequest(
+    string FullName,
+    string Username,
+    string Password,
+    string Role,
+    string? Ministry = null);
+
+public sealed record AdminResetPasswordRequest(string Password);
+
+public sealed record ChangeOwnCredentialsRequest(
+    string CurrentPassword,
+    string? Username,
+    string? NewPassword);
+
 public sealed record ReferenceOptionResponse(string Value, string Label);
 
 public sealed record StatusReferenceResponse(string Value, string Label, string Color);

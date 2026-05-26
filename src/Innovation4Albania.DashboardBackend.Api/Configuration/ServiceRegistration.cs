@@ -21,6 +21,7 @@ public static class ServiceRegistration
         services.AddSingleton<InnovationDashboardStore>();
         services.AddHostedService<DashboardStoreInitializer>();
         services.AddSingleton<IInnovationDashboardRepository, InnovationDashboardRepository>();
+        services.AddSingleton<IUserRepository, PostgresUserRepository>();
 
         services.AddSingleton<IUserContextService, UserContextService>();
         services.AddSingleton<IAuthService, AuthService>();

@@ -26,8 +26,9 @@ public static class ApplicationRoles
     public static bool CanProposeProjectChanges(string role) => role is StafAgjencie or StafMinistrie;
     public static bool CanDeleteChangeProposals(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik or StafAgjencie;
     public static bool CanViewRiskDeviations(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik or StafAgjencie or StafMinistrie;
-    public static bool IsViewOnlyRole(string role) => role is Kryeminister or Minister or StafMinistrie;
-    public static bool CanUseInteractiveLogin(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik or StafAgjencie;
+    public static bool IsViewOnlyRole(string role) => role is Kryeminister or Minister;
+    public static bool CanUseInteractiveLogin(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik or StafAgjencie or StafMinistrie;
+    public static bool CanManageUsers(string role) => role == DrejtorAgjencie;
 
     public static string ToDisplayLabel(string role) => role switch
     {
