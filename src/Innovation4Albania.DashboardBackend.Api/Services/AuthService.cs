@@ -119,6 +119,52 @@ public sealed class AuthService(
         return await userRepository.CreateUser(request with { Ministry = ministry }, BCrypt.Net.BCrypt.HashPassword(request.Password));
     }
 
+    public async Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> UpdateUserAsync(
+        UserContext context,
+        string id,
+        UpdateManagedUserRequest request)
+    {
+        if (!ApplicationRoles.CanManageUsers(context.Role))
+        {
+            return (false, null, "Ky rol nuk mund të modifikojë llogari.");
+        }
+
+        var account = await userRepository.GetUserById(id);
+        if (account is null || account.Role is not (ApplicationRoles.StafAgjencie or ApplicationRoles.StafMinistrie))
+        {
+            return (false, null, "Llogaria e menaxhueshme nuk u gjet.");
+        }
+
+        var validationError = ValidateIdentity(request.FullName, request.Username);
+        if (validationError is not null)
+        {
+            return (false, null, validationError);
+        }
+
+        string? passwordHash = null;
+        if (!string.IsNullOrWhiteSpace(request.Password))
+        {
+            var passwordError = ValidatePassword(request.Password);
+            if (passwordError is not null)
+            {
+                return (false, null, passwordError);
+            }
+
+            passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        }
+
+        var result = await userRepository.UpdateUser(id, request.FullName, request.Username, passwordHash);
+        if (!result.IsSuccess)
+        {
+            return (false, null, result.Error);
+        }
+
+        var updated = await userRepository.GetUserById(id);
+        return updated is null
+            ? (false, null, "Llogaria e menaxhueshme nuk u gjet.")
+            : (true, ToManagedUserResponse(updated), null);
+    }
+
     public async Task<(bool IsSuccess, string? Error)> ResetPasswordAsync(UserContext context, string id, AdminResetPasswordRequest request)
     {
         if (!ApplicationRoles.CanManageUsers(context.Role))
@@ -254,19 +300,30 @@ public sealed class AuthService(
     private static UserResponse ToUserResponse(StoredUser account) =>
         new(account.Id, account.FullName, account.Role, account.Ministry, ApplicationRoles.ToDisplayLabel(account.Role));
 
+    private static ManagedUserResponse ToManagedUserResponse(StoredUser account) =>
+        new(account.Id, account.Username, account.Role, account.Ministry, account.FullName, account.CreatedAt, account.IsActive);
+
     private static string? ValidateNewCredentials(string fullName, string username, string password)
+    {
+        var identityError = ValidateIdentity(fullName, username);
+        if (identityError is not null)
+        {
+            return identityError;
+        }
+
+        return ValidatePassword(password);
+    }
+
+    private static string? ValidateIdentity(string fullName, string username)
     {
         if (string.IsNullOrWhiteSpace(fullName))
         {
             return "Emri i plotë është i detyrueshëm.";
         }
 
-        if (string.IsNullOrWhiteSpace(username) || username.Trim().Length < 3)
-        {
-            return "Username duhet të ketë të paktën 3 karaktere.";
-        }
-
-        return ValidatePassword(password);
+        return string.IsNullOrWhiteSpace(username) || username.Trim().Length < 3
+            ? "Username duhet të ketë të paktën 3 karaktere."
+            : null;
     }
 
     private static string? ValidatePassword(string? password) =>

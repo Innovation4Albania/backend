@@ -10,6 +10,7 @@ public interface IAuthService
     Task<string?> RefreshTokenAsync(UserContext context);
     Task<IReadOnlyList<ManagedUserResponse>> GetManagedUsersAsync(UserContext context);
     Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUserAsync(UserContext context, CreateUserRequest request);
+    Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> UpdateUserAsync(UserContext context, string id, UpdateManagedUserRequest request);
     Task<(bool IsSuccess, string? Error)> ResetPasswordAsync(UserContext context, string id, AdminResetPasswordRequest request);
     Task<(bool IsSuccess, string? Error)> DeactivateUserAsync(UserContext context, string id);
     Task<(bool IsSuccess, AuthResponse? Response, string? Error)> ChangeOwnCredentialsAsync(UserContext context, ChangeOwnCredentialsRequest request);

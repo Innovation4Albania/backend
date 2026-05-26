@@ -166,6 +166,43 @@ public sealed class PostgresUserRepository : IUserRepository
         }
     }
 
+    public async Task<(bool IsSuccess, string? Error)> UpdateUser(
+        string id,
+        string fullName,
+        string username,
+        string? passwordHash,
+        CancellationToken cancellationToken = default)
+    {
+        if (_connectionString is null)
+        {
+            return (false, "Databaza e përdoruesve nuk është konfiguruar.");
+        }
+
+        await using var connection = await OpenConnection(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            passwordHash is null
+                ? "update users set full_name = @full_name, username = @username where id = @id and is_active = true"
+                : "update users set full_name = @full_name, username = @username, password_hash = @password_hash where id = @id and is_active = true",
+            connection);
+        command.Parameters.AddWithValue("id", id);
+        command.Parameters.AddWithValue("full_name", fullName.Trim());
+        command.Parameters.AddWithValue("username", username.Trim());
+        if (passwordHash is not null)
+        {
+            command.Parameters.AddWithValue("password_hash", passwordHash);
+        }
+
+        try
+        {
+            var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+            return affected == 1 ? (true, null) : (false, "Përdoruesi nuk u gjet ose është joaktiv.");
+        }
+        catch (PostgresException exception) when (exception.SqlState == PostgresErrorCodes.UniqueViolation)
+        {
+            return (false, "Ky username ekziston tashmë.");
+        }
+    }
+
     public Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, CancellationToken cancellationToken = default) =>
         ExecuteUpdate(
             "update users set is_active = false where id = @id and is_active = true",

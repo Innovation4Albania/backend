@@ -92,6 +92,28 @@ public static class AuthEndpoints
             return Results.Ok(result.Response);
         }).RequireAuthorization();
 
+        api.MapPut("/auth/users/{id}", async (string id, ClaimsPrincipal user, UpdateManagedUserRequest request, IUserContextService contextService, IAuthService authService, ILogger<OperationAuditLog> auditLogger) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            if (!ApplicationRoles.CanManageUsers(context.Role))
+            {
+                return Results.Forbid();
+            }
+
+            var result = await authService.UpdateUserAsync(context, id, request);
+            if (!result.IsSuccess)
+            {
+                return Results.BadRequest(new ApiErrorResponse("user_update_failed", result.Error!));
+            }
+
+            auditLogger.LogInformation("User account {UserId} updated by role {Role}.", id, context.Role);
+            return Results.Ok(result.Response);
+        }).RequireAuthorization();
+
         api.MapPut("/auth/users/{id}/password", async (string id, ClaimsPrincipal user, AdminResetPasswordRequest request, IUserContextService contextService, IAuthService authService, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))

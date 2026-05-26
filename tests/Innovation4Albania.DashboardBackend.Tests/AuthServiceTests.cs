@@ -93,6 +93,26 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task UpdateUserAsync_DirectorUpdatesManagedUserIdentityAndPassword()
+    {
+        var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.StafAgjencie, "Ekspert Test");
+        var users = new InMemoryUserRepository(account);
+        var service = CreateService(users: users);
+
+        var result = await service.UpdateUserAsync(
+            StoreTestHelpers.DirectorContext(),
+            account.Id,
+            new UpdateManagedUserRequest("Ekspert i Përditësuar", "expert.new", "password456"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Ekspert i Përditësuar", result.Response!.FullName);
+        Assert.Equal("expert.new", result.Response.Username);
+        var updated = await users.GetUserByUsername("expert.new");
+        Assert.NotNull(updated);
+        Assert.True(BCrypt.Net.BCrypt.Verify("password456", updated!.PasswordHash));
+    }
+
+    [Fact]
     public async Task ChangeOwnCredentialsAsync_UpdatesUsernameAndPassword()
     {
         var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.StafAgjencie, "Ekspert Test");

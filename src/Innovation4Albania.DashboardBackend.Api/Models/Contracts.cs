@@ -36,6 +36,11 @@ public sealed record CreateUserRequest(
     string Role,
     string? Ministry = null);
 
+public sealed record UpdateManagedUserRequest(
+    string FullName,
+    string Username,
+    string? Password);
+
 public sealed record AdminResetPasswordRequest(string Password);
 
 public sealed record ChangeOwnCredentialsRequest(

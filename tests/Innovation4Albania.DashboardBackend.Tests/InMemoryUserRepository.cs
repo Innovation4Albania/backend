@@ -72,6 +72,28 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
         return Task.FromResult((true, (string?)null));
     }
 
+    public Task<(bool IsSuccess, string? Error)> UpdateUser(string id, string fullName, string username, string? passwordHash, CancellationToken cancellationToken = default)
+    {
+        if (_users.Any(user => user.Id != id && string.Equals(user.Username, username, StringComparison.OrdinalIgnoreCase)))
+        {
+            return Task.FromResult((false, (string?)"Ky username ekziston tashmë."));
+        }
+
+        var index = _users.FindIndex(user => user.Id == id && user.IsActive);
+        if (index < 0)
+        {
+            return Task.FromResult((false, (string?)"Përdoruesi nuk u gjet ose është joaktiv."));
+        }
+
+        _users[index] = _users[index] with
+        {
+            FullName = fullName.Trim(),
+            Username = username.Trim(),
+            PasswordHash = passwordHash ?? _users[index].PasswordHash
+        };
+        return Task.FromResult((true, (string?)null));
+    }
+
     public Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, CancellationToken cancellationToken = default)
     {
         var index = _users.FindIndex(user => user.Id == id && user.IsActive);

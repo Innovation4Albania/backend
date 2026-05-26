@@ -101,7 +101,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
     }
 
     [Fact]
-    public async Task Director_can_create_list_and_deactivate_expert_account()
+    public async Task Director_can_create_edit_list_and_deactivate_expert_account()
     {
         using var client = await CreateAuthenticatedDirectorClient();
         var username = $"expert-{Guid.NewGuid():N}";
@@ -114,9 +114,18 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
         Assert.NotNull(created);
         Assert.Equal(username, created.Username);
 
+        var updateRequest = new UpdateManagedUserRequest("Ekspert i Përditësuar", $"{username}.new", "password456");
+        var updateResponse = await client.PutAsJsonAsync($"/api/auth/users/{created.Id}", updateRequest);
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var updated = await updateResponse.Content.ReadFromJsonAsync<ManagedUserResponse>();
+        Assert.NotNull(updated);
+        Assert.Equal(updateRequest.FullName, updated.FullName);
+        Assert.Equal(updateRequest.Username, updated.Username);
+
         var accounts = await client.GetFromJsonAsync<List<ManagedUserResponse>>("/api/auth/users");
         Assert.NotNull(accounts);
-        Assert.Contains(accounts, item => item.Id == created.Id);
+        Assert.Contains(accounts, item => item.Id == created.Id && item.Username == updateRequest.Username);
 
         var deactivateResponse = await client.DeleteAsync($"/api/auth/users/{created.Id}");
         Assert.Equal(HttpStatusCode.NoContent, deactivateResponse.StatusCode);
