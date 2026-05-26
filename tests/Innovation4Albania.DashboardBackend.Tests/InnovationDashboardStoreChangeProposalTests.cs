@@ -57,6 +57,30 @@ public sealed class InnovationDashboardStoreChangeProposalTests
     }
 
     [Fact]
+    public async Task TryCreateChangeProposalAsync_AllowsMinistryRepresentativeForVisibleProject()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var representative = StoreTestHelpers.MinistryRepresentativeContext();
+
+        var proposal = await store.TryCreateChangeProposalAsync(representative, ValidContentProposal("p2"));
+
+        Assert.True(proposal.IsSuccess);
+        Assert.Equal(ApplicationRoles.ToDisplayLabel(ApplicationRoles.StafMinistrie), proposal.Response!.SubmittedRole);
+    }
+
+    [Fact]
+    public async Task TryCreateChangeProposalAsync_RejectsMinistryRepresentativeForOtherMinistryProject()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var representative = StoreTestHelpers.MinistryRepresentativeContext();
+
+        var proposal = await store.TryCreateChangeProposalAsync(representative, ValidContentProposal("p3"));
+
+        Assert.False(proposal.IsSuccess);
+        Assert.Contains("Projekti nuk u gjet", proposal.Error);
+    }
+
+    [Fact]
     public async Task TryCreateChangeProposalAsync_UsesNextHighestIdAfterProjectDelete()
     {
         var store = StoreTestHelpers.CreateStore();

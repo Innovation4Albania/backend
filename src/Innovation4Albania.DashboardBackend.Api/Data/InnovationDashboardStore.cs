@@ -1143,7 +1143,7 @@ public sealed class InnovationDashboardStore
         {
             if (!ApplicationRoles.CanProposeProjectChanges(context.Role))
             {
-                return (false, null, "Vetem Ekspert Agjencie mund te propozoje ndryshime ne projekt.");
+                return (false, null, "Vetëm Ekspert Innovation4Albania ose Përfaqësues Ministrie mund të propozojë ndryshime në projekt.");
             }
 
             var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == request.ProjectId);

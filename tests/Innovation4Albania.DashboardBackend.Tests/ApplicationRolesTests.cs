@@ -26,9 +26,9 @@ public sealed class ApplicationRolesTests
 
     [Theory]
     [InlineData(ApplicationRoles.StafAgjencie, true)]
-    [InlineData(ApplicationRoles.StafMinistrie, false)]
+    [InlineData(ApplicationRoles.StafMinistrie, true)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
-    public void CanProposeProjectChanges_OnlyAgencyStaffCanPropose(string role, bool expected)
+    public void CanProposeProjectChanges_SubmittingRolesCanPropose(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.CanProposeProjectChanges(role));
     }
