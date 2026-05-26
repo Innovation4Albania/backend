@@ -158,6 +158,28 @@ public static class AuthEndpoints
             return Results.NoContent();
         }).RequireAuthorization();
 
+        api.MapPut("/auth/users/{id}/activate", async (string id, ClaimsPrincipal user, IUserContextService contextService, IAuthService authService, ILogger<OperationAuditLog> auditLogger) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            if (!ApplicationRoles.CanManageUsers(context.Role))
+            {
+                return Results.Forbid();
+            }
+
+            var result = await authService.ActivateUserAsync(context, id);
+            if (!result.IsSuccess)
+            {
+                return Results.BadRequest(new ApiErrorResponse("user_activate_failed", result.Error!));
+            }
+
+            auditLogger.LogInformation("User account {UserId} activated by role {Role}.", id, context.Role);
+            return Results.NoContent();
+        }).RequireAuthorization();
+
         api.MapPut("/auth/me/credentials", async (ClaimsPrincipal user, ChangeOwnCredentialsRequest request, IUserContextService contextService, IAuthService authService, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))

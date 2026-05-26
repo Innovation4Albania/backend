@@ -72,7 +72,7 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
         return Task.FromResult((true, (string?)null));
     }
 
-    public Task<(bool IsSuccess, string? Error)> UpdateUser(string id, string fullName, string username, string? passwordHash, CancellationToken cancellationToken = default)
+    public Task<(bool IsSuccess, string? Error)> UpdateUser(string id, string fullName, string username, string role, string? ministry, string? passwordHash, CancellationToken cancellationToken = default)
     {
         if (_users.Any(user => user.Id != id && string.Equals(user.Username, username, StringComparison.OrdinalIgnoreCase)))
         {
@@ -89,6 +89,8 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
         {
             FullName = fullName.Trim(),
             Username = username.Trim(),
+            Role = role.Trim(),
+            Ministry = string.IsNullOrWhiteSpace(ministry) ? null : ministry.Trim(),
             PasswordHash = passwordHash ?? _users[index].PasswordHash
         };
         return Task.FromResult((true, (string?)null));
@@ -103,6 +105,18 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
         }
 
         _users[index] = _users[index] with { IsActive = false };
+        return Task.FromResult((true, (string?)null));
+    }
+
+    public Task<(bool IsSuccess, string? Error)> ActivateUser(string id, CancellationToken cancellationToken = default)
+    {
+        var index = _users.FindIndex(user => user.Id == id && !user.IsActive);
+        if (index < 0)
+        {
+            return Task.FromResult((false, (string?)"PÃ«rdoruesi nuk u gjet ose Ã«shtÃ« aktiv."));
+        }
+
+        _users[index] = _users[index] with { IsActive = true };
         return Task.FromResult((true, (string?)null));
     }
 

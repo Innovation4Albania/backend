@@ -114,7 +114,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
         Assert.NotNull(created);
         Assert.Equal(username, created.Username);
 
-        var updateRequest = new UpdateManagedUserRequest("Ekspert i Përditësuar", $"{username}.new", "password456");
+        var updateRequest = new UpdateManagedUserRequest("Ekspert i Përditësuar", $"{username}.new", "password456", ApplicationRoles.Specialist);
         var updateResponse = await client.PutAsJsonAsync($"/api/auth/users/{created.Id}", updateRequest);
 
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
@@ -122,6 +122,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
         Assert.NotNull(updated);
         Assert.Equal(updateRequest.FullName, updated.FullName);
         Assert.Equal(updateRequest.Username, updated.Username);
+        Assert.Equal(ApplicationRoles.Specialist, updated.Role);
 
         var accounts = await client.GetFromJsonAsync<List<ManagedUserResponse>>("/api/auth/users");
         Assert.NotNull(accounts);
@@ -129,6 +130,9 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
 
         var deactivateResponse = await client.DeleteAsync($"/api/auth/users/{created.Id}");
         Assert.Equal(HttpStatusCode.NoContent, deactivateResponse.StatusCode);
+
+        var activateResponse = await client.PutAsync($"/api/auth/users/{created.Id}/activate", null);
+        Assert.Equal(HttpStatusCode.NoContent, activateResponse.StatusCode);
     }
 
     private async Task<HttpClient> CreateAuthenticatedDirectorClient()

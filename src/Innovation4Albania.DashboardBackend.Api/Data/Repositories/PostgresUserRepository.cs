@@ -170,6 +170,8 @@ public sealed class PostgresUserRepository : IUserRepository
         string id,
         string fullName,
         string username,
+        string role,
+        string? ministry,
         string? passwordHash,
         CancellationToken cancellationToken = default)
     {
@@ -181,12 +183,14 @@ public sealed class PostgresUserRepository : IUserRepository
         await using var connection = await OpenConnection(cancellationToken);
         await using var command = new NpgsqlCommand(
             passwordHash is null
-                ? "update users set full_name = @full_name, username = @username where id = @id and is_active = true"
-                : "update users set full_name = @full_name, username = @username, password_hash = @password_hash where id = @id and is_active = true",
+                ? "update users set full_name = @full_name, username = @username, role = @role, ministry = @ministry where id = @id and is_active = true"
+                : "update users set full_name = @full_name, username = @username, role = @role, ministry = @ministry, password_hash = @password_hash where id = @id and is_active = true",
             connection);
         command.Parameters.AddWithValue("id", id);
         command.Parameters.AddWithValue("full_name", fullName.Trim());
         command.Parameters.AddWithValue("username", username.Trim());
+        command.Parameters.AddWithValue("role", role.Trim());
+        command.Parameters.AddWithValue("ministry", string.IsNullOrWhiteSpace(ministry) ? DBNull.Value : ministry.Trim());
         if (passwordHash is not null)
         {
             command.Parameters.AddWithValue("password_hash", passwordHash);
@@ -209,11 +213,19 @@ public sealed class PostgresUserRepository : IUserRepository
             id,
             cancellationToken);
 
+    public Task<(bool IsSuccess, string? Error)> ActivateUser(string id, CancellationToken cancellationToken = default) =>
+        ExecuteUpdate(
+            "update users set is_active = true where id = @id and is_active = false",
+            id,
+            cancellationToken,
+            inactiveMessage: "Përdoruesi nuk u gjet ose është aktiv.");
+
     private async Task<(bool IsSuccess, string? Error)> ExecuteUpdate(
         string sql,
         string id,
         CancellationToken cancellationToken,
-        Action<NpgsqlCommand>? configure = null)
+        Action<NpgsqlCommand>? configure = null,
+        string inactiveMessage = "Përdoruesi nuk u gjet ose është joaktiv.")
     {
         if (_connectionString is null)
         {
@@ -225,7 +237,7 @@ public sealed class PostgresUserRepository : IUserRepository
         command.Parameters.AddWithValue("id", id);
         configure?.Invoke(command);
         var affected = await command.ExecuteNonQueryAsync(cancellationToken);
-        return affected == 1 ? (true, null) : (false, "Përdoruesi nuk u gjet ose është joaktiv.");
+        return affected == 1 ? (true, null) : (false, inactiveMessage);
     }
 
     private async Task<NpgsqlConnection> OpenConnection(CancellationToken cancellationToken)

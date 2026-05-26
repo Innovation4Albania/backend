@@ -41,7 +41,9 @@ public sealed record CreateUserRequest(
 public sealed record UpdateManagedUserRequest(
     string FullName,
     string Username,
-    string? Password);
+    string? Password,
+    string Role,
+    string? Ministry = null);
 
 public sealed record AdminResetPasswordRequest(string Password);
 

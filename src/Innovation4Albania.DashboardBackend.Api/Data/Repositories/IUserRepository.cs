@@ -34,7 +34,10 @@ public interface IUserRepository
         string id,
         string fullName,
         string username,
+        string role,
+        string? ministry,
         string? passwordHash,
         CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, CancellationToken cancellationToken = default);
+    Task<(bool IsSuccess, string? Error)> ActivateUser(string id, CancellationToken cancellationToken = default);
 }

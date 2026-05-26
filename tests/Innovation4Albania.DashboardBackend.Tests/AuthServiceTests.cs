@@ -121,11 +121,12 @@ public sealed class AuthServiceTests
         var result = await service.UpdateUserAsync(
             StoreTestHelpers.DirectorContext(),
             account.Id,
-            new UpdateManagedUserRequest("Ekspert i Përditësuar", "expert.new", "password456"));
+            new UpdateManagedUserRequest("Ekspert i Përditësuar", "expert.new", "password456", ApplicationRoles.Specialist));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("Ekspert i Përditësuar", result.Response!.FullName);
         Assert.Equal("expert.new", result.Response.Username);
+        Assert.Equal(ApplicationRoles.Specialist, result.Response.Role);
         var updated = await users.GetUserByUsername("expert.new");
         Assert.NotNull(updated);
         Assert.True(BCrypt.Net.BCrypt.Verify("password456", updated!.PasswordHash));

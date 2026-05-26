@@ -135,6 +135,18 @@ public sealed class AuthService(
             return (false, null, "Llogaria e menaxhueshme nuk u gjet.");
         }
 
+        if (!ApplicationRoles.IsAgencyContributor(request.Role) && request.Role != ApplicationRoles.StafMinistrie)
+        {
+            return (false, null, "Mund të zgjidhen vetëm role eksperti, specialisti ose përfaqësuesi ministrie.");
+        }
+
+        var ministry = request.Role == ApplicationRoles.StafMinistrie ? request.Ministry : null;
+        if (request.Role == ApplicationRoles.StafMinistrie &&
+            !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
+        {
+            return (false, null, ministryError);
+        }
+
         var validationError = ValidateIdentity(request.FullName, request.Username);
         if (validationError is not null)
         {
@@ -153,7 +165,7 @@ public sealed class AuthService(
             passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
 
-        var result = await userRepository.UpdateUser(id, request.FullName, request.Username, passwordHash);
+        var result = await userRepository.UpdateUser(id, request.FullName, request.Username, request.Role, ministry, passwordHash);
         if (!result.IsSuccess)
         {
             return (false, null, result.Error);
@@ -201,6 +213,22 @@ public sealed class AuthService(
         }
 
         return await userRepository.DeactivateUser(id);
+    }
+
+    public async Task<(bool IsSuccess, string? Error)> ActivateUserAsync(UserContext context, string id)
+    {
+        if (!ApplicationRoles.CanManageUsers(context.Role))
+        {
+            return (false, "Ky rol nuk mund të aktivizojë llogari.");
+        }
+
+        var account = await userRepository.GetUserById(id);
+        if (account is null || (!ApplicationRoles.IsAgencyContributor(account.Role) && account.Role != ApplicationRoles.StafMinistrie))
+        {
+            return (false, "Llogaria e menaxhueshme nuk u gjet.");
+        }
+
+        return await userRepository.ActivateUser(id);
     }
 
     public async Task<(bool IsSuccess, AuthResponse? Response, string? Error)> ChangeOwnCredentialsAsync(
