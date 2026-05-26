@@ -61,4 +61,13 @@ public sealed class ApplicationRolesTests
             "Drejtor i Drejtorisë së Inovacionit Publik",
             ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorInovacioniPublik));
     }
+
+    [Theory]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, "Innovation4Albania")]
+    [InlineData(ApplicationRoles.StafAgjencie, "Ekspert Innovation4Albania")]
+    [InlineData(ApplicationRoles.StafMinistrie, "Përfaqësues Ministrie")]
+    public void ToDisplayLabel_UsesUpdatedAccessRoleLabels(string role, string expected)
+    {
+        Assert.Equal(expected, ApplicationRoles.ToDisplayLabel(role));
+    }
 }

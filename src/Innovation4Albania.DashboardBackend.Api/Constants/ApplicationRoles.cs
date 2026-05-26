@@ -33,10 +33,10 @@ public static class ApplicationRoles
     {
         Kryeminister => "Kryeministër",
         Minister => "Ministër",
-        DrejtorAgjencie => "Drejtor Agjencie",
+        DrejtorAgjencie => "Innovation4Albania",
         DrejtorInovacioniPublik => "Drejtor i Drejtorisë së Inovacionit Publik",
-        StafAgjencie => "Ekspert Agjencie",
-        StafMinistrie => "Staf Ministrie",
+        StafAgjencie => "Ekspert Innovation4Albania",
+        StafMinistrie => "Përfaqësues Ministrie",
         _ => role
     };
 }
