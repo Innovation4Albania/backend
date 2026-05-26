@@ -35,6 +35,33 @@ public sealed class AuthServiceTests
         Assert.Null(error);
     }
 
+    [Fact]
+    public void ValidateViewLink_RejectsMinisterWithoutMinistry()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var repository = new InnovationDashboardRepository(store);
+        var service = new AuthService(repository, CreateConfiguration());
+        var request = new LoginRequest(ApplicationRoles.Minister, null, "Ministër");
+
+        var error = service.ValidateViewLink(request);
+
+        Assert.NotNull(error);
+        Assert.Contains("ministrie", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ValidateViewLink_AcceptsMinisterWithKnownMinistry()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var repository = new InnovationDashboardRepository(store);
+        var service = new AuthService(repository, CreateConfiguration());
+        var request = new LoginRequest(ApplicationRoles.Minister, store.GetMinistries()[0], "Ministër");
+
+        var error = service.ValidateViewLink(request);
+
+        Assert.Null(error);
+    }
+
     private static IConfiguration CreateConfiguration() =>
         new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>

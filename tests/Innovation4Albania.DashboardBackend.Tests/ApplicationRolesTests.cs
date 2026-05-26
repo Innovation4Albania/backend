@@ -6,9 +6,10 @@ public sealed class ApplicationRolesTests
 {
     [Theory]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
+    [InlineData(ApplicationRoles.Minister, true)]
     [InlineData(ApplicationRoles.Kryeminister, false)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
-    public void RequiresMinistry_OnlyMinistryStaffRequiresMinistry(string role, bool expected)
+    public void RequiresMinistry_MinistryScopedViewRolesRequireMinistry(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.RequiresMinistry(role));
     }

@@ -67,6 +67,18 @@ public sealed class InnovationDashboardStoreCalculationTests
         Assert.All(distribution, item => Assert.Contains("Financ", item.Ministry, StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task GetMinistryDistribution_ForMinisterOnlyReturnsSelectedMinistry()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = UserContext.From(ApplicationRoles.Minister, "Ministria e Financave");
+
+        var distribution = await store.GetMinistryDistribution(context);
+
+        Assert.NotEmpty(distribution);
+        Assert.All(distribution, item => Assert.Contains("Financ", item.Ministry, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static int InvokeCalculateExpectedProgress(DateTimeOffset start, DateTimeOffset end)
     {
         var method = typeof(InnovationDashboardStore).GetMethod("CalculateExpectedProgress", BindingFlags.NonPublic | BindingFlags.Static)

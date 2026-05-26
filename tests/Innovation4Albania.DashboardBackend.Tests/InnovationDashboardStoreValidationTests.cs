@@ -88,6 +88,31 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public void IsValidContext_RejectsMinisterWithoutMinistry()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = UserContext.From(ApplicationRoles.Minister, null);
+
+        var isValid = store.IsValidContext(context, out var error);
+
+        Assert.False(isValid);
+        Assert.Contains("ministrie", error);
+    }
+
+    [Fact]
+    public async Task GetProjects_ReturnsOnlySelectedMinistryProjectsForMinister()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var ministry = "Ministria e Financave";
+        var context = UserContext.From(ApplicationRoles.Minister, ministry);
+
+        var projects = await store.GetProjects(context, null, null);
+
+        Assert.NotEmpty(projects);
+        Assert.All(projects, project => Assert.Contains(ministry, project.Ministries));
+    }
+
+    [Fact]
     public void Login_CanonicalizesMinistryWithReplacementCharacters()
     {
         var store = StoreTestHelpers.CreateStore();

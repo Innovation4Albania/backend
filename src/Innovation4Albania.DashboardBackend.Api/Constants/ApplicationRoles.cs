@@ -19,7 +19,7 @@ public static class ApplicationRoles
         StafMinistrie
     ];
 
-    public static bool RequiresMinistry(string role) => role == StafMinistrie;
+    public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie;
     public static bool CanCreateProjects(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
     public static bool CanManagePortfolio(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
     public static bool CanSubmitUpdates(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik or StafAgjencie;

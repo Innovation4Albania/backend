@@ -345,7 +345,7 @@ public sealed class InnovationDashboardStore
 
         var visible = GetVisibleProjects(context);
 
-        var visibleMinistries = context.Role == ApplicationRoles.StafMinistrie
+        var visibleMinistries = ApplicationRoles.RequiresMinistry(context.Role)
             ? ResolveMinistry(context.Ministry) is { } ministry ? [ministry] : []
             : _ministries
                 .Where(ministry => visible.Any(project => project.Ministries.Contains(ministry)))
@@ -1517,7 +1517,7 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
-        if (context.Role != ApplicationRoles.StafMinistrie)
+        if (!ApplicationRoles.RequiresMinistry(context.Role))
         {
             return _projects;
         }
