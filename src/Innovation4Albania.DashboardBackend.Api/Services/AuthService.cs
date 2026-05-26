@@ -29,7 +29,7 @@ public sealed class AuthService(
         var account = await userRepository.GetUserByUsername(request.Username);
         if (account is null ||
             !account.IsActive ||
-            !string.Equals(account.Role, role, StringComparison.Ordinal) ||
+            !CanUseLoginOptionForAccount(role, account.Role) ||
             !BCrypt.Net.BCrypt.Verify(request.Password, account.PasswordHash))
         {
             return (false, null, "Username ose fjalëkalimi nuk është i saktë.");
@@ -44,6 +44,10 @@ public sealed class AuthService(
         var user = ToUserResponse(account);
         return (true, new AuthResponse(CreateToken(user, account.Username), user), null);
     }
+
+    private static bool CanUseLoginOptionForAccount(string requestedRole, string accountRole) =>
+        string.Equals(accountRole, requestedRole, StringComparison.Ordinal) ||
+        (requestedRole == ApplicationRoles.StafAgjencie && ApplicationRoles.IsAgencyContributor(accountRole));
 
     public string? ValidateViewLink(LoginRequest request)
     {
