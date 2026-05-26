@@ -63,6 +63,22 @@ public sealed class AuthServiceTests
         Assert.Equal("Përfaqësues Financash", result.Response.User.Name);
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.StafAgjencie)]
+    [InlineData(ApplicationRoles.Ekspert)]
+    [InlineData(ApplicationRoles.Specialist)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
+    public async Task TryLoginAsync_AllowsInnovationAccountsThroughInnovation4AlbaniaOption(string accountRole)
+    {
+        var account = InMemoryUserRepository.Account("account-1", "innovation.user", "password123", accountRole, "Innovation User");
+        var service = CreateService(users: new InMemoryUserRepository(account));
+
+        var result = await service.TryLoginAsync(new LoginRequest(ApplicationRoles.DrejtorAgjencie, null, null, "innovation.user", "password123"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(accountRole, result.Response!.User.Role);
+    }
+
     [Fact]
     public async Task CreateUserAsync_DirectorCreatesExpertAccount()
     {

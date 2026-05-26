@@ -47,7 +47,8 @@ public sealed class AuthService(
 
     private static bool CanUseLoginOptionForAccount(string requestedRole, string accountRole) =>
         string.Equals(accountRole, requestedRole, StringComparison.Ordinal) ||
-        (requestedRole == ApplicationRoles.StafAgjencie && ApplicationRoles.IsAgencyContributor(accountRole));
+        (requestedRole == ApplicationRoles.DrejtorAgjencie &&
+            (accountRole == ApplicationRoles.DrejtorInovacioniPublik || ApplicationRoles.IsAgencyContributor(accountRole)));
 
     public string? ValidateViewLink(LoginRequest request)
     {
