@@ -100,6 +100,7 @@ public sealed class AuthServiceTests
     [InlineData(ApplicationRoles.Admin)]
     [InlineData(ApplicationRoles.DrejtorAgjencie)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
+    [InlineData(ApplicationRoles.StafAgjencie)]
     [InlineData(ApplicationRoles.Ekspert)]
     public async Task CreateUserAsync_AdminCreatesManagedAccounts(string role)
     {
