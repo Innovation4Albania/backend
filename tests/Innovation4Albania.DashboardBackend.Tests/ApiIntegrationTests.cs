@@ -101,6 +101,19 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
     }
 
     [Fact]
+    public async Task Director_can_list_managed_users_for_project_team_dropdown()
+    {
+        using var client = await CreateAuthenticatedDirectorClient();
+
+        var response = await client.GetAsync("/api/auth/users");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var accounts = await response.Content.ReadFromJsonAsync<List<ManagedUserResponse>>();
+        Assert.NotNull(accounts);
+        Assert.Contains(accounts, account => account.Id == "integration-expert-id");
+    }
+
+    [Fact]
     public async Task Admin_can_create_edit_list_and_deactivate_expert_account()
     {
         using var client = await CreateAuthenticatedAdminClient();
@@ -237,7 +250,13 @@ public sealed class DashboardApiFactory : WebApplicationFactory<Program>
                     AdminUsername,
                     AdminPassword,
                     ApplicationRoles.Admin,
-                    "Admin Integrimi")));
+                    "Admin Integrimi"),
+                InMemoryUserRepository.Account(
+                    "integration-expert-id",
+                    "integration-expert",
+                    "integration-expert-password",
+                    ApplicationRoles.Ekspert,
+                    "Ekspert Integrimi")));
         });
     }
 

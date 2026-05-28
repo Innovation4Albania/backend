@@ -62,7 +62,7 @@ public static class AuthEndpoints
                 return errorResult!;
             }
 
-            if (!ApplicationRoles.CanManageUsers(context.Role))
+            if (!ApplicationRoles.CanManageUsers(context.Role) && !ApplicationRoles.CanCreateProjects(context.Role))
             {
                 return Results.Forbid();
             }
