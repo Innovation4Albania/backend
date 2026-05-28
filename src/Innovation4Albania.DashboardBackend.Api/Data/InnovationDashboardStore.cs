@@ -553,6 +553,7 @@ public sealed class InnovationDashboardStore
 
             ApplyRequestToProjectState(project, request);
             project.LastUpdated = DateTimeOffset.UtcNow;
+            project.InitialLastUpdated = project.LastUpdated;
             RecalculateProjectOkr(project, BuildUpdatesByProjectLookup());
 
             var response = ToResponse(project);
@@ -653,6 +654,9 @@ public sealed class InnovationDashboardStore
         project.Status = ResolveStatusForProgress(request.Status, project.Progress);
         project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
         project.Risk = request.Risk;
+        project.InitialProgress = project.Progress;
+        project.InitialStatus = project.Status;
+        project.InitialRisk = project.Risk;
         project.Lead = request.Lead.Trim();
         project.UpdateCadenceDays = 14;
 
@@ -915,7 +919,7 @@ public sealed class InnovationDashboardStore
                 : request.ExpertName.Trim();
 
             var progress = Math.Clamp(request.Progress, 0, 100);
-            var keyResultUpdateError = ApplyWeeklyKeyResultUpdates(project, request.KeyResults);
+            var keyResultUpdateError = ValidateWeeklyKeyResultUpdates(project, request.KeyResults);
             if (keyResultUpdateError is not null)
             {
                 return (false, null, keyResultUpdateError);
@@ -936,11 +940,7 @@ public sealed class InnovationDashboardStore
                 ToWeeklyKeyResultStates(request.KeyResults));
 
             _updates.Add(update);
-            project.Progress = progress;
-            project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
-            project.Status = update.Status;
-            project.Risk = request.Risk;
-            project.LastUpdated = update.SubmittedAt;
+            ApplyProjectStateFromWeeklyUpdates(project);
             var updatesByProject = BuildUpdatesByProjectLookup();
             RecalculateProjectOkr(project, updatesByProject);
 
@@ -1002,14 +1002,14 @@ public sealed class InnovationDashboardStore
                     : ToWeeklyKeyResultStates(request.KeyResults)
             };
 
-            var keyResultUpdateError = ApplyWeeklyKeyResultUpdates(project, request.KeyResults);
+            var keyResultUpdateError = ValidateWeeklyKeyResultUpdates(project, request.KeyResults);
             if (keyResultUpdateError is not null)
             {
                 return (false, null, keyResultUpdateError);
             }
 
             _updates[updateIndex] = updated;
-            ApplyLatestUpdateState(project);
+            ApplyProjectStateFromWeeklyUpdates(project);
             RecalculateProjectOkr(project, BuildUpdatesByProjectLookup());
 
             var response = ToWeeklyUpdateResponse(updated, project);
@@ -1044,7 +1044,7 @@ public sealed class InnovationDashboardStore
             _updates.Remove(update);
             if (project is not null)
             {
-                ApplyLatestUpdateState(project);
+                ApplyProjectStateFromWeeklyUpdates(project);
                 RecalculateProjectOkr(project, BuildUpdatesByProjectLookup());
             }
 
@@ -1077,18 +1077,34 @@ public sealed class InnovationDashboardStore
             update.Comments,
             update.KeyResults.Select(kr => new WeeklyUpdateKeyResultInput(kr.KeyResultId, kr.CurrentValue)).ToList());
 
-    private void ApplyLatestUpdateState(ProjectState project)
+    private void ApplyProjectStateFromWeeklyUpdates(ProjectState project)
     {
-        var latestUpdate = _updates
-            .Where(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(update => update.SubmittedAt)
-            .FirstOrDefault();
-
-        if (latestUpdate is null)
+        foreach (var keyResult in project.Objectives.SelectMany(objective => objective.KeyResults))
         {
+            keyResult.Progress = keyResult.InitialProgress;
+        }
+
+        var projectUpdates = _updates
+            .Where(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(update => update.SubmittedAt)
+            .ToList();
+
+        if (projectUpdates.Count == 0)
+        {
+            project.Progress = project.InitialProgress;
+            project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
+            project.Status = project.InitialStatus;
+            project.Risk = project.InitialRisk;
+            project.LastUpdated = project.InitialLastUpdated;
             return;
         }
 
+        foreach (var update in projectUpdates)
+        {
+            ApplyWeeklyKeyResultUpdates(project, update.KeyResults);
+        }
+
+        var latestUpdate = projectUpdates[^1];
         project.Progress = latestUpdate.Progress;
         project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
         project.Status = latestUpdate.Status;
@@ -1096,7 +1112,7 @@ public sealed class InnovationDashboardStore
         project.LastUpdated = latestUpdate.SubmittedAt;
     }
 
-    private static string? ApplyWeeklyKeyResultUpdates(
+    private static string? ValidateWeeklyKeyResultUpdates(
         ProjectState project,
         IReadOnlyList<WeeklyUpdateKeyResultInput>? keyResultUpdates)
     {
@@ -1112,15 +1128,35 @@ public sealed class InnovationDashboardStore
         foreach (var update in keyResultUpdates)
         {
             if (string.IsNullOrWhiteSpace(update.KeyResultId) ||
-                !keyResultsById.TryGetValue(update.KeyResultId, out var keyResult))
+                !keyResultsById.ContainsKey(update.KeyResultId))
             {
                 return "Nje KR i derguar nuk i perket projektit te zgjedhur.";
             }
-
-            keyResult.Progress = CalculateKeyResultProgress(update.CurrentValue, keyResult.Target);
         }
 
         return null;
+    }
+
+    private static void ApplyWeeklyKeyResultUpdates(
+        ProjectState project,
+        IReadOnlyList<WeeklyUpdateKeyResultState> keyResultUpdates)
+    {
+        if (keyResultUpdates.Count == 0)
+        {
+            return;
+        }
+
+        var keyResultsById = project.Objectives
+            .SelectMany(objective => objective.KeyResults)
+            .ToDictionary(keyResult => keyResult.Id, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var update in keyResultUpdates)
+        {
+            if (keyResultsById.TryGetValue(update.KeyResultId, out var keyResult))
+            {
+                keyResult.Progress = CalculateKeyResultProgress(update.CurrentValue, keyResult.Target);
+            }
+        }
     }
 
     private static List<WeeklyUpdateKeyResultState> ToWeeklyKeyResultStates(IReadOnlyList<WeeklyUpdateKeyResultInput>? keyResultUpdates) =>
@@ -2686,13 +2722,17 @@ public sealed class InnovationDashboardStore
         public DateTimeOffset StartDate { get; set; } = startDate;
         public DateTimeOffset EndDate { get; set; } = endDate;
         public int Progress { get; set; } = progress;
+        public int InitialProgress { get; set; } = progress;
         public ProjectOkr Okr { get; set; } = okr;
         public string Risk { get; set; } = risk;
+        public string InitialStatus { get; set; } = status;
+        public string InitialRisk { get; set; } = risk;
         public List<string> Team { get; } = team;
         public List<WorkgroupMemberState> TeamMembers { get; } = teamMembers;
         public string Lead { get; set; } = lead;
         public int UpdateCadenceDays { get; set; } = updateCadenceDays;
         public DateTimeOffset LastUpdated { get; set; } = lastUpdated;
+        public DateTimeOffset InitialLastUpdated { get; set; } = lastUpdated;
         public List<ObjectiveState> Objectives { get; } = objectives;
         public int TotalCapacityPercent => TeamMembers.Sum(member => member.AllocationPercent);
         public int OkrAverage => CalculateOkrAverage(Okr);

@@ -356,16 +356,50 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var context = StoreTestHelpers.DirectorContext();
+        var objectives = new[]
+        {
+            new ObjectiveInput(
+                "Objektiv test",
+                "Test Lead",
+                [
+                    new KeyResultInput("KR 1", 10, 100, "%"),
+                    new KeyResultInput("KR 2", 20, 50, "%"),
+                ]),
+        };
         var created = await store.TryCreateProjectAsync(
             context,
-            StoreTestHelpers.ValidProjectRequest() with { Code = "DELETE-UPD-001", Progress = 10, Status = ProjectStatuses.Active });
+            StoreTestHelpers.ValidProjectRequest() with { Code = "DELETE-UPD-001", Progress = 10, Status = ProjectStatuses.Active, Objectives = objectives });
+        var firstKr = created.Response!.Objectives[0].KeyResults[0];
+        var secondKr = created.Response.Objectives[0].KeyResults[1];
         var first = await store.TryCreateWeeklyUpdateAsync(
             context,
-            new CreateWeeklyUpdateRequest(created.Response!.Id, "Ekspert 1", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment 1"));
+            new CreateWeeklyUpdateRequest(
+                created.Response.Id,
+                "Ekspert 1",
+                40,
+                ProjectStatuses.Active,
+                RiskLevels.Medium,
+                "",
+                "Koment 1",
+                [
+                    new WeeklyUpdateKeyResultInput(firstKr.Id, 45),
+                    new WeeklyUpdateKeyResultInput(secondKr.Id, 20),
+                ]));
         await Task.Delay(1);
         var second = await store.TryCreateWeeklyUpdateAsync(
             context,
-            new CreateWeeklyUpdateRequest(created.Response.Id, "Ekspert 2", 80, ProjectStatuses.AtRisk, RiskLevels.High, "Bllokim", "Koment 2"));
+            new CreateWeeklyUpdateRequest(
+                created.Response.Id,
+                "Ekspert 2",
+                80,
+                ProjectStatuses.AtRisk,
+                RiskLevels.High,
+                "Bllokim",
+                "Koment 2",
+                [
+                    new WeeklyUpdateKeyResultInput(firstKr.Id, 90),
+                    new WeeklyUpdateKeyResultInput(secondKr.Id, 40),
+                ]));
 
         var deleted = await store.TryDeleteWeeklyUpdateAsync(context, second.Response!.Id);
         var project = await store.GetProjectById(created.Response.Id, context);
@@ -377,6 +411,56 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.Equal(40, project!.Progress);
         Assert.Equal(ProjectStatuses.Active, project.Status);
         Assert.Equal(RiskLevels.Medium, project.Risk);
+        Assert.Equal(45, project.Objectives[0].KeyResults[0].Progress);
+        Assert.Equal(40, project.Objectives[0].KeyResults[1].Progress);
+    }
+
+    [Fact]
+    public async Task TryDeleteWeeklyUpdateAsync_RevertsToProjectBaselineWhenNoUpdatesRemain()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        var objectives = new[]
+        {
+            new ObjectiveInput(
+                "Objektiv test",
+                "Test Lead",
+                [
+                    new KeyResultInput("KR 1", 10, 100, "%"),
+                    new KeyResultInput("KR 2", 20, 50, "%"),
+                ]),
+        };
+        var created = await store.TryCreateProjectAsync(
+            context,
+            StoreTestHelpers.ValidProjectRequest() with { Code = "DELETE-ONLY-UPD-001", Progress = 10, Status = ProjectStatuses.Active, Risk = RiskLevels.Low, Objectives = objectives });
+        var firstKr = created.Response!.Objectives[0].KeyResults[0];
+        var secondKr = created.Response.Objectives[0].KeyResults[1];
+        var update = await store.TryCreateWeeklyUpdateAsync(
+            context,
+            new CreateWeeklyUpdateRequest(
+                created.Response.Id,
+                "Ekspert",
+                80,
+                ProjectStatuses.AtRisk,
+                RiskLevels.High,
+                "Bllokim",
+                "Koment",
+                [
+                    new WeeklyUpdateKeyResultInput(firstKr.Id, 90),
+                    new WeeklyUpdateKeyResultInput(secondKr.Id, 40),
+                ]));
+
+        var deleted = await store.TryDeleteWeeklyUpdateAsync(context, update.Response!.Id);
+        var project = await store.GetProjectById(created.Response.Id, context);
+        var updates = await store.GetWeeklyUpdates(context, created.Response.Id);
+
+        Assert.True(deleted.IsSuccess);
+        Assert.Empty(updates);
+        Assert.Equal(10, project!.Progress);
+        Assert.Equal(ProjectStatuses.Active, project.Status);
+        Assert.Equal(RiskLevels.Low, project.Risk);
+        Assert.Equal(10, project.Objectives[0].KeyResults[0].Progress);
+        Assert.Equal(20, project.Objectives[0].KeyResults[1].Progress);
     }
 
     [Fact]
