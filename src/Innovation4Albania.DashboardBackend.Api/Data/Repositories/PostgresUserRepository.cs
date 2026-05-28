@@ -267,6 +267,25 @@ public sealed class PostgresUserRepository : IUserRepository
             connection);
         await command.ExecuteNonQueryAsync(cancellationToken);
 
+        await using var publicInnovationDirectorCommand = new NpgsqlCommand(
+            """
+            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
+            values (@id, @username, @password_hash, @role, null, @full_name, now(), true)
+            on conflict (lower(username)) do update
+            set password_hash = excluded.password_hash,
+                role = excluded.role,
+                ministry = null,
+                full_name = excluded.full_name,
+                is_active = true
+            """,
+            connection);
+        publicInnovationDirectorCommand.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
+        publicInnovationDirectorCommand.Parameters.AddWithValue("username", "drejtor.inovacioni");
+        publicInnovationDirectorCommand.Parameters.AddWithValue("password_hash", BCrypt.Net.BCrypt.HashPassword("drejtor123"));
+        publicInnovationDirectorCommand.Parameters.AddWithValue("role", ApplicationRoles.DrejtorInovacioniPublik);
+        publicInnovationDirectorCommand.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorInovacioniPublik));
+        await publicInnovationDirectorCommand.ExecuteNonQueryAsync(cancellationToken);
+
         if (string.IsNullOrWhiteSpace(_bootstrapDirectorUsername) || string.IsNullOrWhiteSpace(_bootstrapDirectorPasswordHash))
         {
             return;

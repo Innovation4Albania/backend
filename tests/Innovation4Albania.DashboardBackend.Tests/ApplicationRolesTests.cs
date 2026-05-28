@@ -61,11 +61,11 @@ public sealed class ApplicationRolesTests
 
     [Theory]
     [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
-    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, false)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
     [InlineData(ApplicationRoles.StafAgjencie, false)]
     [InlineData(ApplicationRoles.Ekspert, false)]
     [InlineData(ApplicationRoles.Specialist, false)]
-    public void CanManageUsers_OnlyInnovation4AlbaniaCanManageUsers(string role, bool expected)
+    public void CanManageUsers_OnlyInnovationDirectorRolesCanManageUsers(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.CanManageUsers(role));
     }

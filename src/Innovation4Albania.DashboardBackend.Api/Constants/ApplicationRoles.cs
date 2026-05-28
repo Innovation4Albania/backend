@@ -33,7 +33,7 @@ public static class ApplicationRoles
     public static bool CanViewRiskDeviations(string role) => (role is DrejtorAgjencie or DrejtorInovacioniPublik or StafMinistrie) || IsAgencyContributor(role);
     public static bool IsViewOnlyRole(string role) => role is Kryeminister or Minister;
     public static bool CanUseInteractiveLogin(string role) => (role is DrejtorAgjencie or DrejtorInovacioniPublik or StafMinistrie) || IsAgencyContributor(role);
-    public static bool CanManageUsers(string role) => role == DrejtorAgjencie;
+    public static bool CanManageUsers(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
 
     public static string ToDisplayLabel(string role) => role switch
     {
