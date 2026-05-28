@@ -52,6 +52,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.StafAgjencie, true)]
     [InlineData(ApplicationRoles.Ekspert, true)]
     [InlineData(ApplicationRoles.Specialist, true)]
+    [InlineData(ApplicationRoles.Admin, true)]
     [InlineData(ApplicationRoles.Kryeminister, false)]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
     public void CanUseInteractiveLogin_CredentialRolesCanLogin(string role, bool expected)
@@ -60,12 +61,13 @@ public sealed class ApplicationRolesTests
     }
 
     [Theory]
-    [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
-    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
+    [InlineData(ApplicationRoles.Admin, true)]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, false)]
     [InlineData(ApplicationRoles.StafAgjencie, false)]
     [InlineData(ApplicationRoles.Ekspert, false)]
     [InlineData(ApplicationRoles.Specialist, false)]
-    public void CanManageUsers_OnlyInnovationDirectorRolesCanManageUsers(string role, bool expected)
+    public void CanManageUsers_OnlyAdminCanManageUsers(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.CanManageUsers(role));
     }
@@ -80,6 +82,7 @@ public sealed class ApplicationRolesTests
 
     [Theory]
     [InlineData(ApplicationRoles.DrejtorAgjencie, "Innovation4Albania")]
+    [InlineData(ApplicationRoles.Admin, "Admin")]
     [InlineData(ApplicationRoles.StafAgjencie, "Ekspert Innovation4Albania")]
     [InlineData(ApplicationRoles.Ekspert, "Ekspert")]
     [InlineData(ApplicationRoles.Specialist, "Specialist")]

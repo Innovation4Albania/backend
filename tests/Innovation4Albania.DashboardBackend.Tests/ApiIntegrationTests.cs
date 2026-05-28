@@ -101,9 +101,9 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
     }
 
     [Fact]
-    public async Task Director_can_create_edit_list_and_deactivate_expert_account()
+    public async Task Admin_can_create_edit_list_and_deactivate_expert_account()
     {
-        using var client = await CreateAuthenticatedDirectorClient();
+        using var client = await CreateAuthenticatedAdminClient();
         var username = $"expert-{Guid.NewGuid():N}";
         var request = new CreateUserRequest("Ekspert Integrimi", username, "password123", ApplicationRoles.StafAgjencie);
 
@@ -156,6 +156,27 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
         return client;
     }
 
+    private async Task<HttpClient> CreateAuthenticatedAdminClient()
+    {
+        var client = _factory.CreateClient();
+        var loginResponse = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest(
+                ApplicationRoles.DrejtorAgjencie,
+                null,
+                "Admin Integrimi",
+                DashboardApiFactory.AdminUsername,
+                DashboardApiFactory.AdminPassword));
+
+        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
+        var auth = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
+        Assert.NotNull(auth);
+        Assert.False(string.IsNullOrWhiteSpace(auth.Token));
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+        return client;
+    }
+
     private static CreateProjectRequest BuildProjectRequest(string code) =>
         new(
             code,
@@ -183,6 +204,8 @@ public sealed class DashboardApiFactory : WebApplicationFactory<Program>
 {
     public const string DirectorUsername = "integration-director";
     public const string DirectorPassword = "integration-password";
+    public const string AdminUsername = "integration-admin";
+    public const string AdminPassword = "integration-admin-password";
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -207,7 +230,13 @@ public sealed class DashboardApiFactory : WebApplicationFactory<Program>
                     DirectorUsername,
                     DirectorPassword,
                     ApplicationRoles.DrejtorAgjencie,
-                    "Drejtor Integrimi")));
+                    "Drejtor Integrimi"),
+                InMemoryUserRepository.Account(
+                    "integration-admin-id",
+                    AdminUsername,
+                    AdminPassword,
+                    ApplicationRoles.Admin,
+                    "Admin Integrimi")));
         });
     }
 

@@ -9,12 +9,16 @@ public sealed class PostgresUserRepository : IUserRepository
     private readonly string? _connectionString;
     private readonly string? _bootstrapDirectorUsername;
     private readonly string? _bootstrapDirectorPasswordHash;
+    private readonly string? _bootstrapAdminUsername;
+    private readonly string? _bootstrapAdminPasswordHash;
 
     public PostgresUserRepository(IConfiguration configuration)
     {
         _connectionString = ResolveConnectionString(configuration);
         _bootstrapDirectorUsername = configuration[$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Username"];
         _bootstrapDirectorPasswordHash = configuration[$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Password"];
+        _bootstrapAdminUsername = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Username"];
+        _bootstrapAdminPasswordHash = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Password"];
     }
 
     public async Task<StoredUser?> GetUserByUsername(string username, CancellationToken cancellationToken = default)
@@ -267,6 +271,13 @@ public sealed class PostgresUserRepository : IUserRepository
             connection);
         await command.ExecuteNonQueryAsync(cancellationToken);
 
+        await SeedBootstrapUserAsync(
+            connection,
+            _bootstrapAdminUsername,
+            _bootstrapAdminPasswordHash,
+            ApplicationRoles.Admin,
+            cancellationToken);
+
         await using var publicInnovationDirectorCommand = new NpgsqlCommand(
             """
             insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
@@ -304,6 +315,38 @@ public sealed class PostgresUserRepository : IUserRepository
         seedCommand.Parameters.AddWithValue("role", ApplicationRoles.DrejtorAgjencie);
         seedCommand.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorAgjencie));
         await seedCommand.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task SeedBootstrapUserAsync(
+        NpgsqlConnection connection,
+        string? username,
+        string? passwordHash,
+        string role,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(passwordHash))
+        {
+            return;
+        }
+
+        await using var command = new NpgsqlCommand(
+            """
+            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
+            values (@id, @username, @password_hash, @role, null, @full_name, now(), true)
+            on conflict (lower(username)) do update
+            set password_hash = excluded.password_hash,
+                role = excluded.role,
+                ministry = null,
+                full_name = excluded.full_name,
+                is_active = true
+            """,
+            connection);
+        command.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
+        command.Parameters.AddWithValue("username", username.Trim());
+        command.Parameters.AddWithValue("password_hash", passwordHash.Trim());
+        command.Parameters.AddWithValue("role", role);
+        command.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(role));
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static StoredUser ReadStoredUser(NpgsqlDataReader reader) =>

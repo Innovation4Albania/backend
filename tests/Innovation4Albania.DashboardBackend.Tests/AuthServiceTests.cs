@@ -68,6 +68,7 @@ public sealed class AuthServiceTests
     [InlineData(ApplicationRoles.Ekspert)]
     [InlineData(ApplicationRoles.Specialist)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
+    [InlineData(ApplicationRoles.Admin)]
     public async Task TryLoginAsync_AllowsInnovationAccountsThroughInnovation4AlbaniaOption(string accountRole)
     {
         var account = InMemoryUserRepository.Account("account-1", "innovation.user", "password123", accountRole, "Innovation User");
@@ -86,7 +87,7 @@ public sealed class AuthServiceTests
         var service = CreateService(users: users);
 
         var result = await service.CreateUserAsync(
-            StoreTestHelpers.DirectorContext(),
+            UserContext.From(ApplicationRoles.Admin, null),
             new CreateUserRequest("Ekspert Test", "expert.test", "password123", ApplicationRoles.StafAgjencie));
 
         Assert.True(result.IsSuccess);
@@ -104,7 +105,7 @@ public sealed class AuthServiceTests
         var username = $"account.{role}";
 
         var result = await service.CreateUserAsync(
-            StoreTestHelpers.DirectorContext(),
+            UserContext.From(ApplicationRoles.Admin, null),
             new CreateUserRequest("PunonjÃ«s Test", username, "password123", role));
 
         Assert.True(result.IsSuccess);
@@ -120,7 +121,7 @@ public sealed class AuthServiceTests
         var service = CreateService(users: users);
 
         var result = await service.CreateUserAsync(
-            StoreTestHelpers.DirectorContext(),
+            UserContext.From(ApplicationRoles.Admin, null),
             new CreateUserRequest("Përfaqësues Test", "finance.rep", "password123", ApplicationRoles.StafMinistrie, "Ministria e Financave"));
 
         Assert.True(result.IsSuccess);
@@ -135,7 +136,7 @@ public sealed class AuthServiceTests
         var service = CreateService(users: users);
 
         var result = await service.UpdateUserAsync(
-            StoreTestHelpers.DirectorContext(),
+            UserContext.From(ApplicationRoles.Admin, null),
             account.Id,
             new UpdateManagedUserRequest("Ekspert i Përditësuar", "expert.new", "password456", ApplicationRoles.Specialist));
 
