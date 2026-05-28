@@ -37,13 +37,13 @@ public sealed class ApplicationRolesTests
     }
 
     [Theory]
-    [InlineData(ApplicationRoles.Kryeminister, true)]
-    [InlineData(ApplicationRoles.Minister, true)]
-    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, true)]
+    [InlineData(ApplicationRoles.Kryeminister, false)]
+    [InlineData(ApplicationRoles.Minister, false)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
     [InlineData(ApplicationRoles.StafMinistrie, false)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
     [InlineData(ApplicationRoles.StafAgjencie, false)]
-    public void IsViewOnlyRole_OnlyExecutiveAndMinistryViewerRolesUseViewLinks(string role, bool expected)
+    public void IsViewOnlyRole_ViewLinksAreDisabled(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.IsViewOnlyRole(role));
     }
@@ -55,8 +55,9 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.Ekspert, true)]
     [InlineData(ApplicationRoles.Specialist, true)]
     [InlineData(ApplicationRoles.Admin, true)]
-    [InlineData(ApplicationRoles.Kryeminister, false)]
-    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
+    [InlineData(ApplicationRoles.Kryeminister, true)]
+    [InlineData(ApplicationRoles.Minister, true)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, true)]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
     public void CanUseInteractiveLogin_CredentialRolesCanLogin(string role, bool expected)
     {

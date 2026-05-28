@@ -29,11 +29,11 @@ public sealed class AuthServiceTests
         var error = service.ValidateViewLink(request);
 
         Assert.NotNull(error);
-        Assert.Contains("ministrie", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("login", error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void ValidateViewLink_AcceptsMinisterWithKnownMinistry()
+    public void ValidateViewLink_RejectsMinisterWithKnownMinistry()
     {
         var store = StoreTestHelpers.CreateStore();
         var service = CreateService(store: store);
@@ -41,7 +41,8 @@ public sealed class AuthServiceTests
 
         var error = service.ValidateViewLink(request);
 
-        Assert.Null(error);
+        Assert.NotNull(error);
+        Assert.Contains("login", error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -83,6 +84,22 @@ public sealed class AuthServiceTests
         Assert.Equal(ministry, result.Response.User.Ministry);
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.Kryeminister, null)]
+    [InlineData(ApplicationRoles.Minister, "Ministria e Financave")]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, "Ministria e EkonomisÃ« dhe Inovacionit")]
+    public async Task TryLoginAsync_AllowsExecutiveAndMinisterAccountsWithCredentials(string accountRole, string? expectedMinistry)
+    {
+        var account = InMemoryUserRepository.Account("account-1", "view.user", "password123", accountRole, "View User", expectedMinistry);
+        var service = CreateService(users: new InMemoryUserRepository(account));
+
+        var result = await service.TryLoginAsync(new LoginRequest(accountRole, null, null, "view.user", "password123"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(accountRole, result.Response!.User.Role);
+        Assert.Equal(expectedMinistry, result.Response.User.Ministry);
+    }
+
     [Fact]
     public async Task CreateUserAsync_AdminCreatesExpertAccount()
     {
@@ -114,6 +131,7 @@ public sealed class AuthServiceTests
 
     [Theory]
     [InlineData(ApplicationRoles.Kryeminister)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit)]
     [InlineData(ApplicationRoles.Admin)]
     [InlineData(ApplicationRoles.DrejtorAgjencie)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]

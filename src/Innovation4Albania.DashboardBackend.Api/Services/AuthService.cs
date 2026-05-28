@@ -35,7 +35,8 @@ public sealed class AuthService(
             return (false, null, "Username ose fjalëkalimi nuk është i saktë.");
         }
 
-        var context = UserContext.From(account.Role, account.Ministry, account.Username, account.FullName, account.Id);
+        var accountMinistry = ApplicationRoles.FixedMinistryForRole(account.Role) ?? account.Ministry;
+        var context = UserContext.From(account.Role, accountMinistry, account.Username, account.FullName, account.Id);
         if (account.Role != ApplicationRoles.Admin && !dashboardRepository.IsValidContext(context, out var contextError))
         {
             return (false, null, contextError);
@@ -115,7 +116,8 @@ public sealed class AuthService(
             return (false, null, validationError);
         }
 
-        var ministry = ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null;
+        var ministry = ApplicationRoles.FixedMinistryForRole(request.Role)
+            ?? (ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null);
         if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
@@ -146,7 +148,8 @@ public sealed class AuthService(
             return (false, null, "Ky rol nuk mund të zgjidhet nga administrimi.");
         }
 
-        var ministry = ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null;
+        var ministry = ApplicationRoles.FixedMinistryForRole(request.Role)
+            ?? (ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null);
         if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
@@ -240,6 +243,7 @@ public sealed class AuthService(
     private static bool IsManagedUserAccount(string role) =>
         role is ApplicationRoles.Kryeminister
             or ApplicationRoles.Minister
+            or ApplicationRoles.MinisterEkonomiseInovacionit
             or ApplicationRoles.Admin
             or ApplicationRoles.DrejtorAgjencie
             or ApplicationRoles.DrejtorInovacioniPublik
@@ -343,10 +347,10 @@ public sealed class AuthService(
     }
 
     private static UserResponse ToUserResponse(StoredUser account) =>
-        new(account.Id, account.FullName, account.Role, account.Ministry, ApplicationRoles.ToDisplayLabel(account.Role));
+        new(account.Id, account.FullName, account.Role, ApplicationRoles.FixedMinistryForRole(account.Role) ?? account.Ministry, ApplicationRoles.ToDisplayLabel(account.Role));
 
     private static ManagedUserResponse ToManagedUserResponse(StoredUser account) =>
-        new(account.Id, account.Username, account.Role, account.Ministry, account.FullName, account.CreatedAt, account.IsActive);
+        new(account.Id, account.Username, account.Role, ApplicationRoles.FixedMinistryForRole(account.Role) ?? account.Ministry, account.FullName, account.CreatedAt, account.IsActive);
 
     private static string? ValidateNewCredentials(string fullName, string username, string password)
     {
