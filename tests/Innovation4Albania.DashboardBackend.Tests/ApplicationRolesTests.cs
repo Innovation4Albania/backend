@@ -84,7 +84,7 @@ public sealed class ApplicationRolesTests
     }
 
     [Theory]
-    [InlineData(ApplicationRoles.DrejtorAgjencie, "Drejtor Innovation4Albania")]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, "Innovation4Albania")]
     [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, "Ministër i Ekonomisë dhe Inovacionit")]
     [InlineData(ApplicationRoles.Admin, "Admin")]
     [InlineData(ApplicationRoles.StafAgjencie, "Ekspert Innovation4Albania")]

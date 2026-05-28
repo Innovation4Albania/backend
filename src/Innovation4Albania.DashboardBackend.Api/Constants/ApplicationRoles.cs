@@ -48,7 +48,7 @@ public static class ApplicationRoles
         Minister => "Ministër",
         MinisterEkonomiseInovacionit => "Ministër i Ekonomisë dhe Inovacionit",
         Admin => "Admin",
-        DrejtorAgjencie => "Drejtor Innovation4Albania",
+        DrejtorAgjencie => "Innovation4Albania",
         DrejtorInovacioniPublik => "Drejtor i Inovacionit Publik",
         StafAgjencie => "Ekspert Innovation4Albania",
         Ekspert => "Ekspert Teknologjie",
