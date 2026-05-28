@@ -4,6 +4,7 @@ public static class ApplicationRoles
 {
     public const string Kryeminister = "kryeminister";
     public const string Minister = "minister";
+    public const string MinisterEkonomiseInovacionit = "minister_ekonomie_inovacioni";
     public const string Admin = "admin";
     public const string DrejtorAgjencie = "drejtor_agjencie";
     public const string DrejtorInovacioniPublik = "drejtor_inovacioni_publik";
@@ -16,6 +17,7 @@ public static class ApplicationRoles
     [
         Kryeminister,
         Minister,
+        MinisterEkonomiseInovacionit,
         Admin,
         DrejtorAgjencie,
         DrejtorInovacioniPublik,
@@ -26,6 +28,9 @@ public static class ApplicationRoles
     ];
 
     public static bool IsAgencyContributor(string role) => role is StafAgjencie or Ekspert or Specialist;
+    public static string? FixedMinistryForRole(string role) => role == MinisterEkonomiseInovacionit
+        ? "Ministria e Ekonomisë dhe Inovacionit"
+        : null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie;
     public static bool CanCreateProjects(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
     public static bool CanManagePortfolio(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
@@ -33,7 +38,7 @@ public static class ApplicationRoles
     public static bool CanProposeProjectChanges(string role) => IsAgencyContributor(role) || role == StafMinistrie;
     public static bool CanDeleteChangeProposals(string role) => (role is DrejtorAgjencie or DrejtorInovacioniPublik) || IsAgencyContributor(role);
     public static bool CanViewRiskDeviations(string role) => (role is DrejtorAgjencie or DrejtorInovacioniPublik or StafMinistrie) || IsAgencyContributor(role);
-    public static bool IsViewOnlyRole(string role) => role is Kryeminister or Minister;
+    public static bool IsViewOnlyRole(string role) => role is Kryeminister or Minister or MinisterEkonomiseInovacionit;
     public static bool CanUseInteractiveLogin(string role) => (role is Admin or DrejtorAgjencie or DrejtorInovacioniPublik or StafMinistrie) || IsAgencyContributor(role);
     public static bool CanManageUsers(string role) => role == Admin;
 
@@ -41,11 +46,12 @@ public static class ApplicationRoles
     {
         Kryeminister => "Kryeministër",
         Minister => "Ministër",
+        MinisterEkonomiseInovacionit => "Ministër i Ekonomisë dhe Inovacionit",
         Admin => "Admin",
-        DrejtorAgjencie => "Innovation4Albania",
-        DrejtorInovacioniPublik => "Drejtor i Drejtorisë së Inovacionit Publik",
+        DrejtorAgjencie => "Drejtor Innovation4Albania",
+        DrejtorInovacioniPublik => "Drejtor i Inovacionit Publik",
         StafAgjencie => "Ekspert Innovation4Albania",
-        Ekspert => "Ekspert",
+        Ekspert => "Ekspert Teknologjie",
         Specialist => "Specialist",
         StafMinistrie => "Përfaqësues Ministrie",
         _ => role

@@ -114,8 +114,8 @@ public sealed class AuthService(
             return (false, null, validationError);
         }
 
-        var ministry = request.Role == ApplicationRoles.StafMinistrie ? request.Ministry : null;
-        if (request.Role == ApplicationRoles.StafMinistrie &&
+        var ministry = ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null;
+        if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
             return (false, null, ministryError);
@@ -145,8 +145,8 @@ public sealed class AuthService(
             return (false, null, "Ky rol nuk mund të zgjidhet nga administrimi.");
         }
 
-        var ministry = request.Role == ApplicationRoles.StafMinistrie ? request.Ministry : null;
-        if (request.Role == ApplicationRoles.StafMinistrie &&
+        var ministry = ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null;
+        if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
             return (false, null, ministryError);
@@ -237,7 +237,12 @@ public sealed class AuthService(
     }
 
     private static bool IsManagedUserAccount(string role) =>
-        role is ApplicationRoles.DrejtorAgjencie or ApplicationRoles.DrejtorInovacioniPublik or ApplicationRoles.StafMinistrie || ApplicationRoles.IsAgencyContributor(role);
+        role is ApplicationRoles.Kryeminister
+            or ApplicationRoles.Minister
+            or ApplicationRoles.Admin
+            or ApplicationRoles.DrejtorAgjencie
+            or ApplicationRoles.DrejtorInovacioniPublik
+            or ApplicationRoles.Ekspert;
 
     public async Task<(bool IsSuccess, AuthResponse? Response, string? Error)> ChangeOwnCredentialsAsync(
         UserContext context,

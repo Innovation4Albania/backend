@@ -81,14 +81,14 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
-    public async Task CreateUserAsync_DirectorCreatesExpertAccount()
+    public async Task CreateUserAsync_AdminCreatesExpertAccount()
     {
         var users = new InMemoryUserRepository();
         var service = CreateService(users: users);
 
         var result = await service.CreateUserAsync(
             UserContext.From(ApplicationRoles.Admin, null),
-            new CreateUserRequest("Ekspert Test", "expert.test", "password123", ApplicationRoles.StafAgjencie));
+            new CreateUserRequest("Ekspert Test", "expert.test", "password123", ApplicationRoles.Ekspert));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("expert.test", result.Response!.Username);
@@ -96,9 +96,12 @@ public sealed class AuthServiceTests
     }
 
     [Theory]
+    [InlineData(ApplicationRoles.Kryeminister)]
+    [InlineData(ApplicationRoles.Admin)]
+    [InlineData(ApplicationRoles.DrejtorAgjencie)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
     [InlineData(ApplicationRoles.Ekspert)]
-    [InlineData(ApplicationRoles.Specialist)]
-    public async Task CreateUserAsync_DirectorCreatesAdditionalAgencyContributorAccounts(string role)
+    public async Task CreateUserAsync_AdminCreatesManagedAccounts(string role)
     {
         var users = new InMemoryUserRepository();
         var service = CreateService(users: users);
@@ -115,36 +118,37 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
-    public async Task CreateUserAsync_DirectorCreatesMinistryRepresentativeWithMinistry()
+    public async Task CreateUserAsync_AdminCreatesMinisterWithMinistry()
     {
         var users = new InMemoryUserRepository();
         var service = CreateService(users: users);
 
         var result = await service.CreateUserAsync(
             UserContext.From(ApplicationRoles.Admin, null),
-            new CreateUserRequest("Përfaqësues Test", "finance.rep", "password123", ApplicationRoles.StafMinistrie, "Ministria e Financave"));
+            new CreateUserRequest("Ministër Test", "finance.minister", "password123", ApplicationRoles.Minister, "Ministria e Financave"));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("Ministria e Financave", result.Response!.Ministry);
     }
 
     [Fact]
-    public async Task UpdateUserAsync_DirectorUpdatesManagedUserIdentityAndPassword()
+    public async Task UpdateUserAsync_AdminUpdatesManagedUserIdentityPasswordAndMinistry()
     {
-        var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.StafAgjencie, "Ekspert Test");
+        var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.Ekspert, "Ekspert Test");
         var users = new InMemoryUserRepository(account);
         var service = CreateService(users: users);
 
         var result = await service.UpdateUserAsync(
             UserContext.From(ApplicationRoles.Admin, null),
             account.Id,
-            new UpdateManagedUserRequest("Ekspert i Përditësuar", "expert.new", "password456", ApplicationRoles.Specialist));
+            new UpdateManagedUserRequest("Ministër i Përditësuar", "minister.new", "password456", ApplicationRoles.Minister, "Ministria e Financave"));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal("Ekspert i Përditësuar", result.Response!.FullName);
-        Assert.Equal("expert.new", result.Response.Username);
-        Assert.Equal(ApplicationRoles.Specialist, result.Response.Role);
-        var updated = await users.GetUserByUsername("expert.new");
+        Assert.Equal("Ministër i Përditësuar", result.Response!.FullName);
+        Assert.Equal("minister.new", result.Response.Username);
+        Assert.Equal(ApplicationRoles.Minister, result.Response.Role);
+        Assert.Equal("Ministria e Financave", result.Response.Ministry);
+        var updated = await users.GetUserByUsername("minister.new");
         Assert.NotNull(updated);
         Assert.True(BCrypt.Net.BCrypt.Verify("password456", updated!.PasswordHash));
     }

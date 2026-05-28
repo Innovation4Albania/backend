@@ -105,7 +105,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
     {
         using var client = await CreateAuthenticatedAdminClient();
         var username = $"expert-{Guid.NewGuid():N}";
-        var request = new CreateUserRequest("Ekspert Integrimi", username, "password123", ApplicationRoles.StafAgjencie);
+        var request = new CreateUserRequest("Ekspert Integrimi", username, "password123", ApplicationRoles.Ekspert);
 
         var createResponse = await client.PostAsJsonAsync("/api/auth/users", request);
 
@@ -114,7 +114,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
         Assert.NotNull(created);
         Assert.Equal(username, created.Username);
 
-        var updateRequest = new UpdateManagedUserRequest("Ekspert i Përditësuar", $"{username}.new", "password456", ApplicationRoles.Specialist);
+        var updateRequest = new UpdateManagedUserRequest("Ministër i Përditësuar", $"{username}.new", "password456", ApplicationRoles.Minister, "Ministria e Financave");
         var updateResponse = await client.PutAsJsonAsync($"/api/auth/users/{created.Id}", updateRequest);
 
         Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
@@ -122,7 +122,8 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
         Assert.NotNull(updated);
         Assert.Equal(updateRequest.FullName, updated.FullName);
         Assert.Equal(updateRequest.Username, updated.Username);
-        Assert.Equal(ApplicationRoles.Specialist, updated.Role);
+        Assert.Equal(ApplicationRoles.Minister, updated.Role);
+        Assert.Equal("Ministria e Financave", updated.Ministry);
 
         var accounts = await client.GetFromJsonAsync<List<ManagedUserResponse>>("/api/auth/users");
         Assert.NotNull(accounts);

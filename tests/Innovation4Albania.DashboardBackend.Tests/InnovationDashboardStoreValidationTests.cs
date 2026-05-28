@@ -113,6 +113,19 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_ReturnsOnlyEconomyInnovationProjectsForDedicatedMinister()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var ministry = ApplicationRoles.FixedMinistryForRole(ApplicationRoles.MinisterEkonomiseInovacionit)!;
+        var context = UserContext.From(ApplicationRoles.MinisterEkonomiseInovacionit, null);
+
+        var projects = await store.GetProjects(context, null, null);
+
+        Assert.NotEmpty(projects);
+        Assert.All(projects, project => Assert.Contains(ministry, project.Ministries));
+    }
+
+    [Fact]
     public async Task GetProjects_ReturnsOnlyWorkgroupProjectsForAgencyExpert()
     {
         var store = StoreTestHelpers.CreateStore();

@@ -7,6 +7,7 @@ public sealed class ApplicationRolesTests
     [Theory]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
     [InlineData(ApplicationRoles.Minister, true)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
     [InlineData(ApplicationRoles.Kryeminister, false)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
     public void RequiresMinistry_MinistryScopedViewRolesRequireMinistry(string role, bool expected)
@@ -38,6 +39,7 @@ public sealed class ApplicationRolesTests
     [Theory]
     [InlineData(ApplicationRoles.Kryeminister, true)]
     [InlineData(ApplicationRoles.Minister, true)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, true)]
     [InlineData(ApplicationRoles.StafMinistrie, false)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
     [InlineData(ApplicationRoles.StafAgjencie, false)]
@@ -54,6 +56,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.Specialist, true)]
     [InlineData(ApplicationRoles.Admin, true)]
     [InlineData(ApplicationRoles.Kryeminister, false)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
     public void CanUseInteractiveLogin_CredentialRolesCanLogin(string role, bool expected)
     {
@@ -76,15 +79,16 @@ public sealed class ApplicationRolesTests
     public void ToDisplayLabel_PublicInnovationDirectorUsesFullDirectorateLabel()
     {
         Assert.Equal(
-            "Drejtor i Drejtorisë së Inovacionit Publik",
+            "Drejtor i Inovacionit Publik",
             ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorInovacioniPublik));
     }
 
     [Theory]
-    [InlineData(ApplicationRoles.DrejtorAgjencie, "Innovation4Albania")]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, "Drejtor Innovation4Albania")]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, "Ministër i Ekonomisë dhe Inovacionit")]
     [InlineData(ApplicationRoles.Admin, "Admin")]
     [InlineData(ApplicationRoles.StafAgjencie, "Ekspert Innovation4Albania")]
-    [InlineData(ApplicationRoles.Ekspert, "Ekspert")]
+    [InlineData(ApplicationRoles.Ekspert, "Ekspert Teknologjie")]
     [InlineData(ApplicationRoles.Specialist, "Specialist")]
     [InlineData(ApplicationRoles.StafMinistrie, "Përfaqësues Ministrie")]
     public void ToDisplayLabel_UsesUpdatedAccessRoleLabels(string role, string expected)

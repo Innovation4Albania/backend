@@ -290,7 +290,9 @@ public sealed class InnovationDashboardStore
     public UserResponse Login(LoginRequest request)
     {
         var context = UserContext.From(request.Role, request.Ministry);
-        var canonicalMinistry = ResolveMinistry(context.Ministry) ?? context.Ministry;
+        var canonicalMinistry = ApplicationRoles.FixedMinistryForRole(context.Role)
+            ?? ResolveMinistry(context.Ministry)
+            ?? context.Ministry;
         var displayName = string.IsNullOrWhiteSpace(request.Name)
             ? ApplicationRoles.ToDisplayLabel(context.Role)
             : request.Name.Trim();
@@ -345,11 +347,13 @@ public sealed class InnovationDashboardStore
 
         var visible = GetVisibleProjects(context);
 
-        var visibleMinistries = ApplicationRoles.RequiresMinistry(context.Role)
-            ? ResolveMinistry(context.Ministry) is { } ministry ? [ministry] : []
-            : _ministries
-                .Where(ministry => visible.Any(project => project.Ministries.Contains(ministry)))
-                .ToList();
+        var visibleMinistries = ApplicationRoles.FixedMinistryForRole(context.Role) is { } fixedMinistry
+            ? [fixedMinistry]
+            : ApplicationRoles.RequiresMinistry(context.Role)
+                ? ResolveMinistry(context.Ministry) is { } ministry ? [ministry] : []
+                : _ministries
+                    .Where(ministry => visible.Any(project => project.Ministries.Contains(ministry)))
+                    .ToList();
 
         return visibleMinistries
             .Select((ministry, index) => new MinistryDistributionItem(
@@ -1535,6 +1539,14 @@ public sealed class InnovationDashboardStore
             return _projects
                 .Where(project => project.TeamMembers.Any(member =>
                     string.Equals(member.Name, context.FullName, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+
+        var fixedMinistry = ApplicationRoles.FixedMinistryForRole(context.Role);
+        if (!string.IsNullOrWhiteSpace(fixedMinistry))
+        {
+            return _projects
+                .Where(project => project.Ministries.Contains(fixedMinistry, StringComparer.OrdinalIgnoreCase))
                 .ToList();
         }
 
