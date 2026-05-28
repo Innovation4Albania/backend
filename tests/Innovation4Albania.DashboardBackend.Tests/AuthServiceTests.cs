@@ -119,6 +119,23 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task CreateUserAsync_AdminCreatesMinistryRepresentativeWithMinistry()
+    {
+        var users = new InMemoryUserRepository();
+        var service = CreateService(users: users);
+
+        var result = await service.CreateUserAsync(
+            UserContext.From(ApplicationRoles.Admin, null),
+            new CreateUserRequest("Përfaqësues Test", "rep.test", "password123", ApplicationRoles.StafMinistrie, "Ministria e Financave"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("rep.test", result.Response!.Username);
+        Assert.Equal(ApplicationRoles.StafMinistrie, result.Response.Role);
+        Assert.Equal("Ministria e Financave", result.Response.Ministry);
+        Assert.NotNull(await users.GetUserByUsername("rep.test"));
+    }
+
+    [Fact]
     public async Task CreateUserAsync_AdminCreatesMinisterWithMinistry()
     {
         var users = new InMemoryUserRepository();
