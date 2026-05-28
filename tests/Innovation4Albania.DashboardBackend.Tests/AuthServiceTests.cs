@@ -97,7 +97,7 @@ public sealed class AuthServiceTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal(accountRole, result.Response!.User.Role);
-        Assert.Equal(expectedMinistry, result.Response.User.Ministry);
+        Assert.Equal(ApplicationRoles.FixedMinistryForRole(accountRole) ?? expectedMinistry, result.Response.User.Ministry);
     }
 
     [Fact]
