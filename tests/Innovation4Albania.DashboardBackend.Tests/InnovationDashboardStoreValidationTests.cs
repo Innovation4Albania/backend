@@ -88,6 +88,19 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_ReturnsOnlyAccountMinistryProjectsForMinistryStaff()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var ministry = "Ministria e Financave";
+        var context = UserContext.From(ApplicationRoles.StafMinistrie, ministry, "finance.rep", "Përfaqësues Financash", "rep-1");
+
+        var projects = await store.GetProjects(context, null, null);
+
+        Assert.NotEmpty(projects);
+        Assert.All(projects, project => Assert.Contains(ministry, project.Ministries));
+    }
+
+    [Fact]
     public void IsValidContext_RejectsMinisterWithoutMinistry()
     {
         var store = StoreTestHelpers.CreateStore();

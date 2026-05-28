@@ -69,15 +69,18 @@ public sealed class AuthServiceTests
     [InlineData(ApplicationRoles.Specialist)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
     [InlineData(ApplicationRoles.Admin)]
+    [InlineData(ApplicationRoles.StafMinistrie)]
     public async Task TryLoginAsync_AllowsInnovationAccountsThroughInnovation4AlbaniaOption(string accountRole)
     {
-        var account = InMemoryUserRepository.Account("account-1", "innovation.user", "password123", accountRole, "Innovation User");
+        var ministry = accountRole == ApplicationRoles.StafMinistrie ? "Ministria e Financave" : null;
+        var account = InMemoryUserRepository.Account("account-1", "innovation.user", "password123", accountRole, "Innovation User", ministry);
         var service = CreateService(users: new InMemoryUserRepository(account));
 
         var result = await service.TryLoginAsync(new LoginRequest(ApplicationRoles.DrejtorAgjencie, null, null, "innovation.user", "password123"));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(accountRole, result.Response!.User.Role);
+        Assert.Equal(ministry, result.Response.User.Ministry);
     }
 
     [Fact]
