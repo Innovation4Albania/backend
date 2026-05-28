@@ -158,6 +158,35 @@ public sealed class InnovationDashboardStoreValidationTests
         Assert.Contains(projects[0].TeamMembers, member => member.UserId == "expert-1");
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.StafAgjencie, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.Ekspert, WorkgroupRoles.ProjectOfficer)]
+    [InlineData(ApplicationRoles.Specialist, WorkgroupRoles.Specialist)]
+    public async Task GetProjects_ReturnsOnlyAssignedProjectsForContributorAccounts(string role, string workgroupRole)
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var assigned = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = $"ASSIGNED-{role}",
+            TeamMembers = [new WorkgroupMemberInput("Contributor Test", workgroupRole, "Njësi test", 100, "contributor-1")]
+        };
+        var unassigned = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = $"UNASSIGNED-{role}",
+            TeamMembers = [new WorkgroupMemberInput("Other Contributor", workgroupRole, "Njësi test", 100, "contributor-2")]
+        };
+        var createdAssigned = await store.TryCreateProjectAsync(director, assigned);
+        await store.TryCreateProjectAsync(director, unassigned);
+        var context = UserContext.From(role, null, "contributor.test", "Contributor Test", "contributor-1");
+
+        var projects = await store.GetProjects(context, null, null);
+
+        Assert.Single(projects);
+        Assert.Equal(createdAssigned.Response!.Id, projects[0].Id);
+        Assert.All(projects, project => Assert.Contains(project.TeamMembers, member => member.UserId == "contributor-1"));
+    }
+
     [Fact]
     public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
     {
