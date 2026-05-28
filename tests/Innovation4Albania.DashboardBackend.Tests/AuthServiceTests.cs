@@ -99,6 +99,20 @@ public sealed class AuthServiceTests
     }
 
     [Theory]
+    [InlineData(ApplicationRoles.DrejtorAgjencie)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
+    public async Task GetManagedUsersAsync_ProjectDirectorsCanReadAccountsForProjectTeams(string directorRole)
+    {
+        var account = InMemoryUserRepository.Account("expert-1", "expert.test", "password123", ApplicationRoles.Ekspert, "Ekspert Test");
+        var users = new InMemoryUserRepository(account);
+        var service = CreateService(users: users);
+
+        var result = await service.GetManagedUsersAsync(UserContext.From(directorRole, null));
+
+        Assert.Contains(result, user => user.Id == "expert-1");
+    }
+
+    [Theory]
     [InlineData(ApplicationRoles.Kryeminister)]
     [InlineData(ApplicationRoles.Admin)]
     [InlineData(ApplicationRoles.DrejtorAgjencie)]

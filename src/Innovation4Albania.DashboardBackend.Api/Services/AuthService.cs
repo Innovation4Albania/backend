@@ -87,7 +87,7 @@ public sealed class AuthService(
 
     public async Task<IReadOnlyList<ManagedUserResponse>> GetManagedUsersAsync(UserContext context)
     {
-        if (!ApplicationRoles.CanManageUsers(context.Role))
+        if (!ApplicationRoles.CanManageUsers(context.Role) && !ApplicationRoles.CanCreateProjects(context.Role))
         {
             return [];
         }
