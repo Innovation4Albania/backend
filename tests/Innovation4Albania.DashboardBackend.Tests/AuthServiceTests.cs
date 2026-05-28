@@ -102,6 +102,7 @@ public sealed class AuthServiceTests
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
     [InlineData(ApplicationRoles.StafAgjencie)]
     [InlineData(ApplicationRoles.Ekspert)]
+    [InlineData(ApplicationRoles.Specialist)]
     public async Task CreateUserAsync_AdminCreatesManagedAccounts(string role)
     {
         var users = new InMemoryUserRepository();

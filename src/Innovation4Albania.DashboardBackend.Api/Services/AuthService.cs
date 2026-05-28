@@ -244,6 +244,7 @@ public sealed class AuthService(
             or ApplicationRoles.DrejtorInovacioniPublik
             or ApplicationRoles.StafAgjencie
             or ApplicationRoles.Ekspert
+            or ApplicationRoles.Specialist
             or ApplicationRoles.StafMinistrie;
 
     public async Task<(bool IsSuccess, AuthResponse? Response, string? Error)> ChangeOwnCredentialsAsync(
