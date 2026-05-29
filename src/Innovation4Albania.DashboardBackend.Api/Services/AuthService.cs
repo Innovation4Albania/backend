@@ -240,6 +240,27 @@ public sealed class AuthService(
         return await userRepository.ActivateUser(id);
     }
 
+    public async Task<(bool IsSuccess, string? Error)> DeleteUserAsync(UserContext context, string id)
+    {
+        if (!ApplicationRoles.CanManageUsers(context.Role))
+        {
+            return (false, "Ky rol nuk mund të fshijë llogari.");
+        }
+
+        if (string.Equals(context.UserId, id, StringComparison.OrdinalIgnoreCase))
+        {
+            return (false, "Nuk mund të fshish llogarinë me të cilën je i/e loguar.");
+        }
+
+        var account = await userRepository.GetUserById(id);
+        if (account is null || !IsManagedUserAccount(account.Role))
+        {
+            return (false, "Llogaria e menaxhueshme nuk u gjet.");
+        }
+
+        return await userRepository.DeleteUser(id);
+    }
+
     private static bool IsManagedUserAccount(string role) =>
         role is ApplicationRoles.Kryeminister
             or ApplicationRoles.Minister

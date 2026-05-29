@@ -120,6 +120,18 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
         return Task.FromResult((true, (string?)null));
     }
 
+    public Task<(bool IsSuccess, string? Error)> DeleteUser(string id, CancellationToken cancellationToken = default)
+    {
+        var index = _users.FindIndex(user => user.Id == id);
+        if (index < 0)
+        {
+            return Task.FromResult((false, (string?)"Përdoruesi nuk u gjet."));
+        }
+
+        _users.RemoveAt(index);
+        return Task.FromResult((true, (string?)null));
+    }
+
     public static StoredUser Account(
         string id,
         string username,

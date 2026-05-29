@@ -40,4 +40,5 @@ public interface IUserRepository
         CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, string? Error)> ActivateUser(string id, CancellationToken cancellationToken = default);
+    Task<(bool IsSuccess, string? Error)> DeleteUser(string id, CancellationToken cancellationToken = default);
 }

@@ -235,6 +235,32 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task DeleteUserAsync_AdminPermanentlyRemovesManagedUser()
+    {
+        var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.Ekspert, "Ekspert Test");
+        var users = new InMemoryUserRepository(account);
+        var service = CreateService(users: users);
+
+        var result = await service.DeleteUserAsync(UserContext.From(ApplicationRoles.Admin, null, "admin", "Admin", "admin-1"), account.Id);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(await users.GetUserById(account.Id));
+    }
+
+    [Fact]
+    public async Task DeleteUserAsync_RejectsDeletingCurrentAccount()
+    {
+        var account = InMemoryUserRepository.Account("admin-1", "admin", "password123", ApplicationRoles.Admin, "Admin Test");
+        var users = new InMemoryUserRepository(account);
+        var service = CreateService(users: users);
+
+        var result = await service.DeleteUserAsync(UserContext.From(ApplicationRoles.Admin, null, "admin", "Admin Test", "admin-1"), account.Id);
+
+        Assert.False(result.IsSuccess);
+        Assert.NotNull(await users.GetUserById(account.Id));
+    }
+
+    [Fact]
     public async Task ChangeOwnCredentialsAsync_UpdatesUsernameAndPassword()
     {
         var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.StafAgjencie, "Ekspert Test");

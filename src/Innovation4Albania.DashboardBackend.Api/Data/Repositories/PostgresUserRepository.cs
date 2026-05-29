@@ -224,6 +224,13 @@ public sealed class PostgresUserRepository : IUserRepository
             cancellationToken,
             inactiveMessage: "Përdoruesi nuk u gjet ose është aktiv.");
 
+    public Task<(bool IsSuccess, string? Error)> DeleteUser(string id, CancellationToken cancellationToken = default) =>
+        ExecuteUpdate(
+            "delete from users where id = @id",
+            id,
+            cancellationToken,
+            inactiveMessage: "Përdoruesi nuk u gjet.");
+
     private async Task<(bool IsSuccess, string? Error)> ExecuteUpdate(
         string sql,
         string id,

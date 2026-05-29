@@ -180,6 +180,28 @@ public static class AuthEndpoints
             return Results.NoContent();
         }).RequireAuthorization();
 
+        api.MapDelete("/auth/users/{id}/permanent", async (string id, ClaimsPrincipal user, IUserContextService contextService, IAuthService authService, ILogger<OperationAuditLog> auditLogger) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+            {
+                return errorResult!;
+            }
+
+            if (!ApplicationRoles.CanManageUsers(context.Role))
+            {
+                return Results.Forbid();
+            }
+
+            var result = await authService.DeleteUserAsync(context, id);
+            if (!result.IsSuccess)
+            {
+                return Results.BadRequest(new ApiErrorResponse("user_delete_failed", result.Error!));
+            }
+
+            auditLogger.LogInformation("User account {UserId} permanently deleted by role {Role}.", id, context.Role);
+            return Results.NoContent();
+        }).RequireAuthorization();
+
         api.MapPut("/auth/me/credentials", async (ClaimsPrincipal user, ChangeOwnCredentialsRequest request, IUserContextService contextService, IAuthService authService, ILogger<OperationAuditLog> auditLogger) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
