@@ -569,6 +569,8 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         public bool SaveCompleted { get; private set; }
         public bool IsConfigured => true;
 
+        public Task InitializeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task<string?> LoadSnapshotAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
 
         public async Task SaveSnapshotAsync(string payload, CancellationToken cancellationToken = default)

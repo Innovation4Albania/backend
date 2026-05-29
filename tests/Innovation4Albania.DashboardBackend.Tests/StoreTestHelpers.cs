@@ -67,6 +67,8 @@ internal static class StoreTestHelpers
     {
         public bool IsConfigured => false;
 
+        public Task InitializeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task<string?> LoadSnapshotAsync(CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
 
         public Task SaveSnapshotAsync(string payload, CancellationToken cancellationToken = default) => Task.CompletedTask;

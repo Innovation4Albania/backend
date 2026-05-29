@@ -264,6 +264,9 @@ public sealed class DashboardApiFactory : WebApplicationFactory<Program>
     {
         public bool IsConfigured => false;
 
+        public Task InitializeAsync(CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
         public Task<string?> LoadSnapshotAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<string?>(null);
 

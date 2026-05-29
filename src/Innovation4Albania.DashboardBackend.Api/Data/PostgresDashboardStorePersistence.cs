@@ -17,6 +17,18 @@ public sealed class PostgresDashboardStorePersistence : IDashboardStorePersisten
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_connectionString);
 
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (!IsConfigured)
+        {
+            return;
+        }
+
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await EnsureSchemaAsync(connection, cancellationToken);
+    }
+
     public async Task<string?> LoadSnapshotAsync(CancellationToken cancellationToken = default)
     {
         if (!IsConfigured)
@@ -26,7 +38,6 @@ public sealed class PostgresDashboardStorePersistence : IDashboardStorePersisten
 
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
-        await EnsureSchemaAsync(connection, cancellationToken);
 
         await using var command = new NpgsqlCommand(
             "select payload::text from dashboard_state where id = @id",
@@ -46,7 +57,6 @@ public sealed class PostgresDashboardStorePersistence : IDashboardStorePersisten
 
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
-        await EnsureSchemaAsync(connection, cancellationToken);
 
         await using var command = new NpgsqlCommand(
             """

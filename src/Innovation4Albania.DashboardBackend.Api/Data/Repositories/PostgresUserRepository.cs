@@ -21,6 +21,18 @@ public sealed class PostgresUserRepository : IUserRepository
         _bootstrapAdminPasswordHash = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Password"];
     }
 
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_connectionString is null)
+        {
+            return;
+        }
+
+        await using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await EnsureSchemaAsync(connection, cancellationToken);
+    }
+
     public async Task<StoredUser?> GetUserByUsername(string username, CancellationToken cancellationToken = default)
     {
         if (!TryGetUsername(username, out var normalizedUsername) || _connectionString is null)
@@ -255,7 +267,6 @@ public sealed class PostgresUserRepository : IUserRepository
     {
         var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
-        await EnsureSchemaAsync(connection, cancellationToken);
         return connection;
     }
 

@@ -19,9 +19,11 @@ public static class ServiceRegistration
         });
         services.AddSingleton<IDashboardStorePersistence, PostgresDashboardStorePersistence>();
         services.AddSingleton<InnovationDashboardStore>();
+        services.AddSingleton<PostgresUserRepository>();
+        services.AddSingleton<IUserRepository>(provider => provider.GetRequiredService<PostgresUserRepository>());
+        services.AddHostedService<DatabaseSchemaInitializer>();
         services.AddHostedService<DashboardStoreInitializer>();
         services.AddSingleton<IInnovationDashboardRepository, InnovationDashboardRepository>();
-        services.AddSingleton<IUserRepository, PostgresUserRepository>();
 
         services.AddSingleton<IUserContextService, UserContextService>();
         services.AddSingleton<IAuthService, AuthService>();

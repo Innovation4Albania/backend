@@ -53,6 +53,8 @@ public sealed class InnovationDashboardStoreSnapshotTests
     {
         public bool IsConfigured => true;
 
+        public Task InitializeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task<string?> LoadSnapshotAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<string?>(payload);
 
