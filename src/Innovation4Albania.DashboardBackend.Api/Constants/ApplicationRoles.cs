@@ -51,8 +51,8 @@ public static class ApplicationRoles
     public static bool CanProposeProjectChanges(string role) => IsAgencyContributor(role) || role == StafMinistrie;
     public static bool CanDeleteChangeProposals(string role) => (role is DrejtorAgjencie or DrejtorInovacioniPublik) || IsAgencyContributor(role);
     public static bool CanViewRiskDeviations(string role) => (role is DrejtorAgjencie or DrejtorInovacioniPublik or StafMinistrie) || IsAgencyContributor(role);
-    public static bool IsViewOnlyRole(string role) => false;
-    public static bool CanUseInteractiveLogin(string role) => All.Contains(role);
+    public static bool IsViewOnlyRole(string role) => All.Contains(role);
+    public static bool CanUseInteractiveLogin(string role) => false;
     public static bool CanManageUsers(string role) => role == Admin;
     public static bool CanReadManagedUsers(string role) => CanManageUsers(role) || CanCreateProjects(role);
 
