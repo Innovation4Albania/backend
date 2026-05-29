@@ -1,4 +1,5 @@
 using Innovation4Albania.DashboardBackend.Api.Constants;
+using Innovation4Albania.DashboardBackend.Api.Data;
 using Innovation4Albania.DashboardBackend.Api.Models;
 
 namespace Innovation4Albania.DashboardBackend.Tests;
@@ -9,8 +10,9 @@ public sealed class InnovationDashboardStoreChangeProposalTests
     public async Task TryResolveChangeProposalAsync_RejectsNonManagerRole()
     {
         var store = StoreTestHelpers.CreateStore();
-        var staff = StoreTestHelpers.StaffContext();
-        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal());
+        var staff = StoreTestHelpers.StaffContext(userId: "staff-a");
+        var project = await CreateAssignedProject(store, "PROP-NON-MANAGER", staff);
+        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal(project.Response!.Id));
         Assert.True(proposal.IsSuccess);
 
         var resolved = await store.TryResolveChangeProposalAsync(staff, proposal.Response!.Id, "approve");
@@ -24,29 +26,31 @@ public sealed class InnovationDashboardStoreChangeProposalTests
     public async Task TryResolveChangeProposalAsync_ApprovesContentProposalAndUpdatesProjectDescription()
     {
         var store = StoreTestHelpers.CreateStore();
-        var staff = StoreTestHelpers.StaffContext();
+        var staff = StoreTestHelpers.StaffContext(userId: "staff-a");
         var director = StoreTestHelpers.DirectorContext();
         var nextDescription = "Pershkrimi i perditesuar nga propozimi.";
-        var request = new CreateProjectChangeProposalRequest("p1", "content", "old", nextDescription, "Duhet perditesuar.");
+        var project = await CreateAssignedProject(store, "PROP-APPROVE", staff);
+        var request = new CreateProjectChangeProposalRequest(project.Response!.Id, "content", "old", nextDescription, "Duhet perditesuar.");
         var proposal = await store.TryCreateChangeProposalAsync(staff, request);
         Assert.True(proposal.IsSuccess);
 
         var resolved = await store.TryResolveChangeProposalAsync(director, proposal.Response!.Id, "approve");
-        var project = await store.GetProjectById("p1", director);
+        var updatedProject = await store.GetProjectById(project.Response.Id, director);
 
         Assert.True(resolved.IsSuccess);
         Assert.Null(resolved.Error);
         Assert.Equal(ChangeProposalStatuses.Approved, resolved.Response!.Status);
-        Assert.Equal(nextDescription, project!.Description);
+        Assert.Equal(nextDescription, updatedProject!.Description);
     }
 
     [Fact]
     public async Task TryResolveChangeProposalAsync_RejectsUnknownAction()
     {
         var store = StoreTestHelpers.CreateStore();
-        var staff = StoreTestHelpers.StaffContext();
+        var staff = StoreTestHelpers.StaffContext(userId: "staff-a");
         var director = StoreTestHelpers.DirectorContext();
-        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal());
+        var project = await CreateAssignedProject(store, "PROP-UNKNOWN", staff);
+        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal(project.Response!.Id));
         Assert.True(proposal.IsSuccess);
 
         var resolved = await store.TryResolveChangeProposalAsync(director, proposal.Response!.Id, "hold");
@@ -84,14 +88,19 @@ public sealed class InnovationDashboardStoreChangeProposalTests
     public async Task TryCreateChangeProposalAsync_UsesNextHighestIdAfterProjectDelete()
     {
         var store = StoreTestHelpers.CreateStore();
-        var staff = StoreTestHelpers.StaffContext();
+        var staff = StoreTestHelpers.StaffContext("staff-a", "Erblin Malkurti", "staff-a");
         var director = StoreTestHelpers.DirectorContext();
+        var staffB = StoreTestHelpers.StaffContext("staff-b", "Eralda Alhysa", "staff-b");
+        var staffC = StoreTestHelpers.StaffContext("staff-c", "Evjenia Gjici", "staff-c");
+        var firstProject = await CreateAssignedProject(store, "PROP-ID-1", staff);
+        var secondProject = await CreateAssignedProject(store, "PROP-ID-2", staffB);
+        var thirdProject = await CreateAssignedProject(store, "PROP-ID-3", staffC);
 
-        var first = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal("p1"));
-        var second = await store.TryCreateChangeProposalAsync(StoreTestHelpers.StaffContext(fullName: "Eralda Alhysa"), ValidContentProposal("p2"));
-        var third = await store.TryCreateChangeProposalAsync(StoreTestHelpers.StaffContext(fullName: "Evjenia Gjici"), ValidContentProposal("p3"));
-        var deleted = await store.TryDeleteProjectAsync(director, "p1");
-        var created = await store.TryCreateChangeProposalAsync(StoreTestHelpers.StaffContext(fullName: "Evjenia Gjici"), ValidContentProposal("p3"));
+        var first = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal(firstProject.Response!.Id));
+        var second = await store.TryCreateChangeProposalAsync(staffB, ValidContentProposal(secondProject.Response!.Id));
+        var third = await store.TryCreateChangeProposalAsync(staffC, ValidContentProposal(thirdProject.Response!.Id));
+        var deleted = await store.TryDeleteProjectAsync(director, firstProject.Response.Id);
+        var created = await store.TryCreateChangeProposalAsync(staffC, ValidContentProposal(thirdProject.Response.Id));
         var proposals = await store.GetChangeProposals(director, null);
         var proposalIds = proposals.Select(proposal => proposal.Id).ToList();
 
@@ -108,8 +117,9 @@ public sealed class InnovationDashboardStoreChangeProposalTests
     public async Task TryDeleteChangeProposalAsync_AllowsStaffToDeleteOwnProposal()
     {
         var store = StoreTestHelpers.CreateStore();
-        var staff = StoreTestHelpers.StaffContext("staff-a");
-        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal());
+        var staff = StoreTestHelpers.StaffContext("staff-a", "Erblin Malkurti", "staff-a");
+        var project = await CreateAssignedProject(store, "PROP-DELETE-OWN", staff);
+        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal(project.Response!.Id));
 
         var deleted = await store.TryDeleteChangeProposalAsync(staff, proposal.Response!.Id);
 
@@ -120,10 +130,11 @@ public sealed class InnovationDashboardStoreChangeProposalTests
     public async Task TryDeleteChangeProposalAsync_RejectsStaffDeletingAnotherStaffProposal()
     {
         var store = StoreTestHelpers.CreateStore();
-        var staffA = StoreTestHelpers.StaffContext("staff-a");
-        var staffB = StoreTestHelpers.StaffContext("staff-b");
+        var staffA = StoreTestHelpers.StaffContext("staff-a", "Erblin Malkurti", "staff-a");
+        var staffB = StoreTestHelpers.StaffContext("staff-b", "Eralda Alhysa", "staff-b");
         var director = StoreTestHelpers.DirectorContext();
-        var proposal = await store.TryCreateChangeProposalAsync(staffA, ValidContentProposal());
+        var project = await CreateAssignedProject(store, "PROP-DELETE-OTHER", staffA, staffB);
+        var proposal = await store.TryCreateChangeProposalAsync(staffA, ValidContentProposal(project.Response!.Id));
 
         var deleted = await store.TryDeleteChangeProposalAsync(staffB, proposal.Response!.Id);
         var proposals = await store.GetChangeProposals(director, null);
@@ -135,4 +146,18 @@ public sealed class InnovationDashboardStoreChangeProposalTests
 
     private static CreateProjectChangeProposalRequest ValidContentProposal(string projectId = "p1") =>
         new(projectId, "content", "old", "Pershkrim i ri.", "Arsye test.");
+
+    private static Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> CreateAssignedProject(
+        InnovationDashboardStore store,
+        string code,
+        params UserContext[] staff) =>
+        store.TryCreateProjectAsync(
+            StoreTestHelpers.DirectorContext(),
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = code,
+                TeamMembers = staff
+                    .Select(member => new WorkgroupMemberInput(member.FullName!, WorkgroupRoles.InnovationExpert, "Agjenci", 100 / staff.Length, member.UserId))
+                    .ToList()
+            });
 }

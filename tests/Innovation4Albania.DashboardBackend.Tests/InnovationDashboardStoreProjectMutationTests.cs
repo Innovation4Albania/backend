@@ -468,10 +468,14 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
-        var staff = StoreTestHelpers.StaffContext("staff-a", "Test Lead");
+        var staff = StoreTestHelpers.StaffContext("staff-a", "Test Lead", "staff-a");
         var project = await store.TryCreateProjectAsync(
             director,
-            StoreTestHelpers.ValidProjectRequest() with { Code = "OWN-UPD-001" });
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "OWN-UPD-001",
+                TeamMembers = [new WorkgroupMemberInput("Test Lead", WorkgroupRoles.InnovationExpert, "Agjenci", 100, "staff-a")]
+            });
         var update = await store.TryCreateWeeklyUpdateAsync(
             staff,
             new CreateWeeklyUpdateRequest(project.Response!.Id, "Ekspert A", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
@@ -490,11 +494,19 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
-        var staffA = StoreTestHelpers.StaffContext("staff-a", "Test Lead");
-        var staffB = StoreTestHelpers.StaffContext("staff-b", "Test Lead");
+        var staffA = StoreTestHelpers.StaffContext("staff-a", "Test Lead", "staff-a");
+        var staffB = StoreTestHelpers.StaffContext("staff-b", "Test Lead", "staff-b");
         var project = await store.TryCreateProjectAsync(
             director,
-            StoreTestHelpers.ValidProjectRequest() with { Code = "OTHER-UPD-001" });
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "OTHER-UPD-001",
+                TeamMembers =
+                [
+                    new WorkgroupMemberInput("Test Lead", WorkgroupRoles.InnovationExpert, "Agjenci", 50, "staff-a"),
+                    new WorkgroupMemberInput("Test Lead", WorkgroupRoles.InnovationExpert, "Agjenci", 50, "staff-b")
+                ]
+            });
         var update = await store.TryCreateWeeklyUpdateAsync(
             staffA,
             new CreateWeeklyUpdateRequest(project.Response!.Id, "Ekspert A", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
@@ -513,11 +525,19 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
-        var staffA = StoreTestHelpers.StaffContext("staff-a", "Test Lead");
-        var staffB = StoreTestHelpers.StaffContext("staff-b", "Test Lead");
+        var staffA = StoreTestHelpers.StaffContext("staff-a", "Test Lead", "staff-a");
+        var staffB = StoreTestHelpers.StaffContext("staff-b", "Test Lead", "staff-b");
         var project = await store.TryCreateProjectAsync(
             director,
-            StoreTestHelpers.ValidProjectRequest() with { Code = "DELETE-OTHER-001" });
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "DELETE-OTHER-001",
+                TeamMembers =
+                [
+                    new WorkgroupMemberInput("Test Lead", WorkgroupRoles.InnovationExpert, "Agjenci", 50, "staff-a"),
+                    new WorkgroupMemberInput("Test Lead", WorkgroupRoles.InnovationExpert, "Agjenci", 50, "staff-b")
+                ]
+            });
         var update = await store.TryCreateWeeklyUpdateAsync(
             staffA,
             new CreateWeeklyUpdateRequest(project.Response!.Id, "Ekspert A", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
