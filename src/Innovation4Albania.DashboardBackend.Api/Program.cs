@@ -1,4 +1,5 @@
 using Innovation4Albania.DashboardBackend.Api.Configuration;
+using Innovation4Albania.DashboardBackend.Api.Data.Repositories;
 using Innovation4Albania.DashboardBackend.Api.Endpoints;
 using Innovation4Albania.DashboardBackend.Api.Middleware;
 using Innovation4Albania.DashboardBackend.Api.Services;
@@ -35,12 +36,16 @@ static RateLimitPartition<string> GetLoginRateLimitPartition(HttpContext httpCon
         httpContext.Connection.RemoteIpAddress?.ToString() ??
         $"conn:{httpContext.Connection.Id}";
 
+    var permitLimit = httpContext.RequestServices
+        .GetRequiredService<IConfiguration>()
+        .GetValue("RateLimiting:LoginPermitLimit", 5);
+
     return RateLimitPartition.GetFixedWindowLimiter(
         $"login:{clientKey}",
         _ => new FixedWindowRateLimiterOptions
         {
             AutoReplenishment = true,
-            PermitLimit = 5,
+            PermitLimit = permitLimit,
             QueueLimit = 0,
             Window = TimeSpan.FromMinutes(1)
         });
@@ -72,6 +77,36 @@ builder.Services
             ClockSkew = TimeSpan.FromMinutes(1),
             RoleClaimType = "role",
             NameClaimType = "name"
+        };
+        options.Events = new JwtBearerEvents
+        {
+            // SEC-5: managed-account tokens carry a "stamp" claim. Reject the token if the account
+            // is gone, deactivated, or its stamp was rotated (deactivation / password reset /
+            // credential change). Public view-link sessions have no stamp and are left untouched.
+            OnTokenValidated = async context =>
+            {
+                var stamp = context.Principal?.FindFirst("stamp")?.Value;
+                if (string.IsNullOrEmpty(stamp))
+                {
+                    return;
+                }
+
+                var userId = context.Principal?.FindFirst("sub")?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    context.Fail("Token is missing subject.");
+                    return;
+                }
+
+                var userRepository = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                var account = await userRepository.GetUserById(userId, context.HttpContext.RequestAborted);
+                if (account is null ||
+                    !account.IsActive ||
+                    !string.Equals(account.SecurityStamp, stamp, StringComparison.Ordinal))
+                {
+                    context.Fail("Token has been revoked.");
+                }
+            }
         };
     });
 

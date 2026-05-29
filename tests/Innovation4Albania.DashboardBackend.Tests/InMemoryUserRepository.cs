@@ -46,12 +46,13 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
             request.Ministry,
             request.FullName,
             DateTimeOffset.UtcNow,
-            true);
+            true,
+            Guid.NewGuid().ToString("N"));
         _users.Add(user);
         return Task.FromResult<(bool, ManagedUserResponse?, string?)>((true, ToResponse(user), null));
     }
 
-    public Task<(bool IsSuccess, string? Error)> UpdatePassword(string id, string passwordHash, CancellationToken cancellationToken = default)
+    public Task<(bool IsSuccess, string? Error)> UpdatePassword(string id, string passwordHash, string securityStamp, CancellationToken cancellationToken = default)
     {
         var index = _users.FindIndex(user => user.Id == id && user.IsActive);
         if (index < 0)
@@ -59,11 +60,11 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
             return Task.FromResult((false, (string?)"Përdoruesi nuk u gjet ose është joaktiv."));
         }
 
-        _users[index] = _users[index] with { PasswordHash = passwordHash };
+        _users[index] = _users[index] with { PasswordHash = passwordHash, SecurityStamp = securityStamp };
         return Task.FromResult((true, (string?)null));
     }
 
-    public Task<(bool IsSuccess, string? Error)> UpdateCredentials(string id, string username, string? passwordHash, CancellationToken cancellationToken = default)
+    public Task<(bool IsSuccess, string? Error)> UpdateCredentials(string id, string username, string? passwordHash, string securityStamp, CancellationToken cancellationToken = default)
     {
         if (_users.Any(user => user.Id != id && string.Equals(user.Username, username, StringComparison.OrdinalIgnoreCase)))
         {
@@ -79,12 +80,13 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
         _users[index] = _users[index] with
         {
             Username = username,
-            PasswordHash = passwordHash ?? _users[index].PasswordHash
+            PasswordHash = passwordHash ?? _users[index].PasswordHash,
+            SecurityStamp = securityStamp
         };
         return Task.FromResult((true, (string?)null));
     }
 
-    public Task<(bool IsSuccess, string? Error)> UpdateUser(string id, string fullName, string username, string role, string? ministry, string? passwordHash, CancellationToken cancellationToken = default)
+    public Task<(bool IsSuccess, string? Error)> UpdateUser(string id, string fullName, string username, string role, string? ministry, string? passwordHash, string securityStamp, CancellationToken cancellationToken = default)
     {
         if (_users.Any(user => user.Id != id && string.Equals(user.Username, username, StringComparison.OrdinalIgnoreCase)))
         {
@@ -103,12 +105,13 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
             Username = username.Trim(),
             Role = role.Trim(),
             Ministry = string.IsNullOrWhiteSpace(ministry) ? null : ministry.Trim(),
-            PasswordHash = passwordHash ?? _users[index].PasswordHash
+            PasswordHash = passwordHash ?? _users[index].PasswordHash,
+            SecurityStamp = securityStamp
         };
         return Task.FromResult((true, (string?)null));
     }
 
-    public Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, CancellationToken cancellationToken = default)
+    public Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, string securityStamp, CancellationToken cancellationToken = default)
     {
         var index = _users.FindIndex(user => user.Id == id && user.IsActive);
         if (index < 0)
@@ -116,7 +119,7 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
             return Task.FromResult((false, (string?)"Përdoruesi nuk u gjet ose është joaktiv."));
         }
 
-        _users[index] = _users[index] with { IsActive = false };
+        _users[index] = _users[index] with { IsActive = false, SecurityStamp = securityStamp };
         return Task.FromResult((true, (string?)null));
     }
 
@@ -151,7 +154,7 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
         string role,
         string fullName,
         string? ministry = null) =>
-        new(id, username, BCrypt.Net.BCrypt.HashPassword(password), role, ministry, fullName, DateTimeOffset.UtcNow, true);
+        new(id, username, BCrypt.Net.BCrypt.HashPassword(password), role, ministry, fullName, DateTimeOffset.UtcNow, true, Guid.NewGuid().ToString("N"));
 
     private static ManagedUserResponse ToResponse(StoredUser user) =>
         new(user.Id, user.Username, user.Role, user.Ministry, user.FullName, user.CreatedAt, user.IsActive);

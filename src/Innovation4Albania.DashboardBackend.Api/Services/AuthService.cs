@@ -43,7 +43,7 @@ public sealed class AuthService(
         }
 
         var user = ToUserResponse(account);
-        return (true, new AuthResponse(CreateToken(user, account.Username), user), null);
+        return (true, new AuthResponse(CreateToken(user, account.Username, account.SecurityStamp), user), null);
     }
 
     private static bool CanUseLoginOptionForAccount(string requestedRole, string accountRole) =>
@@ -79,7 +79,7 @@ public sealed class AuthService(
                 return null;
             }
 
-            return CreateToken(ToUserResponse(account), account.Username);
+            return CreateToken(ToUserResponse(account), account.Username, account.SecurityStamp);
         }
 
         var viewUser = dashboardRepository.Login(new LoginRequest(context.Role, context.Ministry, Name: null));
@@ -172,7 +172,7 @@ public sealed class AuthService(
             passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
 
-        var result = await userRepository.UpdateUser(id, request.FullName, request.Username, request.Role, ministry, passwordHash);
+        var result = await userRepository.UpdateUser(id, request.FullName, request.Username, request.Role, ministry, passwordHash, NewSecurityStamp());
         if (!result.IsSuccess)
         {
             return (false, null, result.Error);
@@ -203,7 +203,7 @@ public sealed class AuthService(
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
 
-        return await userRepository.UpdatePassword(id, BCrypt.Net.BCrypt.HashPassword(request.Password));
+        return await userRepository.UpdatePassword(id, BCrypt.Net.BCrypt.HashPassword(request.Password), NewSecurityStamp());
     }
 
     public async Task<(bool IsSuccess, string? Error)> DeactivateUserAsync(UserContext context, string id)
@@ -219,7 +219,7 @@ public sealed class AuthService(
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
 
-        return await userRepository.DeactivateUser(id);
+        return await userRepository.DeactivateUser(id, NewSecurityStamp());
     }
 
     public async Task<(bool IsSuccess, string? Error)> ActivateUserAsync(UserContext context, string id)
@@ -297,17 +297,20 @@ public sealed class AuthService(
             passwordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         }
 
-        var updated = await userRepository.UpdateCredentials(account.Id, username, passwordHash);
+        // Rotating the stamp revokes the account's other live sessions; the reissued token below
+        // carries the same new stamp so the current device stays signed in (SEC-5).
+        var securityStamp = NewSecurityStamp();
+        var updated = await userRepository.UpdateCredentials(account.Id, username, passwordHash, securityStamp);
         if (!updated.IsSuccess)
         {
             return (false, null, updated.Error);
         }
 
         var nextUser = new UserResponse(account.Id, account.FullName, account.Role, account.Ministry, ApplicationRoles.ToDisplayLabel(account.Role));
-        return (true, new AuthResponse(CreateToken(nextUser, username), nextUser), null);
+        return (true, new AuthResponse(CreateToken(nextUser, username, securityStamp), nextUser), null);
     }
 
-    private string CreateToken(UserResponse user, string? username)
+    private string CreateToken(UserResponse user, string? username, string? securityStamp = null)
     {
         var signingKey = GetSigningKey(configuration);
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
@@ -331,6 +334,13 @@ public sealed class AuthService(
             claims.Add(new Claim("username", username.Trim()));
         }
 
+        // Managed accounts carry a security stamp so deactivation / password reset can revoke
+        // still-valid tokens (SEC-5). Public view-link sessions have no account and omit it.
+        if (!string.IsNullOrWhiteSpace(securityStamp))
+        {
+            claims.Add(new Claim("stamp", securityStamp));
+        }
+
         var token = new JwtSecurityToken(
             issuer: configuration["Jwt:Issuer"] ?? "Innovation4Albania",
             audience: configuration["Jwt:Audience"] ?? "Innovation4Albania.Frontend",
@@ -352,6 +362,8 @@ public sealed class AuthService(
 
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
     }
+
+    private static string NewSecurityStamp() => Guid.NewGuid().ToString("N");
 
     private static UserResponse ToUserResponse(StoredUser account) =>
         new(account.Id, account.FullName, account.Role, ApplicationRoles.FixedMinistryForRole(account.Role) ?? account.Ministry, ApplicationRoles.ToDisplayLabel(account.Role));

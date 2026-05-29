@@ -10,7 +10,8 @@ public sealed record StoredUser(
     string? Ministry,
     string FullName,
     DateTimeOffset CreatedAt,
-    bool IsActive);
+    bool IsActive,
+    string SecurityStamp);
 
 public interface IUserRepository
 {
@@ -27,11 +28,13 @@ public interface IUserRepository
     Task<(bool IsSuccess, string? Error)> UpdatePassword(
         string id,
         string passwordHash,
+        string securityStamp,
         CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, string? Error)> UpdateCredentials(
         string id,
         string username,
         string? passwordHash,
+        string securityStamp,
         CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, string? Error)> UpdateUser(
         string id,
@@ -40,8 +43,9 @@ public interface IUserRepository
         string role,
         string? ministry,
         string? passwordHash,
+        string securityStamp,
         CancellationToken cancellationToken = default);
-    Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, CancellationToken cancellationToken = default);
+    Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, string securityStamp, CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, string? Error)> ActivateUser(string id, CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, string? Error)> DeleteUser(string id, CancellationToken cancellationToken = default);
 }

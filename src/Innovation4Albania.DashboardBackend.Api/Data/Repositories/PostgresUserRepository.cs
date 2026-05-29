@@ -77,7 +77,7 @@ public sealed class PostgresUserRepository : IUserRepository
         await using var connection = await OpenConnection(cancellationToken);
         await using var command = new NpgsqlCommand(
             """
-            select id, username, password_hash, role, ministry, full_name, created_at, is_active
+            select id, username, password_hash, role, ministry, full_name, created_at, is_active, security_stamp
             from users
             where lower(username) = lower(@username)
             """,
@@ -98,7 +98,7 @@ public sealed class PostgresUserRepository : IUserRepository
         await using var connection = await OpenConnection(cancellationToken);
         await using var command = new NpgsqlCommand(
             """
-            select id, username, password_hash, role, ministry, full_name, created_at, is_active
+            select id, username, password_hash, role, ministry, full_name, created_at, is_active, security_stamp
             from users
             where id = @id
             """,
@@ -177,8 +177,8 @@ public sealed class PostgresUserRepository : IUserRepository
         await using var connection = await OpenConnection(cancellationToken);
         await using var command = new NpgsqlCommand(
             """
-            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
-            values (@id, @username, @password_hash, @role, @ministry, @full_name, now(), true)
+            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active, security_stamp)
+            values (@id, @username, @password_hash, @role, @ministry, @full_name, now(), true, @security_stamp)
             returning id, username, role, ministry, full_name, created_at, is_active
             """,
             connection);
@@ -188,6 +188,7 @@ public sealed class PostgresUserRepository : IUserRepository
         command.Parameters.AddWithValue("role", request.Role.Trim());
         command.Parameters.AddWithValue("ministry", (object?)NormalizeOptional(request.Ministry) ?? DBNull.Value);
         command.Parameters.AddWithValue("full_name", request.FullName.Trim());
+        command.Parameters.AddWithValue("security_stamp", NewSecurityStamp());
 
         try
         {
@@ -204,17 +205,23 @@ public sealed class PostgresUserRepository : IUserRepository
     public Task<(bool IsSuccess, string? Error)> UpdatePassword(
         string id,
         string passwordHash,
+        string securityStamp,
         CancellationToken cancellationToken = default) =>
         ExecuteUpdate(
-            "update users set password_hash = @password_hash where id = @id and is_active = true",
+            "update users set password_hash = @password_hash, security_stamp = @security_stamp where id = @id and is_active = true",
             id,
             cancellationToken,
-            command => command.Parameters.AddWithValue("password_hash", passwordHash));
+            command =>
+            {
+                command.Parameters.AddWithValue("password_hash", passwordHash);
+                command.Parameters.AddWithValue("security_stamp", securityStamp);
+            });
 
     public async Task<(bool IsSuccess, string? Error)> UpdateCredentials(
         string id,
         string username,
         string? passwordHash,
+        string securityStamp,
         CancellationToken cancellationToken = default)
     {
         if (_connectionString is null)
@@ -225,11 +232,12 @@ public sealed class PostgresUserRepository : IUserRepository
         await using var connection = await OpenConnection(cancellationToken);
         await using var command = new NpgsqlCommand(
             passwordHash is null
-                ? "update users set username = @username where id = @id and is_active = true"
-                : "update users set username = @username, password_hash = @password_hash where id = @id and is_active = true",
+                ? "update users set username = @username, security_stamp = @security_stamp where id = @id and is_active = true"
+                : "update users set username = @username, password_hash = @password_hash, security_stamp = @security_stamp where id = @id and is_active = true",
             connection);
         command.Parameters.AddWithValue("id", id);
         command.Parameters.AddWithValue("username", username.Trim());
+        command.Parameters.AddWithValue("security_stamp", securityStamp);
         if (passwordHash is not null)
         {
             command.Parameters.AddWithValue("password_hash", passwordHash);
@@ -253,6 +261,7 @@ public sealed class PostgresUserRepository : IUserRepository
         string role,
         string? ministry,
         string? passwordHash,
+        string securityStamp,
         CancellationToken cancellationToken = default)
     {
         if (_connectionString is null)
@@ -263,14 +272,15 @@ public sealed class PostgresUserRepository : IUserRepository
         await using var connection = await OpenConnection(cancellationToken);
         await using var command = new NpgsqlCommand(
             passwordHash is null
-                ? "update users set full_name = @full_name, username = @username, role = @role, ministry = @ministry where id = @id and is_active = true"
-                : "update users set full_name = @full_name, username = @username, role = @role, ministry = @ministry, password_hash = @password_hash where id = @id and is_active = true",
+                ? "update users set full_name = @full_name, username = @username, role = @role, ministry = @ministry, security_stamp = @security_stamp where id = @id and is_active = true"
+                : "update users set full_name = @full_name, username = @username, role = @role, ministry = @ministry, password_hash = @password_hash, security_stamp = @security_stamp where id = @id and is_active = true",
             connection);
         command.Parameters.AddWithValue("id", id);
         command.Parameters.AddWithValue("full_name", fullName.Trim());
         command.Parameters.AddWithValue("username", username.Trim());
         command.Parameters.AddWithValue("role", role.Trim());
         command.Parameters.AddWithValue("ministry", string.IsNullOrWhiteSpace(ministry) ? DBNull.Value : ministry.Trim());
+        command.Parameters.AddWithValue("security_stamp", securityStamp);
         if (passwordHash is not null)
         {
             command.Parameters.AddWithValue("password_hash", passwordHash);
@@ -287,11 +297,12 @@ public sealed class PostgresUserRepository : IUserRepository
         }
     }
 
-    public Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, CancellationToken cancellationToken = default) =>
+    public Task<(bool IsSuccess, string? Error)> DeactivateUser(string id, string securityStamp, CancellationToken cancellationToken = default) =>
         ExecuteUpdate(
-            "update users set is_active = false where id = @id and is_active = true",
+            "update users set is_active = false, security_stamp = @security_stamp where id = @id and is_active = true",
             id,
-            cancellationToken);
+            cancellationToken,
+            command => command.Parameters.AddWithValue("security_stamp", securityStamp));
 
     public Task<(bool IsSuccess, string? Error)> ActivateUser(string id, CancellationToken cancellationToken = default) =>
         ExecuteUpdate(
@@ -346,9 +357,13 @@ public sealed class PostgresUserRepository : IUserRepository
                 ministry text null,
                 full_name text not null,
                 created_at timestamptz not null default now(),
-                is_active boolean not null default true
+                is_active boolean not null default true,
+                security_stamp text not null default gen_random_uuid()::text
             );
             create unique index if not exists ux_users_username_lower on users (lower(username));
+            alter table users add column if not exists security_stamp text;
+            update users set security_stamp = gen_random_uuid()::text where security_stamp is null;
+            alter table users alter column security_stamp set not null;
             """,
             connection);
         await command.ExecuteNonQueryAsync(cancellationToken);
@@ -387,8 +402,8 @@ public sealed class PostgresUserRepository : IUserRepository
 
         await using var command = new NpgsqlCommand(
             """
-            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
-            values (@id, @username, @password_hash, @role, null, @full_name, now(), true)
+            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active, security_stamp)
+            values (@id, @username, @password_hash, @role, null, @full_name, now(), true, @security_stamp)
             """,
             connection);
         command.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
@@ -396,8 +411,11 @@ public sealed class PostgresUserRepository : IUserRepository
         command.Parameters.AddWithValue("password_hash", ResolvePasswordHash(password));
         command.Parameters.AddWithValue("role", role);
         command.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(role));
+        command.Parameters.AddWithValue("security_stamp", NewSecurityStamp());
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
+
+    private static string NewSecurityStamp() => Guid.NewGuid().ToString("N");
 
     private static string ResolvePasswordHash(string password) =>
         password.TrimStart().StartsWith("$2", StringComparison.Ordinal)
@@ -413,7 +431,8 @@ public sealed class PostgresUserRepository : IUserRepository
             reader.IsDBNull(4) ? null : reader.GetString(4),
             reader.GetString(5),
             reader.GetFieldValue<DateTimeOffset>(6),
-            reader.GetBoolean(7));
+            reader.GetBoolean(7),
+            reader.GetString(8));
 
     private static ManagedUserResponse ReadManagedUser(NpgsqlDataReader reader) =>
         new(
