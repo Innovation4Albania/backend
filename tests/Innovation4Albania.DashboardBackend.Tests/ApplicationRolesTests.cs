@@ -16,6 +16,14 @@ public sealed class ApplicationRolesTests
     }
 
     [Theory]
+    [InlineData(ApplicationRoles.Kryeminister, null)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, null)]
+    public void FixedMinistryForRole_PortfolioRolesAreNotMinistryScoped(string role, string? expected)
+    {
+        Assert.Equal(expected, ApplicationRoles.FixedMinistryForRole(role));
+    }
+
+    [Theory]
     [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
     [InlineData(ApplicationRoles.StafAgjencie, false)]

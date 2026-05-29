@@ -28,9 +28,7 @@ public static class ApplicationRoles
     ];
 
     public static bool IsAgencyContributor(string role) => role is StafAgjencie or Ekspert or Specialist;
-    public static string? FixedMinistryForRole(string role) => role == MinisterEkonomiseInovacionit
-        ? "Ministria e Ekonomisë dhe Inovacionit"
-        : null;
+    public static string? FixedMinistryForRole(string role) => null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie;
     public static bool CanCreateProjects(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
     public static bool CanManagePortfolio(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
