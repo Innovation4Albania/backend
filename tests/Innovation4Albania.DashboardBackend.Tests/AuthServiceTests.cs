@@ -276,6 +276,21 @@ public sealed class AuthServiceTests
         Assert.True(BCrypt.Net.BCrypt.Verify("password456", (await users.GetUserByUsername("expert.new"))!.PasswordHash));
     }
 
+    [Fact]
+    public async Task ChangeOwnCredentialsAsync_RejectsCaseOnlyUsernameChangeWithoutPassword()
+    {
+        var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.StafAgjencie, "Ekspert Test");
+        var users = new InMemoryUserRepository(account);
+        var service = CreateService(users: users);
+
+        var result = await service.ChangeOwnCredentialsAsync(
+            UserContext.From(ApplicationRoles.StafAgjencie, null, "expert.old"),
+            new ChangeOwnCredentialsRequest("password123", "EXPERT.OLD", null));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("expert.old", (await users.GetUserById(account.Id))!.Username);
+    }
+
     [Theory]
     [InlineData(ApplicationRoles.DrejtorAgjencie)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]

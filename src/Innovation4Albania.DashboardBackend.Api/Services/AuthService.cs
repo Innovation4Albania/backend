@@ -294,7 +294,7 @@ public sealed class AuthService(
             return (false, null, "Username duhet të ketë të paktën 3 karaktere.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.NewPassword) && string.Equals(username, account.Username, StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(request.NewPassword) && string.Equals(username, account.Username, StringComparison.OrdinalIgnoreCase))
         {
             return (false, null, "Vendos username të ri ose fjalëkalim të ri.");
         }
