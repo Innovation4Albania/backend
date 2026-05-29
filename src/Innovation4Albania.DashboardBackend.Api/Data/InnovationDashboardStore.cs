@@ -4,6 +4,7 @@ using Innovation4Albania.DashboardBackend.Api.Configuration;
 using Innovation4Albania.DashboardBackend.Api.Models;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 
 namespace Innovation4Albania.DashboardBackend.Api.Data;
@@ -12,6 +13,7 @@ public sealed class InnovationDashboardStore
 {
     private static readonly CultureInfo AlbanianCulture = CultureInfo.GetCultureInfo("sq-AL");
     private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly Regex LettersAndSpacesRegex = new(@"^[\p{L}\s]+$", RegexOptions.Compiled);
 
     private readonly IReadOnlyList<string> _ministries =
     [
@@ -606,6 +608,12 @@ public sealed class InnovationDashboardStore
         if (request.Ministries.Count == 0 || request.Ministries.All(string.IsNullOrWhiteSpace))
         {
             error = "Zgjidh të paktën një ministri për projektin.";
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Lead) && !LettersAndSpacesRegex.IsMatch(request.Lead.Trim()))
+        {
+            error = "Përgjegjësi mund të përmbajë vetëm shkronja.";
             return false;
         }
 

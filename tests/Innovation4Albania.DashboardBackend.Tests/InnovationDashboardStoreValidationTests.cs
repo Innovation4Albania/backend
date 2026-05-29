@@ -50,6 +50,28 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public void TryValidateProjectRequest_RejectsLeadWithNonLetters()
+    {
+        var request = StoreTestHelpers.ValidProjectRequest() with { Lead = "Drejtor 1" };
+
+        var (isValid, error) = InvokeTryValidateProjectRequest(request);
+
+        Assert.False(isValid);
+        Assert.Contains("Përgjegjësi", error);
+    }
+
+    [Fact]
+    public void TryValidateProjectRequest_AllowsMissingLead()
+    {
+        var request = StoreTestHelpers.ValidProjectRequest() with { Lead = "" };
+
+        var (isValid, error) = InvokeTryValidateProjectRequest(request);
+
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
     public void TryValidateProjectRequest_RejectsInvalidStatus()
     {
         var request = StoreTestHelpers.ValidProjectRequest(status: "unknown");
