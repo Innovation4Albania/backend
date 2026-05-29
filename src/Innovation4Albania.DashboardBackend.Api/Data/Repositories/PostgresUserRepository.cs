@@ -37,6 +37,36 @@ public sealed class PostgresUserRepository : IUserRepository
         await EnsureSchemaAsync(connection, cancellationToken);
     }
 
+    public async Task SeedBootstrapUsersAsync(CancellationToken cancellationToken = default)
+    {
+        if (_connectionString is null)
+        {
+            return;
+        }
+
+        await using var connection = await OpenConnection(cancellationToken);
+        await SeedBootstrapUserAsync(
+            connection,
+            _bootstrapAdminUsername,
+            _bootstrapAdminPasswordHash,
+            ApplicationRoles.Admin,
+            cancellationToken);
+
+        await SeedBootstrapUserAsync(
+            connection,
+            _publicInnovationDirectorUsername,
+            _publicInnovationDirectorPassword,
+            ApplicationRoles.DrejtorInovacioniPublik,
+            cancellationToken);
+
+        await SeedBootstrapUserAsync(
+            connection,
+            _bootstrapDirectorUsername,
+            _bootstrapDirectorPasswordHash,
+            ApplicationRoles.DrejtorAgjencie,
+            cancellationToken);
+    }
+
     public async Task<StoredUser?> GetUserByUsername(string username, CancellationToken cancellationToken = default)
     {
         if (!TryGetUsername(username, out var normalizedUsername) || _connectionString is null)
@@ -292,39 +322,6 @@ public sealed class PostgresUserRepository : IUserRepository
             """,
             connection);
         await command.ExecuteNonQueryAsync(cancellationToken);
-
-        await SeedBootstrapUserAsync(
-            connection,
-            _bootstrapAdminUsername,
-            _bootstrapAdminPasswordHash,
-            ApplicationRoles.Admin,
-            cancellationToken);
-
-        await SeedBootstrapUserAsync(
-            connection,
-            _publicInnovationDirectorUsername,
-            _publicInnovationDirectorPassword,
-            ApplicationRoles.DrejtorInovacioniPublik,
-            cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(_bootstrapDirectorUsername) || string.IsNullOrWhiteSpace(_bootstrapDirectorPasswordHash))
-        {
-            return;
-        }
-
-        await using var seedCommand = new NpgsqlCommand(
-            """
-            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
-            values (@id, @username, @password_hash, @role, null, @full_name, now(), true)
-            on conflict (lower(username)) do nothing
-            """,
-            connection);
-        seedCommand.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
-        seedCommand.Parameters.AddWithValue("username", _bootstrapDirectorUsername.Trim());
-        seedCommand.Parameters.AddWithValue("password_hash", ResolvePasswordHash(_bootstrapDirectorPasswordHash));
-        seedCommand.Parameters.AddWithValue("role", ApplicationRoles.DrejtorAgjencie);
-        seedCommand.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorAgjencie));
-        await seedCommand.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async Task SeedBootstrapUserAsync(
@@ -339,14 +336,28 @@ public sealed class PostgresUserRepository : IUserRepository
             return;
         }
 
+        await using var updateCommand = new NpgsqlCommand(
+            """
+            update users
+            set role = @role,
+                ministry = null,
+                full_name = @full_name
+            where lower(username) = lower(@username)
+            """,
+            connection);
+        updateCommand.Parameters.AddWithValue("username", username.Trim());
+        updateCommand.Parameters.AddWithValue("role", role);
+        updateCommand.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(role));
+        var updated = await updateCommand.ExecuteNonQueryAsync(cancellationToken);
+        if (updated > 0)
+        {
+            return;
+        }
+
         await using var command = new NpgsqlCommand(
             """
             insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
             values (@id, @username, @password_hash, @role, null, @full_name, now(), true)
-            on conflict (lower(username)) do update
-            set role = excluded.role,
-                ministry = null,
-                full_name = excluded.full_name
             """,
             connection);
         command.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");

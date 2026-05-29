@@ -12,6 +12,7 @@ public sealed class DatabaseSchemaInitializer(
     {
         await dashboardPersistence.InitializeAsync(cancellationToken);
         await userRepository.InitializeAsync(cancellationToken);
+        await userRepository.SeedBootstrapUsersAsync(cancellationToken);
         logger.LogInformation("Database schema initialization completed.");
     }
 
