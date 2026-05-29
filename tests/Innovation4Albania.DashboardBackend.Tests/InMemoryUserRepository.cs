@@ -16,6 +16,18 @@ internal sealed class InMemoryUserRepository(params StoredUser[] initialUsers) :
     public Task<IReadOnlyList<ManagedUserResponse>> GetUsers(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<ManagedUserResponse>>(_users.Select(ToResponse).ToList());
 
+    public Task<IReadOnlyList<ManagedUserResponse>> GetManagedUsers(
+        IReadOnlyCollection<string> roles,
+        CancellationToken cancellationToken = default)
+    {
+        var allowedRoles = roles.ToHashSet(StringComparer.Ordinal);
+        return Task.FromResult<IReadOnlyList<ManagedUserResponse>>(
+            _users
+                .Where(user => allowedRoles.Contains(user.Role))
+                .Select(ToResponse)
+                .ToList());
+    }
+
     public Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUser(
         CreateUserRequest request,
         string passwordHash,

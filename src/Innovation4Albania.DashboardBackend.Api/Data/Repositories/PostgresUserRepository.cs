@@ -134,6 +134,36 @@ public sealed class PostgresUserRepository : IUserRepository
         return users;
     }
 
+    public async Task<IReadOnlyList<ManagedUserResponse>> GetManagedUsers(
+        IReadOnlyCollection<string> roles,
+        CancellationToken cancellationToken = default)
+    {
+        if (_connectionString is null || roles.Count == 0)
+        {
+            return [];
+        }
+
+        await using var connection = await OpenConnection(cancellationToken);
+        await using var command = new NpgsqlCommand(
+            """
+            select id, username, role, ministry, full_name, created_at, is_active
+            from users
+            where role = any(@roles)
+            order by is_active desc, full_name, username
+            """,
+            connection);
+        command.Parameters.AddWithValue("roles", roles.ToArray());
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var users = new List<ManagedUserResponse>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            users.Add(ReadManagedUser(reader));
+        }
+
+        return users;
+    }
+
     public async Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUser(
         CreateUserRequest request,
         string passwordHash,

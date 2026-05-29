@@ -17,6 +17,9 @@ public interface IUserRepository
     Task<StoredUser?> GetUserByUsername(string username, CancellationToken cancellationToken = default);
     Task<StoredUser?> GetUserById(string id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ManagedUserResponse>> GetUsers(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ManagedUserResponse>> GetManagedUsers(
+        IReadOnlyCollection<string> roles,
+        CancellationToken cancellationToken = default);
     Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUser(
         CreateUserRequest request,
         string passwordHash,

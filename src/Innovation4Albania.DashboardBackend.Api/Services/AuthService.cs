@@ -93,9 +93,7 @@ public sealed class AuthService(
             return [];
         }
 
-        return (await userRepository.GetUsers())
-            .Where(user => IsManagedUserAccount(user.Role))
-            .ToList();
+        return await userRepository.GetManagedUsers(ApplicationRoles.ManagedUserRoles);
     }
 
     public async Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUserAsync(UserContext context, CreateUserRequest request)
@@ -105,7 +103,7 @@ public sealed class AuthService(
             return (false, null, "Ky rol nuk mund të krijojë llogari.");
         }
 
-        if (!IsManagedUserAccount(request.Role))
+        if (!ApplicationRoles.IsManagedUserRole(request.Role))
         {
             return (false, null, "Ky rol nuk mund të krijohet nga administrimi.");
         }
@@ -138,12 +136,12 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || !IsManagedUserAccount(account.Role))
+        if (account is null || !ApplicationRoles.IsManagedUserRole(account.Role))
         {
             return (false, null, "Llogaria e menaxhueshme nuk u gjet.");
         }
 
-        if (!IsManagedUserAccount(request.Role))
+        if (!ApplicationRoles.IsManagedUserRole(request.Role))
         {
             return (false, null, "Ky rol nuk mund të zgjidhet nga administrimi.");
         }
@@ -200,7 +198,7 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || !IsManagedUserAccount(account.Role))
+        if (account is null || !ApplicationRoles.IsManagedUserRole(account.Role))
         {
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
@@ -216,7 +214,7 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || !IsManagedUserAccount(account.Role))
+        if (account is null || !ApplicationRoles.IsManagedUserRole(account.Role))
         {
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
@@ -232,7 +230,7 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || !IsManagedUserAccount(account.Role))
+        if (account is null || !ApplicationRoles.IsManagedUserRole(account.Role))
         {
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
@@ -253,25 +251,13 @@ public sealed class AuthService(
         }
 
         var account = await userRepository.GetUserById(id);
-        if (account is null || !IsManagedUserAccount(account.Role))
+        if (account is null || !ApplicationRoles.IsManagedUserRole(account.Role))
         {
             return (false, "Llogaria e menaxhueshme nuk u gjet.");
         }
 
         return await userRepository.DeleteUser(id);
     }
-
-    private static bool IsManagedUserAccount(string role) =>
-        role is ApplicationRoles.Kryeminister
-            or ApplicationRoles.Minister
-            or ApplicationRoles.MinisterEkonomiseInovacionit
-            or ApplicationRoles.Admin
-            or ApplicationRoles.DrejtorAgjencie
-            or ApplicationRoles.DrejtorInovacioniPublik
-            or ApplicationRoles.StafAgjencie
-            or ApplicationRoles.Ekspert
-            or ApplicationRoles.Specialist
-            or ApplicationRoles.StafMinistrie;
 
     public async Task<(bool IsSuccess, AuthResponse? Response, string? Error)> ChangeOwnCredentialsAsync(
         UserContext context,

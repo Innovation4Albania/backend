@@ -27,7 +27,22 @@ public static class ApplicationRoles
         StafMinistrie
     ];
 
+    public static readonly IReadOnlyList<string> ManagedUserRoles =
+    [
+        Kryeminister,
+        Minister,
+        MinisterEkonomiseInovacionit,
+        Admin,
+        DrejtorAgjencie,
+        DrejtorInovacioniPublik,
+        StafAgjencie,
+        Ekspert,
+        Specialist,
+        StafMinistrie
+    ];
+
     public static bool IsAgencyContributor(string role) => role is StafAgjencie or Ekspert or Specialist;
+    public static bool IsManagedUserRole(string role) => ManagedUserRoles.Contains(role);
     public static string? FixedMinistryForRole(string role) => null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie;
     public static bool CanCreateProjects(string role) => role is DrejtorAgjencie or DrejtorInovacioniPublik;
