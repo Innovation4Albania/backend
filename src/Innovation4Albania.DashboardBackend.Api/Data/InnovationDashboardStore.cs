@@ -1577,22 +1577,14 @@ public sealed class InnovationDashboardStore
     {
         if (ApplicationRoles.IsAgencyContributor(context.Role))
         {
-            if (!string.IsNullOrWhiteSpace(context.UserId))
-            {
-                return _projects
-                    .Where(project => project.TeamMembers.Any(member =>
-                        string.Equals(member.UserId, context.UserId, StringComparison.OrdinalIgnoreCase)))
-                    .ToList();
-            }
-
-            if (string.IsNullOrWhiteSpace(context.FullName))
+            if (string.IsNullOrWhiteSpace(context.UserId) && string.IsNullOrWhiteSpace(context.FullName))
             {
                 return [];
             }
 
             return _projects
                 .Where(project => project.TeamMembers.Any(member =>
-                    string.Equals(member.Name, context.FullName, StringComparison.OrdinalIgnoreCase)))
+                    IsVisibleTeamMemberForContributor(member, context)))
                 .ToList();
         }
 
@@ -1618,6 +1610,19 @@ public sealed class InnovationDashboardStore
         return _projects
             .Where(project => project.Ministries.Contains(ministry, StringComparer.OrdinalIgnoreCase))
             .ToList();
+    }
+
+    private static bool IsVisibleTeamMemberForContributor(WorkgroupMemberState member, UserContext context)
+    {
+        if (!string.IsNullOrWhiteSpace(context.UserId) &&
+            string.Equals(member.UserId, context.UserId, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return string.IsNullOrWhiteSpace(member.UserId) &&
+            !string.IsNullOrWhiteSpace(context.FullName) &&
+            string.Equals(member.Name, context.FullName, StringComparison.OrdinalIgnoreCase);
     }
 
     private string? ResolveMinistry(string? ministry)

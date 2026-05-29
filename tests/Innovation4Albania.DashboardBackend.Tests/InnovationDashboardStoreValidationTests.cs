@@ -231,6 +231,41 @@ public sealed class InnovationDashboardStoreValidationTests
         Assert.All(projects, project => Assert.Contains(project.TeamMembers, member => member.UserId == "contributor-1"));
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.StafAgjencie, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.Ekspert, WorkgroupRoles.ProjectOfficer)]
+    [InlineData(ApplicationRoles.Specialist, WorkgroupRoles.Specialist)]
+    public async Task GetProjects_IncludesHistoricalProjectsMatchedByNameWhenContributorHasUserId(string role, string workgroupRole)
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var fullName = "Historical Contributor";
+        var current = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = $"CURRENT-{role}",
+            TeamMembers = [new WorkgroupMemberInput(fullName, workgroupRole, "Njësi test", 100, "contributor-1")]
+        };
+        var historical = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = $"HISTORICAL-{role}",
+            TeamMembers = [new WorkgroupMemberInput(fullName, workgroupRole, "Njësi test", 100)]
+        };
+        var unrelatedHistorical = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = $"OTHER-HIST-{role}",
+            TeamMembers = [new WorkgroupMemberInput("Other Contributor", workgroupRole, "Njësi test", 100)]
+        };
+        var createdCurrent = await store.TryCreateProjectAsync(director, current);
+        var createdHistorical = await store.TryCreateProjectAsync(director, historical);
+        await store.TryCreateProjectAsync(director, unrelatedHistorical);
+        var context = UserContext.From(role, null, "contributor.test", fullName, "contributor-1");
+
+        var projects = await store.GetProjects(context, null, null);
+
+        var expectedProjectIds = new[] { createdCurrent.Response!.Id, createdHistorical.Response!.Id }.Order().ToArray();
+        Assert.Equal(expectedProjectIds, projects.Select(project => project.Id).Order().ToArray());
+    }
+
     [Fact]
     public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
     {
