@@ -100,6 +100,33 @@ public sealed class AuthServiceTests
         Assert.Equal(ApplicationRoles.FixedMinistryForRole(accountRole) ?? expectedMinistry, result.Response.User.Ministry);
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.Kryeminister)]
+    [InlineData(ApplicationRoles.Minister)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit)]
+    [InlineData(ApplicationRoles.Admin)]
+    [InlineData(ApplicationRoles.DrejtorAgjencie)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
+    [InlineData(ApplicationRoles.StafAgjencie)]
+    [InlineData(ApplicationRoles.Ekspert)]
+    [InlineData(ApplicationRoles.Specialist)]
+    [InlineData(ApplicationRoles.StafMinistrie)]
+    public async Task TryLoginAsync_RejectsInactiveAccountsForEveryManagedRole(string accountRole)
+    {
+        var ministry = accountRole is ApplicationRoles.Minister or ApplicationRoles.StafMinistrie ? "Ministria e Financave" : null;
+        var account = InMemoryUserRepository.Account("account-1", "inactive.user", "password123", accountRole, "Inactive User", ministry) with
+        {
+            IsActive = false
+        };
+        var service = CreateService(users: new InMemoryUserRepository(account));
+        var loginRole = ApplicationRoles.CanUseInteractiveLogin(accountRole) ? accountRole : ApplicationRoles.DrejtorAgjencie;
+
+        var result = await service.TryLoginAsync(new LoginRequest(loginRole, null, null, "inactive.user", "password123"));
+
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Response);
+    }
+
     [Fact]
     public async Task CreateUserAsync_AdminCreatesExpertAccount()
     {

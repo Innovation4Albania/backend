@@ -286,8 +286,7 @@ public sealed class PostgresUserRepository : IUserRepository
             set password_hash = excluded.password_hash,
                 role = excluded.role,
                 ministry = null,
-                full_name = excluded.full_name,
-                is_active = true
+                full_name = excluded.full_name
             """,
             connection);
         publicInnovationDirectorCommand.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
@@ -337,8 +336,7 @@ public sealed class PostgresUserRepository : IUserRepository
             set password_hash = excluded.password_hash,
                 role = excluded.role,
                 ministry = null,
-                full_name = excluded.full_name,
-                is_active = true
+                full_name = excluded.full_name
             """,
             connection);
         command.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
