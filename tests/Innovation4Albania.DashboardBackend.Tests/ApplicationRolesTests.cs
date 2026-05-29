@@ -45,29 +45,33 @@ public sealed class ApplicationRolesTests
     }
 
     [Theory]
-    [InlineData(ApplicationRoles.Kryeminister, false)]
-    [InlineData(ApplicationRoles.Minister, false)]
-    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
-    [InlineData(ApplicationRoles.StafMinistrie, false)]
-    [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
-    [InlineData(ApplicationRoles.StafAgjencie, false)]
-    public void IsViewOnlyRole_ViewLinksAreDisabled(string role, bool expected)
-    {
-        Assert.Equal(expected, ApplicationRoles.IsViewOnlyRole(role));
-    }
-
-    [Theory]
+    [InlineData(ApplicationRoles.Kryeminister, true)]
+    [InlineData(ApplicationRoles.Minister, true)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, true)]
+    [InlineData(ApplicationRoles.StafMinistrie, true)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
     [InlineData(ApplicationRoles.StafAgjencie, true)]
     [InlineData(ApplicationRoles.Ekspert, true)]
     [InlineData(ApplicationRoles.Specialist, true)]
     [InlineData(ApplicationRoles.Admin, true)]
-    [InlineData(ApplicationRoles.Kryeminister, true)]
-    [InlineData(ApplicationRoles.Minister, true)]
-    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, true)]
-    [InlineData(ApplicationRoles.StafMinistrie, true)]
-    public void CanUseInteractiveLogin_CredentialRolesCanLogin(string role, bool expected)
+    public void IsViewOnlyRole_AllRolesCanOpenViewSessions(string role, bool expected)
+    {
+        Assert.Equal(expected, ApplicationRoles.IsViewOnlyRole(role));
+    }
+
+    [Theory]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, false)]
+    [InlineData(ApplicationRoles.StafAgjencie, false)]
+    [InlineData(ApplicationRoles.Ekspert, false)]
+    [InlineData(ApplicationRoles.Specialist, false)]
+    [InlineData(ApplicationRoles.Admin, false)]
+    [InlineData(ApplicationRoles.Kryeminister, false)]
+    [InlineData(ApplicationRoles.Minister, false)]
+    [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
+    [InlineData(ApplicationRoles.StafMinistrie, false)]
+    public void CanUseInteractiveLogin_CredentialsAreTemporarilyDisabled(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.CanUseInteractiveLogin(role));
     }

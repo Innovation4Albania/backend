@@ -9,19 +9,18 @@ namespace Innovation4Albania.DashboardBackend.Tests;
 public sealed class AuthServiceTests
 {
     [Fact]
-    public void ValidateViewLink_RejectsMinistryRepresentative()
+    public void ValidateViewLink_AllowsMinistryRepresentativeWithKnownMinistry()
     {
         var service = CreateService();
         var request = new LoginRequest(ApplicationRoles.StafMinistrie, "Ministria e Financave", "Përfaqësues Ministrie");
 
         var error = service.ValidateViewLink(request);
 
-        Assert.NotNull(error);
-        Assert.Contains("login", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(error);
     }
 
     [Fact]
-    public void ValidateViewLink_RejectsMinisterWithoutMinistry()
+    public void ValidateViewLink_RejectsMinisterWithoutRequiredMinistry()
     {
         var service = CreateService();
         var request = new LoginRequest(ApplicationRoles.Minister, null, "Ministër");
@@ -29,11 +28,11 @@ public sealed class AuthServiceTests
         var error = service.ValidateViewLink(request);
 
         Assert.NotNull(error);
-        Assert.Contains("login", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ministr", error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void ValidateViewLink_RejectsMinisterWithKnownMinistry()
+    public void ValidateViewLink_AllowsMinisterWithKnownMinistry()
     {
         var store = StoreTestHelpers.CreateStore();
         var service = CreateService(store: store);
@@ -41,12 +40,11 @@ public sealed class AuthServiceTests
 
         var error = service.ValidateViewLink(request);
 
-        Assert.NotNull(error);
-        Assert.Contains("login", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(error);
     }
 
     [Fact]
-    public async Task TryLoginAsync_UsesMinistryFromStoredRepresentativeAccount()
+    public async Task TryLoginAsync_RejectsCredentialLoginForRepresentativeAccount()
     {
         var account = InMemoryUserRepository.Account(
             "rep-1",
@@ -59,9 +57,8 @@ public sealed class AuthServiceTests
 
         var result = await service.TryLoginAsync(new LoginRequest(ApplicationRoles.StafMinistrie, null, null, "finance.rep", "password123"));
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal("Ministria e Financave", result.Response!.User.Ministry);
-        Assert.Equal("Përfaqësues Financash", result.Response.User.Name);
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Response);
     }
 
     [Theory]
@@ -71,7 +68,7 @@ public sealed class AuthServiceTests
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
     [InlineData(ApplicationRoles.Admin)]
     [InlineData(ApplicationRoles.StafMinistrie)]
-    public async Task TryLoginAsync_AllowsInnovationAccountsThroughInnovation4AlbaniaOption(string accountRole)
+    public async Task TryLoginAsync_RejectsInnovationAccountsThroughInnovation4AlbaniaOption(string accountRole)
     {
         var ministry = accountRole == ApplicationRoles.StafMinistrie ? "Ministria e Financave" : null;
         var account = InMemoryUserRepository.Account("account-1", "innovation.user", "password123", accountRole, "Innovation User", ministry);
@@ -79,25 +76,23 @@ public sealed class AuthServiceTests
 
         var result = await service.TryLoginAsync(new LoginRequest(ApplicationRoles.DrejtorAgjencie, null, null, "innovation.user", "password123"));
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(accountRole, result.Response!.User.Role);
-        Assert.Equal(ministry, result.Response.User.Ministry);
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Response);
     }
 
     [Theory]
     [InlineData(ApplicationRoles.Kryeminister, null)]
     [InlineData(ApplicationRoles.Minister, "Ministria e Financave")]
     [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, "Ministria e EkonomisÃ« dhe Inovacionit")]
-    public async Task TryLoginAsync_AllowsExecutiveAndMinisterAccountsWithCredentials(string accountRole, string? expectedMinistry)
+    public async Task TryLoginAsync_RejectsExecutiveAndMinisterAccountsWithCredentials(string accountRole, string? expectedMinistry)
     {
         var account = InMemoryUserRepository.Account("account-1", "view.user", "password123", accountRole, "View User", expectedMinistry);
         var service = CreateService(users: new InMemoryUserRepository(account));
 
         var result = await service.TryLoginAsync(new LoginRequest(accountRole, null, null, "view.user", "password123"));
 
-        Assert.True(result.IsSuccess);
-        Assert.Equal(accountRole, result.Response!.User.Role);
-        Assert.Equal(ApplicationRoles.FixedMinistryForRole(accountRole) ?? expectedMinistry, result.Response.User.Ministry);
+        Assert.False(result.IsSuccess);
+        Assert.Null(result.Response);
     }
 
     [Theory]
@@ -294,7 +289,7 @@ public sealed class AuthServiceTests
     [Theory]
     [InlineData(ApplicationRoles.DrejtorAgjencie)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
-    public async Task ChangeOwnCredentialsAsync_DirectorsCanChangeOwnPasswordAndLogin(string directorRole)
+    public async Task ChangeOwnCredentialsAsync_DirectorsCanChangeOwnPasswordButCredentialLoginRemainsDisabled(string directorRole)
     {
         var account = InMemoryUserRepository.Account("director-1", "director.old", "password123", directorRole, "Drejtor Test");
         var users = new InMemoryUserRepository(account);
@@ -306,8 +301,8 @@ public sealed class AuthServiceTests
         var login = await service.TryLoginAsync(new LoginRequest(ApplicationRoles.DrejtorAgjencie, null, null, "director.old", "password456"));
 
         Assert.True(changed.IsSuccess);
-        Assert.True(login.IsSuccess);
-        Assert.Equal(directorRole, login.Response!.User.Role);
+        Assert.False(login.IsSuccess);
+        Assert.Null(login.Response);
     }
 
     private static AuthService CreateService(Innovation4Albania.DashboardBackend.Api.Data.InnovationDashboardStore? store = null, IUserRepository? users = null)
