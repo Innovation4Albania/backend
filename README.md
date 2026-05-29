@@ -55,8 +55,8 @@ Shiko:
   `10000`
 
 - `Auth__Users__admin__Username` / `Auth__Users__admin__Password`
-  Kredencialet fillestare të adminit. `Password` mund të jetë password i thjeshtë
-  nga environment variable ose BCrypt hash; nuk ruhet në source code dhe nuk
+  Kredencialet fillestare të adminit duhet të vendosen në Render Environment
+  Variables. Password-i ose hash-i nuk ruhet në `appsettings.json` dhe nuk
   mbishkruan password-in e një llogarie ekzistuese.
 
 - `Auth__Users__drejtor_agjencie__Username` / `Auth__Users__drejtor_agjencie__Password`

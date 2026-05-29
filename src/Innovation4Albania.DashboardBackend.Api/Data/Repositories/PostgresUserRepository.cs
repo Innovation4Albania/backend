@@ -8,9 +8,9 @@ public sealed class PostgresUserRepository : IUserRepository
 {
     private readonly string? _connectionString;
     private readonly string? _bootstrapDirectorUsername;
-    private readonly string? _bootstrapDirectorPasswordHash;
+    private readonly string? _bootstrapDirectorPassword;
     private readonly string? _bootstrapAdminUsername;
-    private readonly string? _bootstrapAdminPasswordHash;
+    private readonly string? _bootstrapAdminPassword;
     private readonly string? _publicInnovationDirectorUsername;
     private readonly string? _publicInnovationDirectorPassword;
 
@@ -18,9 +18,9 @@ public sealed class PostgresUserRepository : IUserRepository
     {
         _connectionString = ResolveConnectionString(configuration);
         _bootstrapDirectorUsername = configuration[$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Username"];
-        _bootstrapDirectorPasswordHash = configuration[$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Password"];
+        _bootstrapDirectorPassword = configuration[$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Password"];
         _bootstrapAdminUsername = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Username"];
-        _bootstrapAdminPasswordHash = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Password"];
+        _bootstrapAdminPassword = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Password"];
         _publicInnovationDirectorUsername = configuration[$"Auth:Users:{ApplicationRoles.DrejtorInovacioniPublik}:Username"];
         _publicInnovationDirectorPassword = configuration[$"Auth:Users:{ApplicationRoles.DrejtorInovacioniPublik}:Password"];
     }
@@ -48,7 +48,7 @@ public sealed class PostgresUserRepository : IUserRepository
         await SeedBootstrapUserAsync(
             connection,
             _bootstrapAdminUsername,
-            _bootstrapAdminPasswordHash,
+            _bootstrapAdminPassword,
             ApplicationRoles.Admin,
             cancellationToken);
 
@@ -62,7 +62,7 @@ public sealed class PostgresUserRepository : IUserRepository
         await SeedBootstrapUserAsync(
             connection,
             _bootstrapDirectorUsername,
-            _bootstrapDirectorPasswordHash,
+            _bootstrapDirectorPassword,
             ApplicationRoles.DrejtorAgjencie,
             cancellationToken);
     }
@@ -327,11 +327,11 @@ public sealed class PostgresUserRepository : IUserRepository
     private static async Task SeedBootstrapUserAsync(
         NpgsqlConnection connection,
         string? username,
-        string? passwordHash,
+        string? password,
         string role,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(passwordHash))
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
             return;
         }
@@ -351,6 +351,7 @@ public sealed class PostgresUserRepository : IUserRepository
         var updated = await updateCommand.ExecuteNonQueryAsync(cancellationToken);
         if (updated > 0)
         {
+            // Existing bootstrap accounts keep their current password; environment values only create missing users.
             return;
         }
 
@@ -362,7 +363,7 @@ public sealed class PostgresUserRepository : IUserRepository
             connection);
         command.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
         command.Parameters.AddWithValue("username", username.Trim());
-        command.Parameters.AddWithValue("password_hash", ResolvePasswordHash(passwordHash));
+        command.Parameters.AddWithValue("password_hash", ResolvePasswordHash(password));
         command.Parameters.AddWithValue("role", role);
         command.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(role));
         await command.ExecuteNonQueryAsync(cancellationToken);
