@@ -150,117 +150,10 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
     }
 
     [Fact]
-    public async Task Deactivating_account_revokes_its_existing_token()
+    public async Task Credential_login_endpoint_is_temporarily_disabled()
     {
-        var session = await CreateFreshAdminSessionAsync();
-        using var victimClient = session.Client;
-
-        // The token works before deactivation.
-        Assert.Equal(HttpStatusCode.OK, (await victimClient.GetAsync("/api/auth/users")).StatusCode);
-
-        using var adminClient = await CreateAuthenticatedAdminClient();
-        var deactivateResponse = await adminClient.DeleteAsync($"/api/auth/users/{session.Id}");
-        Assert.Equal(HttpStatusCode.NoContent, deactivateResponse.StatusCode);
-
-        // The same still-unexpired token is now rejected.
-        var afterResponse = await victimClient.GetAsync("/api/auth/users");
-        Assert.Equal(HttpStatusCode.Unauthorized, afterResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task Admin_password_reset_revokes_the_target_existing_token()
-    {
-        var session = await CreateFreshAdminSessionAsync();
-        using var victimClient = session.Client;
-
-        Assert.Equal(HttpStatusCode.OK, (await victimClient.GetAsync("/api/auth/users")).StatusCode);
-
-        using var adminClient = await CreateAuthenticatedAdminClient();
-        var resetResponse = await adminClient.PutAsJsonAsync(
-            $"/api/auth/users/{session.Id}/password",
-            new AdminResetPasswordRequest("reset-password-123"));
-        Assert.Equal(HttpStatusCode.NoContent, resetResponse.StatusCode);
-
-        // Account is still active, but the rotated stamp invalidates the old token.
-        var afterResponse = await victimClient.GetAsync("/api/auth/users");
-        Assert.Equal(HttpStatusCode.Unauthorized, afterResponse.StatusCode);
-    }
-
-    [Fact]
-    public async Task Changing_own_credentials_revokes_old_token_and_reissues_a_working_one()
-    {
-        var session = await CreateFreshAdminSessionAsync();
-        using var oldClient = session.Client;
-
-        var changeResponse = await oldClient.PutAsJsonAsync(
-            "/api/auth/me/credentials",
-            new ChangeOwnCredentialsRequest(session.Password, Username: null, NewPassword: "changed-password-123"));
-        Assert.Equal(HttpStatusCode.OK, changeResponse.StatusCode);
-        var reissued = await changeResponse.Content.ReadFromJsonAsync<AuthResponse>();
-        Assert.NotNull(reissued);
-        Assert.False(string.IsNullOrWhiteSpace(reissued!.Token));
-
-        // The reissued token (new stamp) works.
-        using var newClient = _factory.CreateClient();
-        newClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", reissued.Token);
-        Assert.Equal(HttpStatusCode.OK, (await newClient.GetAsync("/api/auth/users")).StatusCode);
-
-        // The original token (old stamp) is now revoked.
-        var oldResponse = await oldClient.GetAsync("/api/auth/users");
-        Assert.Equal(HttpStatusCode.Unauthorized, oldResponse.StatusCode);
-    }
-
-    private async Task<(HttpClient Client, string Id, string Token, string Password)> CreateFreshAdminSessionAsync()
-    {
-        var username = $"sec5-admin-{Guid.NewGuid():N}";
-        const string password = "fresh-password-123";
-
-        using var adminClient = await CreateAuthenticatedAdminClient();
-        var createResponse = await adminClient.PostAsJsonAsync(
-            "/api/auth/users",
-            new CreateUserRequest("SEC5 Admin", username, password, ApplicationRoles.Admin));
-        Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
-        var created = await createResponse.Content.ReadFromJsonAsync<ManagedUserResponse>();
-        Assert.NotNull(created);
-
-        var loginClient = _factory.CreateClient();
-        var loginResponse = await loginClient.PostAsJsonAsync(
-            "/api/auth/login",
-            new LoginRequest(ApplicationRoles.DrejtorAgjencie, null, null, username, password));
-        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
-        var auth = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
-        Assert.NotNull(auth);
-        Assert.False(string.IsNullOrWhiteSpace(auth!.Token));
-
-        loginClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
-        return (loginClient, created!.Id, auth.Token, password);
-    }
-
-    private async Task<HttpClient> CreateAuthenticatedDirectorClient()
-    {
-        var client = _factory.CreateClient();
-        var loginResponse = await client.PostAsJsonAsync(
-            "/api/auth/login",
-            new LoginRequest(
-                ApplicationRoles.DrejtorAgjencie,
-                null,
-                "Drejtor Integrimi",
-                DashboardApiFactory.DirectorUsername,
-                DashboardApiFactory.DirectorPassword));
-
-        Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
-        var auth = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
-        Assert.NotNull(auth);
-        Assert.False(string.IsNullOrWhiteSpace(auth.Token));
-
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
-        return client;
-    }
-
-    private async Task<HttpClient> CreateAuthenticatedAdminClient()
-    {
-        var client = _factory.CreateClient();
-        var loginResponse = await client.PostAsJsonAsync(
+        using var client = _factory.CreateClient();
+        var response = await client.PostAsJsonAsync(
             "/api/auth/login",
             new LoginRequest(
                 ApplicationRoles.DrejtorAgjencie,
@@ -268,6 +161,32 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
                 "Admin Integrimi",
                 DashboardApiFactory.AdminUsername,
                 DashboardApiFactory.AdminPassword));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    private async Task<HttpClient> CreateAuthenticatedDirectorClient()
+    {
+        return await CreateViewSessionClient(
+            new LoginRequest(
+                ApplicationRoles.DrejtorAgjencie,
+                null,
+                "Drejtor Integrimi"));
+    }
+
+    private async Task<HttpClient> CreateAuthenticatedAdminClient()
+    {
+        return await CreateViewSessionClient(
+            new LoginRequest(
+                ApplicationRoles.Admin,
+                null,
+                "Admin Integrimi"));
+    }
+
+    private async Task<HttpClient> CreateViewSessionClient(LoginRequest request)
+    {
+        var client = _factory.CreateClient();
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/view-link", request);
 
         Assert.Equal(HttpStatusCode.OK, loginResponse.StatusCode);
         var auth = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
