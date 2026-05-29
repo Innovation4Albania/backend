@@ -1,6 +1,6 @@
-﻿namespace Innovation4Albania.DashboardBackend.Api.Models;
+namespace Innovation4Albania.DashboardBackend.Api.Models;
 
-public sealed record LoginRequest(string Role, string? Ministry, string? Name, string? Username = null, string? Password = null);
+public sealed record LoginRequest(string Role, string? Ministry, string? Name, string? Username = null, string? Password = null, string? UserId = null);
 
 public sealed record UserContext(string Role, string? Ministry, string? Username = null, string? FullName = null, string? UserId = null)
 {
@@ -30,6 +30,12 @@ public sealed record ManagedUserResponse(
     string FullName,
     DateTimeOffset CreatedAt,
     bool IsActive);
+
+public sealed record ViewUserResponse(
+    string Id,
+    string Role,
+    string? Ministry,
+    string FullName);
 
 public sealed record CreateUserRequest(
     string FullName,

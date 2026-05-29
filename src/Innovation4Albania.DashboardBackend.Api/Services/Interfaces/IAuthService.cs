@@ -6,7 +6,8 @@ public interface IAuthService
 {
     Task<(bool IsSuccess, AuthResponse? Response, string? Error)> TryLoginAsync(LoginRequest request);
     string? ValidateViewLink(LoginRequest request);
-    AuthResponse CreateViewLinkSession(LoginRequest request);
+    Task<(bool IsSuccess, AuthResponse? Response, string? Error)> CreateViewLinkSessionAsync(LoginRequest request);
+    Task<IReadOnlyList<ViewUserResponse>> GetViewUsersAsync(string role);
     Task<string?> RefreshTokenAsync(UserContext context);
     Task<IReadOnlyList<ManagedUserResponse>> GetManagedUsersAsync(UserContext context);
     Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUserAsync(UserContext context, CreateUserRequest request);

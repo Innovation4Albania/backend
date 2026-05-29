@@ -63,10 +63,50 @@ public sealed class AuthService(
         return dashboardRepository.ValidateLogin(request);
     }
 
-    public AuthResponse CreateViewLinkSession(LoginRequest request)
+    public async Task<(bool IsSuccess, AuthResponse? Response, string? Error)> CreateViewLinkSessionAsync(LoginRequest request)
     {
-        var user = dashboardRepository.Login(request);
-        return new AuthResponse(CreateToken(user, null), user);
+        if (!string.IsNullOrWhiteSpace(request.UserId))
+        {
+            var account = await userRepository.GetUserById(request.UserId);
+            if (account is null || !account.IsActive || !string.Equals(account.Role, request.Role.Trim(), StringComparison.Ordinal))
+            {
+                return (false, null, "Perdoruesi nuk u gjet ose nuk eshte aktiv per kete rol.");
+            }
+
+            var accountMinistry = ApplicationRoles.FixedMinistryForRole(account.Role) ?? account.Ministry;
+            var context = UserContext.From(account.Role, accountMinistry, account.Username, account.FullName, account.Id);
+            if (!ApplicationRoles.IsViewOnlyRole(context.Role) || !dashboardRepository.IsValidContext(context, out var contextError))
+            {
+                return (false, null, contextError ?? "Ky perdorues nuk mund te hape view.");
+            }
+
+            var user = ToUserResponse(account);
+            return (true, new AuthResponse(CreateToken(user, account.Username, account.SecurityStamp), user), null);
+        }
+
+        var validationError = ValidateViewLink(request);
+        if (validationError is not null)
+        {
+            return (false, null, validationError);
+        }
+
+        var viewUser = dashboardRepository.Login(request);
+        return (true, new AuthResponse(CreateToken(viewUser, null), viewUser), null);
+    }
+
+    public async Task<IReadOnlyList<ViewUserResponse>> GetViewUsersAsync(string role)
+    {
+        var normalizedRole = role.Trim();
+        if (!ApplicationRoles.IsViewOnlyRole(normalizedRole) || !ApplicationRoles.IsManagedUserRole(normalizedRole))
+        {
+            return [];
+        }
+
+        var users = await userRepository.GetManagedUsers([normalizedRole]);
+        return users
+            .Where(user => user.IsActive)
+            .Select(user => new ViewUserResponse(user.Id, user.Role, user.Ministry, user.FullName))
+            .ToList();
     }
 
     public async Task<string?> RefreshTokenAsync(UserContext context)

@@ -25,16 +25,21 @@ public static class AuthEndpoints
             return Results.Ok(response);
         }).RequireRateLimiting("auth-login");
 
-        api.MapPost("/auth/view-link", (LoginRequest request, IAuthService service, ILogger<OperationAuditLog> auditLogger) =>
+        api.MapGet("/auth/view-users/{role}", async (string role, IAuthService service) =>
         {
-            var validationError = service.ValidateViewLink(request);
-            if (validationError is not null)
+            return Results.Ok(await service.GetViewUsersAsync(role));
+        });
+
+        api.MapPost("/auth/view-link", async (LoginRequest request, IAuthService service, ILogger<OperationAuditLog> auditLogger) =>
+        {
+            var result = await service.CreateViewLinkSessionAsync(request);
+            if (!result.IsSuccess)
             {
-                return Results.BadRequest(new ApiErrorResponse("validation_error", validationError));
+                return Results.BadRequest(new ApiErrorResponse("validation_error", result.Error!));
             }
 
-            var response = service.CreateViewLinkSession(request);
-            auditLogger.LogInformation("View session created for role {Role} and ministry {Ministry}.", response.User.Role, response.User.Ministry);
+            var response = result.Response!;
+            auditLogger.LogInformation("View session created for user {UserId}, role {Role} and ministry {Ministry}.", response.User.Id, response.User.Role, response.User.Ministry);
             return Results.Ok(response);
         });
 
