@@ -11,6 +11,8 @@ public sealed class PostgresUserRepository : IUserRepository
     private readonly string? _bootstrapDirectorPasswordHash;
     private readonly string? _bootstrapAdminUsername;
     private readonly string? _bootstrapAdminPasswordHash;
+    private readonly string? _publicInnovationDirectorUsername;
+    private readonly string? _publicInnovationDirectorPassword;
 
     public PostgresUserRepository(IConfiguration configuration)
     {
@@ -19,6 +21,8 @@ public sealed class PostgresUserRepository : IUserRepository
         _bootstrapDirectorPasswordHash = configuration[$"Auth:Users:{ApplicationRoles.DrejtorAgjencie}:Password"];
         _bootstrapAdminUsername = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Username"];
         _bootstrapAdminPasswordHash = configuration[$"Auth:Users:{ApplicationRoles.Admin}:Password"];
+        _publicInnovationDirectorUsername = configuration[$"Auth:Users:{ApplicationRoles.DrejtorInovacioniPublik}:Username"];
+        _publicInnovationDirectorPassword = configuration[$"Auth:Users:{ApplicationRoles.DrejtorInovacioniPublik}:Password"];
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -296,23 +300,12 @@ public sealed class PostgresUserRepository : IUserRepository
             ApplicationRoles.Admin,
             cancellationToken);
 
-        await using var publicInnovationDirectorCommand = new NpgsqlCommand(
-            """
-            insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
-            values (@id, @username, @password_hash, @role, null, @full_name, now(), true)
-            on conflict (lower(username)) do update
-            set password_hash = excluded.password_hash,
-                role = excluded.role,
-                ministry = null,
-                full_name = excluded.full_name
-            """,
-            connection);
-        publicInnovationDirectorCommand.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
-        publicInnovationDirectorCommand.Parameters.AddWithValue("username", "drejtor.inovacioni");
-        publicInnovationDirectorCommand.Parameters.AddWithValue("password_hash", BCrypt.Net.BCrypt.HashPassword("drejtor123"));
-        publicInnovationDirectorCommand.Parameters.AddWithValue("role", ApplicationRoles.DrejtorInovacioniPublik);
-        publicInnovationDirectorCommand.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorInovacioniPublik));
-        await publicInnovationDirectorCommand.ExecuteNonQueryAsync(cancellationToken);
+        await SeedBootstrapUserAsync(
+            connection,
+            _publicInnovationDirectorUsername,
+            _publicInnovationDirectorPassword,
+            ApplicationRoles.DrejtorInovacioniPublik,
+            cancellationToken);
 
         if (string.IsNullOrWhiteSpace(_bootstrapDirectorUsername) || string.IsNullOrWhiteSpace(_bootstrapDirectorPasswordHash))
         {
@@ -328,7 +321,7 @@ public sealed class PostgresUserRepository : IUserRepository
             connection);
         seedCommand.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
         seedCommand.Parameters.AddWithValue("username", _bootstrapDirectorUsername.Trim());
-        seedCommand.Parameters.AddWithValue("password_hash", _bootstrapDirectorPasswordHash.Trim());
+        seedCommand.Parameters.AddWithValue("password_hash", ResolvePasswordHash(_bootstrapDirectorPasswordHash));
         seedCommand.Parameters.AddWithValue("role", ApplicationRoles.DrejtorAgjencie);
         seedCommand.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(ApplicationRoles.DrejtorAgjencie));
         await seedCommand.ExecuteNonQueryAsync(cancellationToken);
@@ -351,19 +344,23 @@ public sealed class PostgresUserRepository : IUserRepository
             insert into users (id, username, password_hash, role, ministry, full_name, created_at, is_active)
             values (@id, @username, @password_hash, @role, null, @full_name, now(), true)
             on conflict (lower(username)) do update
-            set password_hash = excluded.password_hash,
-                role = excluded.role,
+            set role = excluded.role,
                 ministry = null,
                 full_name = excluded.full_name
             """,
             connection);
         command.Parameters.AddWithValue("id", $"usr-{Guid.NewGuid():N}");
         command.Parameters.AddWithValue("username", username.Trim());
-        command.Parameters.AddWithValue("password_hash", passwordHash.Trim());
+        command.Parameters.AddWithValue("password_hash", ResolvePasswordHash(passwordHash));
         command.Parameters.AddWithValue("role", role);
         command.Parameters.AddWithValue("full_name", ApplicationRoles.ToDisplayLabel(role));
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
+
+    private static string ResolvePasswordHash(string password) =>
+        password.TrimStart().StartsWith("$2", StringComparison.Ordinal)
+            ? password.Trim()
+            : BCrypt.Net.BCrypt.HashPassword(password.Trim());
 
     private static StoredUser ReadStoredUser(NpgsqlDataReader reader) =>
         new(

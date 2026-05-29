@@ -54,6 +54,19 @@ Shiko:
 - `PORT`
   `10000`
 
+- `Auth__Users__admin__Username` / `Auth__Users__admin__Password`
+  Kredencialet fillestare të adminit. `Password` mund të jetë password i thjeshtë
+  nga environment variable ose BCrypt hash; nuk ruhet në source code dhe nuk
+  mbishkruan password-in e një llogarie ekzistuese.
+
+- `Auth__Users__drejtor_agjencie__Username` / `Auth__Users__drejtor_agjencie__Password`
+  Kredencialet fillestare për rolin `Drejtor Innovation4Albania`, kur duhen seed-uar
+  nga environment variables.
+
+- `Auth__Users__drejtor_inovacioni_publik__Username` / `Auth__Users__drejtor_inovacioni_publik__Password`
+  Kredencialet fillestare për rolin `Drejtor i Inovacionit Publik`, kur duhen seed-uar
+  nga environment variables.
+
 ## Performance Tests
 
 Testi i ngarkeses me `k6` simulon mbi 50 perdorues njekohesisht ne dashboard,
