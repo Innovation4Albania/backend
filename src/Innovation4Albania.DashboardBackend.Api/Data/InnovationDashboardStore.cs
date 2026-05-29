@@ -497,7 +497,7 @@ public sealed class InnovationDashboardStore
                 request.Code.Trim(),
                 request.Name.Trim(),
                 request.Description.Trim(),
-                request.Ministries.Count == 0 ? ["—"] : request.Ministries.Select(item => item.Trim()).ToList(),
+                request.Ministries.Select(item => item.Trim()).Where(item => item.Length > 0).ToList(),
                 string.IsNullOrWhiteSpace(request.Agency) ? null : request.Agency.Trim(),
                 ResolveStatusForProgress(request.Status, progress),
                 request.Priority,
@@ -597,6 +597,18 @@ public sealed class InnovationDashboardStore
             return false;
         }
 
+        if (string.IsNullOrWhiteSpace(request.Description))
+        {
+            error = "Përshkrimi i projektit është i detyrueshëm.";
+            return false;
+        }
+
+        if (request.Ministries.Count == 0 || request.Ministries.All(string.IsNullOrWhiteSpace))
+        {
+            error = "Zgjidh të paktën një ministri për projektin.";
+            return false;
+        }
+
         if (!ProjectStatuses.All.Contains(request.Status))
         {
             error = "Statusi i zgjedhur nuk është i vlefshëm.";
@@ -661,9 +673,7 @@ public sealed class InnovationDashboardStore
         project.UpdateCadenceDays = 14;
 
         project.Ministries.Clear();
-        project.Ministries.AddRange(request.Ministries.Count == 0
-            ? ["—"]
-            : request.Ministries.Select(item => item.Trim()).Where(item => item.Length > 0));
+        project.Ministries.AddRange(request.Ministries.Select(item => item.Trim()).Where(item => item.Length > 0));
 
         project.Team.Clear();
         project.Team.AddRange(teamMembers.Select(member => member.Name).Distinct(StringComparer.OrdinalIgnoreCase));

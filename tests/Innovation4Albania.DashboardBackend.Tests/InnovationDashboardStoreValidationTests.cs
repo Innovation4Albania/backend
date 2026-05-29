@@ -28,6 +28,28 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public void TryValidateProjectRequest_RejectsMissingDescription()
+    {
+        var request = StoreTestHelpers.ValidProjectRequest() with { Description = " " };
+
+        var (isValid, error) = InvokeTryValidateProjectRequest(request);
+
+        Assert.False(isValid);
+        Assert.Contains("Përshkrimi", error);
+    }
+
+    [Fact]
+    public void TryValidateProjectRequest_RejectsMissingMinistries()
+    {
+        var request = StoreTestHelpers.ValidProjectRequest() with { Ministries = [] };
+
+        var (isValid, error) = InvokeTryValidateProjectRequest(request);
+
+        Assert.False(isValid);
+        Assert.Contains("ministri", error);
+    }
+
+    [Fact]
     public void TryValidateProjectRequest_RejectsInvalidStatus()
     {
         var request = StoreTestHelpers.ValidProjectRequest(status: "unknown");
