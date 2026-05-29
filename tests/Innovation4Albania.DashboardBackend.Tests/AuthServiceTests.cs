@@ -223,6 +223,25 @@ public sealed class AuthServiceTests
         Assert.True(BCrypt.Net.BCrypt.Verify("password456", (await users.GetUserByUsername("expert.new"))!.PasswordHash));
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.DrejtorAgjencie)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
+    public async Task ChangeOwnCredentialsAsync_DirectorsCanChangeOwnPasswordAndLogin(string directorRole)
+    {
+        var account = InMemoryUserRepository.Account("director-1", "director.old", "password123", directorRole, "Drejtor Test");
+        var users = new InMemoryUserRepository(account);
+        var service = CreateService(users: users);
+
+        var changed = await service.ChangeOwnCredentialsAsync(
+            UserContext.From(directorRole, null, "director.old"),
+            new ChangeOwnCredentialsRequest("password123", "director.old", "password456"));
+        var login = await service.TryLoginAsync(new LoginRequest(ApplicationRoles.DrejtorAgjencie, null, null, "director.old", "password456"));
+
+        Assert.True(changed.IsSuccess);
+        Assert.True(login.IsSuccess);
+        Assert.Equal(directorRole, login.Response!.User.Role);
+    }
+
     private static AuthService CreateService(Innovation4Albania.DashboardBackend.Api.Data.InnovationDashboardStore? store = null, IUserRepository? users = null)
     {
         store ??= StoreTestHelpers.CreateStore();
