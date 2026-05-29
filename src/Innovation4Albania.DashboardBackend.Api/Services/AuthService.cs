@@ -55,7 +55,7 @@ public sealed class AuthService(
     public string? ValidateViewLink(LoginRequest request)
     {
         var context = UserContext.From(request.Role, request.Ministry);
-        if (!ApplicationRoles.IsViewOnlyRole(context.Role) || context.Role == ApplicationRoles.StafMinistrie)
+        if (!ApplicationRoles.IsViewOnlyRole(context.Role))
         {
             return "Ky rol duhet të përdorë login.";
         }
