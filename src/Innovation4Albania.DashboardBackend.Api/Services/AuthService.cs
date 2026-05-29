@@ -75,9 +75,14 @@ public sealed class AuthService(
 
             var accountMinistry = ApplicationRoles.FixedMinistryForRole(account.Role) ?? account.Ministry;
             var context = UserContext.From(account.Role, accountMinistry, account.Username, account.FullName, account.Id);
-            if (!ApplicationRoles.IsViewOnlyRole(context.Role) || !dashboardRepository.IsValidContext(context, out var contextError))
+            if (!ApplicationRoles.IsViewOnlyRole(context.Role))
             {
-                return (false, null, contextError ?? "Ky perdorues nuk mund te hape view.");
+                return (false, null, "Ky perdorues nuk mund te hape view.");
+            }
+
+            if (!dashboardRepository.IsValidContext(context, out var contextError))
+            {
+                return (false, null, contextError);
             }
 
             var user = ToUserResponse(account);
