@@ -39,6 +39,7 @@ public static class ApplicationRoles
     public static bool IsViewOnlyRole(string role) => false;
     public static bool CanUseInteractiveLogin(string role) => All.Contains(role);
     public static bool CanManageUsers(string role) => role == Admin;
+    public static bool CanReadManagedUsers(string role) => CanManageUsers(role) || CanCreateProjects(role);
 
     public static string ToDisplayLabel(string role) => role switch
     {

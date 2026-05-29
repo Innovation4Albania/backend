@@ -84,6 +84,20 @@ public sealed class ApplicationRolesTests
         Assert.Equal(expected, ApplicationRoles.CanManageUsers(role));
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.Admin, true)]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
+    [InlineData(ApplicationRoles.StafAgjencie, false)]
+    [InlineData(ApplicationRoles.Ekspert, false)]
+    [InlineData(ApplicationRoles.Specialist, false)]
+    [InlineData(ApplicationRoles.StafMinistrie, false)]
+    [InlineData(ApplicationRoles.Minister, false)]
+    public void CanReadManagedUsers_AdminAndProjectCreatorsCanReadManagedUsers(string role, bool expected)
+    {
+        Assert.Equal(expected, ApplicationRoles.CanReadManagedUsers(role));
+    }
+
     [Fact]
     public void ToDisplayLabel_PublicInnovationDirectorUsesFullDirectorateLabel()
     {

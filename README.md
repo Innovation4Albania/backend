@@ -30,6 +30,13 @@ Backend-i hap endpoint-et nën `/api`.
 /api/health
 ```
 
+## Autorizimi i endpoint-eve te perdoruesve
+
+Rregullat per endpoint-et `/api/auth/users` dhe `/api/auth/me/credentials`
+jane dokumentuar ne:
+
+- `docs/user-endpoint-authorization.md`
+
 ## Deploy në Render
 
 Ky repo përfshin:
