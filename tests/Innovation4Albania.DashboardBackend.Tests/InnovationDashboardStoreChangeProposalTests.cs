@@ -44,6 +44,24 @@ public sealed class InnovationDashboardStoreChangeProposalTests
     }
 
     [Fact]
+    public async Task TryResolveChangeProposalAsync_SavesOptionalResolutionReason()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var staff = StoreTestHelpers.StaffContext(userId: "staff-a");
+        var director = StoreTestHelpers.DirectorContext();
+        var project = await CreateAssignedProject(store, "PROP-REASON", staff);
+        var proposal = await store.TryCreateChangeProposalAsync(staff, ValidContentProposal(project.Response!.Id));
+
+        var resolved = await store.TryResolveChangeProposalAsync(director, proposal.Response!.Id, "reject", "Nuk ka buxhet ne kete faze.");
+        var proposals = await store.GetChangeProposals(staff, project.Response.Id);
+
+        Assert.True(resolved.IsSuccess);
+        Assert.Equal(ChangeProposalStatuses.Rejected, resolved.Response!.Status);
+        Assert.Equal("Nuk ka buxhet ne kete faze.", resolved.Response.ResolutionReason);
+        Assert.Equal("Nuk ka buxhet ne kete faze.", proposals.Single().ResolutionReason);
+    }
+
+    [Fact]
     public async Task TryResolveChangeProposalAsync_RejectsUnknownAction()
     {
         var store = StoreTestHelpers.CreateStore();

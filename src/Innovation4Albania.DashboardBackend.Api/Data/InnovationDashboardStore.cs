@@ -201,7 +201,8 @@ public sealed class InnovationDashboardStore
                 proposal.CurrentValue,
                 proposal.ProposedValue,
                 proposal.Reason,
-            NormalizeProposalStatus(proposal.Status))).ToList());
+                NormalizeProposalStatus(proposal.Status),
+                proposal.ResolutionReason)).ToList());
 
     private void RestoreSnapshot(DashboardStoreSnapshot snapshot)
     {
@@ -242,7 +243,8 @@ public sealed class InnovationDashboardStore
             proposal.CurrentValue,
             proposal.ProposedValue,
             proposal.Reason,
-            NormalizeProposalStatus(proposal.Status))));
+            NormalizeProposalStatus(proposal.Status),
+            proposal.ResolutionReason)));
 
         if (projectIdsMissingOkr.Count > 0)
         {
@@ -1233,7 +1235,8 @@ public sealed class InnovationDashboardStore
                 request.CurrentValue.Trim(),
                 request.ProposedValue.Trim(),
                 request.Reason.Trim(),
-                ChangeProposalStatuses.Pending);
+                ChangeProposalStatuses.Pending,
+                null);
 
             _changeProposals.Add(proposal);
             var response = ToChangeProposalResponse(proposal);
@@ -1243,7 +1246,7 @@ public sealed class InnovationDashboardStore
         });
     }
 
-    public async Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action)
+    public async Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action, string? resolutionReason = null)
     {
         return await ExecuteMutationAsync<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)>(async () =>
         {
@@ -1270,6 +1273,14 @@ public sealed class InnovationDashboardStore
             }
 
             var normalizedAction = action.Trim().ToLowerInvariant();
+            var trimmedResolutionReason = string.IsNullOrWhiteSpace(resolutionReason)
+                ? null
+                : resolutionReason.Trim();
+            if (trimmedResolutionReason?.Length > 1000)
+            {
+                return (false, null, "Arsyetimi nuk mund te kete me shume se 1000 karaktere.");
+            }
+
             if (normalizedAction is "approve" or "approved" or "mirato")
             {
                 var project = _projects.First(item => item.Id == proposal.ProjectId);
@@ -1280,10 +1291,12 @@ public sealed class InnovationDashboardStore
 
                 project.LastUpdated = DateTimeOffset.UtcNow;
                 proposal.Status = ChangeProposalStatuses.Approved;
+                proposal.ResolutionReason = trimmedResolutionReason;
             }
             else if (normalizedAction is "reject" or "rejected" or "refuzo")
             {
                 proposal.Status = ChangeProposalStatuses.Rejected;
+                proposal.ResolutionReason = trimmedResolutionReason;
             }
             else
             {
@@ -2100,7 +2113,8 @@ public sealed class InnovationDashboardStore
             proposal.CurrentValue,
             proposal.ProposedValue,
             proposal.Reason,
-            proposal.Status);
+            proposal.Status,
+            proposal.ResolutionReason);
     }
 
 
@@ -2694,7 +2708,8 @@ public sealed class InnovationDashboardStore
         string CurrentValue,
         string ProposedValue,
         string Reason,
-        string Status);
+        string Status,
+        string? ResolutionReason = null);
 
     private sealed class ProjectState(
         string id,
@@ -2795,7 +2810,8 @@ public sealed class InnovationDashboardStore
         string CurrentValue,
         string ProposedValue,
         string Reason,
-        string Status)
+        string Status,
+        string? ResolutionReason = null)
     {
         public string Id { get; } = Id;
         public string ProjectId { get; } = ProjectId;
@@ -2807,6 +2823,7 @@ public sealed class InnovationDashboardStore
         public string ProposedValue { get; } = ProposedValue;
         public string Reason { get; } = Reason;
         public string Status { get; set; } = Status;
+        public string? ResolutionReason { get; set; } = ResolutionReason;
     }
 }
 

@@ -38,7 +38,7 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
     public Task<(bool IsSuccess, string? Error)> TryDeleteWeeklyUpdateAsync(UserContext context, string id) => store.TryDeleteWeeklyUpdateAsync(context, id);
     public Task<IReadOnlyList<ProjectChangeProposalResponse>> GetChangeProposals(UserContext context, string? projectId) => store.GetChangeProposals(context, projectId);
     public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryCreateChangeProposalAsync(UserContext context, CreateProjectChangeProposalRequest request) => store.TryCreateChangeProposalAsync(context, request);
-    public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action) => store.TryResolveChangeProposalAsync(context, id, action);
+    public Task<(bool IsSuccess, ProjectChangeProposalResponse? Response, string? Error)> TryResolveChangeProposalAsync(UserContext context, string id, string action, string? resolutionReason = null) => store.TryResolveChangeProposalAsync(context, id, action, resolutionReason);
     public Task<(bool IsSuccess, string? Error)> TryDeleteChangeProposalAsync(UserContext context, string id) => store.TryDeleteChangeProposalAsync(context, id);
     public Task<CalendarMonthResponse> GetCalendarMonth(UserContext context, DateOnly month) => store.GetCalendarMonth(context, month);
     public Task<IReadOnlyList<UpcomingEventResponse>> GetUpcomingEvents(UserContext context, int limit) => store.GetUpcomingEvents(context, limit);

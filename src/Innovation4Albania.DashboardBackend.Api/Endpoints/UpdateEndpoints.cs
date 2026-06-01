@@ -111,7 +111,7 @@ public static class UpdateEndpoints
                     statusCode: StatusCodes.Status403Forbidden);
             }
 
-            var result = await service.TryResolveChangeProposalAsync(context, id, request.Action);
+            var result = await service.TryResolveChangeProposalAsync(context, id, request.Action, request.ResolutionReason);
             if (result.IsSuccess)
             {
                 auditLogger.LogInformation("Change proposal {ProposalId} resolved with action {Action} by role {Role}.", id, request.Action, context.Role);

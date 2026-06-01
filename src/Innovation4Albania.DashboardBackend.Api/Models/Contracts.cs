@@ -271,7 +271,8 @@ public sealed record ProjectChangeProposalResponse(
     string CurrentValue,
     string ProposedValue,
     string Reason,
-    string Status);
+    string Status,
+    string? ResolutionReason = null);
 
 public sealed record ChatMessageResponse(
     string Id,
@@ -352,7 +353,7 @@ public sealed record CreateProjectChangeProposalRequest(
     string ProposedValue,
     string Reason);
 
-public sealed record ResolveChangeProposalRequest(string Action);
+public sealed record ResolveChangeProposalRequest(string Action, string? ResolutionReason = null);
 
 public sealed record AiChatRequest(
     string Message,
