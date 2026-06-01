@@ -268,6 +268,28 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreateWeeklyUpdateAsync_UsesLoggedInUserNameForExpertName()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var staff = StoreTestHelpers.StaffContext("staff-a", "Eksperti Real", "staff-a");
+        var project = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "REAL-NAME-001",
+                TeamMembers = [new WorkgroupMemberInput("Eksperti Real", WorkgroupRoles.InnovationExpert, "Agjenci", 100, "staff-a")]
+            });
+
+        var result = await store.TryCreateWeeklyUpdateAsync(
+            staff,
+            new CreateWeeklyUpdateRequest(project.Response!.Id, "Emri i Dikujt Tjeter", 55, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("Eksperti Real", result.Response!.ExpertName);
+    }
+
+    [Fact]
     public async Task TryCreateWeeklyUpdateAsync_UpdatesProjectKeyResultProgress()
     {
         var store = StoreTestHelpers.CreateStore();
@@ -349,6 +371,32 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.Equal(ProjectStatuses.ToLabel(ProjectStatuses.Completed), edited.Response.Status);
         Assert.Equal(ProjectStatuses.Completed, project!.Status);
         Assert.Equal(100, project.Progress);
+    }
+
+    [Fact]
+    public async Task TryUpdateWeeklyUpdateAsync_KeepsOriginalExpertName()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var staff = StoreTestHelpers.StaffContext("staff-a", "Eksperti Real", "staff-a");
+        var project = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "KEEP-NAME-001",
+                TeamMembers = [new WorkgroupMemberInput("Eksperti Real", WorkgroupRoles.InnovationExpert, "Agjenci", 100, "staff-a")]
+            });
+        var update = await store.TryCreateWeeklyUpdateAsync(
+            staff,
+            new CreateWeeklyUpdateRequest(project.Response!.Id, "Emri i Dikujt Tjeter", 40, ProjectStatuses.Active, RiskLevels.Medium, "", "Koment"));
+
+        var edited = await store.TryUpdateWeeklyUpdateAsync(
+            staff,
+            update.Response!.Id,
+            new CreateWeeklyUpdateRequest(project.Response.Id, "Emër i Ndryshuar", 65, ProjectStatuses.Active, RiskLevels.Low, "", "Koment i ri"));
+
+        Assert.True(edited.IsSuccess);
+        Assert.Equal("Eksperti Real", edited.Response!.ExpertName);
     }
 
     [Fact]

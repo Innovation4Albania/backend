@@ -932,9 +932,7 @@ public sealed class InnovationDashboardStore
                 return (false, null, "Projekti nuk u gjet.");
             }
 
-            var expertName = string.IsNullOrWhiteSpace(request.ExpertName)
-                ? ApplicationRoles.ToDisplayLabel(context.Role)
-                : request.ExpertName.Trim();
+            var expertName = ResolveWeeklyUpdateExpertName(context);
 
             var progress = Math.Clamp(request.Progress, 0, 100);
             var keyResultUpdateError = ValidateWeeklyKeyResultUpdates(project, request.KeyResults);
@@ -1004,12 +1002,9 @@ public sealed class InnovationDashboardStore
             }
 
             var progress = Math.Clamp(request.Progress, 0, 100);
-            var expertName = string.IsNullOrWhiteSpace(request.ExpertName)
-                ? currentUpdate.ExpertName
-                : request.ExpertName.Trim();
             var updated = currentUpdate with
             {
-                ExpertName = expertName,
+                ExpertName = currentUpdate.ExpertName,
                 Progress = progress,
                 Status = ResolveStatusForProgress(request.Status, progress),
                 Risk = request.Risk,
@@ -1076,6 +1071,13 @@ public sealed class InnovationDashboardStore
         !ApplicationRoles.IsAgencyContributor(context.Role) ||
         (!string.IsNullOrWhiteSpace(context.Username) &&
          string.Equals(update.SubmittedBy, context.Username, StringComparison.OrdinalIgnoreCase));
+
+    private static string ResolveWeeklyUpdateExpertName(UserContext context) =>
+        !string.IsNullOrWhiteSpace(context.FullName)
+            ? context.FullName
+            : !string.IsNullOrWhiteSpace(context.Username)
+                ? context.Username
+                : ApplicationRoles.ToDisplayLabel(context.Role);
 
     private WeeklyUpdateResponse ToWeeklyUpdateResponse(WeeklyUpdateState update, ProjectState project) =>
         new(
