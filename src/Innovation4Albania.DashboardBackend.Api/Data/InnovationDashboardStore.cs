@@ -19,6 +19,9 @@ public sealed class InnovationDashboardStore
     private const string PortfolioDeviationMeasurement = "portfolio_average_deviation";
     private const string PortfolioAverageOkrMeasurement = "portfolio_average_okr";
     private const string PortfolioCadenceMeasurement = "portfolio_cadence_compliance";
+    private const string PortfolioLowRiskMeasurement = "portfolio_low_risk_percentage";
+    private const string PortfolioOkrAbove70Measurement = "portfolio_okr_above_70";
+    private const string PortfolioProjectsWithKrsMeasurement = "portfolio_projects_with_krs";
 
     private readonly IReadOnlyList<string> _ministries =
     [
@@ -794,8 +797,11 @@ public sealed class InnovationDashboardStore
         var visible = GetVisibleProjects(context);
         var metrics = BuildPortfolioMetrics(visible);
         var cadenceCompliance = CalculateCadenceCompliance(visible, BuildUpdatesByProjectLookup());
+        var lowRiskProjects = CalculateLowRiskPercentage(visible);
+        var okrAbove70 = CalculateOkrAbove70Percentage(visible);
+        var projectsWithKrs = CalculateProjectsWithKrsPercentage(visible);
         var objectives = _portfolioObjectives
-            .Select(objective => ToPortfolioObjectiveResponse(objective, metrics, cadenceCompliance))
+            .Select(objective => ToPortfolioObjectiveResponse(objective, metrics, cadenceCompliance, lowRiskProjects, okrAbove70, projectsWithKrs))
             .ToList();
         return new PortfolioOkrResponse(metrics, objectives);
     });
@@ -1881,7 +1887,10 @@ public sealed class InnovationDashboardStore
         measurementType is PortfolioOnTimeMeasurement
             or PortfolioDeviationMeasurement
             or PortfolioAverageOkrMeasurement
-            or PortfolioCadenceMeasurement;
+            or PortfolioCadenceMeasurement
+            or PortfolioLowRiskMeasurement
+            or PortfolioOkrAbove70Measurement
+            or PortfolioProjectsWithKrsMeasurement;
 
     private static string ResolveMeasurementType(string? measurementType, string title)
     {
@@ -1901,6 +1910,9 @@ public sealed class InnovationDashboardStore
             or PortfolioDeviationMeasurement
             or PortfolioAverageOkrMeasurement
             or PortfolioCadenceMeasurement
+            or PortfolioLowRiskMeasurement
+            or PortfolioOkrAbove70Measurement
+            or PortfolioProjectsWithKrsMeasurement
             ? value
             : ManualMeasurement;
     }
@@ -1926,6 +1938,21 @@ public sealed class InnovationDashboardStore
         if (normalized.Contains("14 dit") || normalized.Contains("përditësuar") || normalized.Contains("perditesuar"))
         {
             return PortfolioCadenceMeasurement;
+        }
+
+        if (normalized.Contains("pa risk") || normalized.Contains("risk të lartë") || normalized.Contains("risk te larte") || normalized.Contains("kritik"))
+        {
+            return PortfolioLowRiskMeasurement;
+        }
+
+        if ((normalized.Contains("okr mbi") || normalized.Contains("okr >= ") || normalized.Contains("okr të paktën") || normalized.Contains("okr te pakten")) && normalized.Contains("70"))
+        {
+            return PortfolioOkrAbove70Measurement;
+        }
+
+        if (normalized.Contains("kr të përcaktuara") || normalized.Contains("kr te percaktuara") || normalized.Contains("objektiva dhe kr"))
+        {
+            return PortfolioProjectsWithKrsMeasurement;
         }
 
         return ManualMeasurement;
@@ -2027,10 +2054,13 @@ public sealed class InnovationDashboardStore
     private static ObjectiveResponse ToPortfolioObjectiveResponse(
         ObjectiveState state,
         PortfolioMetricsResponse metrics,
-        int cadenceCompliance)
+        int cadenceCompliance,
+        int lowRiskProjects,
+        int okrAbove70,
+        int projectsWithKrs)
     {
         var keyResults = state.KeyResults
-            .Select(kr => ToPortfolioKeyResultResponse(kr, metrics, cadenceCompliance))
+            .Select(kr => ToPortfolioKeyResultResponse(kr, metrics, cadenceCompliance, lowRiskProjects, okrAbove70, projectsWithKrs))
             .ToList();
         var progress = keyResults.Count == 0 ? 0 : (int)Math.Round(keyResults.Average(item => item.Progress));
         return new ObjectiveResponse(state.Id, state.Title, state.Owner, progress, keyResults);
@@ -2039,7 +2069,10 @@ public sealed class InnovationDashboardStore
     private static KeyResultResponse ToPortfolioKeyResultResponse(
         KeyResultState state,
         PortfolioMetricsResponse metrics,
-        int cadenceCompliance)
+        int cadenceCompliance,
+        int lowRiskProjects,
+        int okrAbove70,
+        int projectsWithKrs)
     {
         var measurementType = ResolvePortfolioMeasurementType(state);
         var currentValue = measurementType switch
@@ -2048,13 +2081,21 @@ public sealed class InnovationDashboardStore
             PortfolioDeviationMeasurement => metrics.DeviationAverage,
             PortfolioAverageOkrMeasurement => metrics.AverageOkr,
             PortfolioCadenceMeasurement => cadenceCompliance,
+            PortfolioLowRiskMeasurement => lowRiskProjects,
+            PortfolioOkrAbove70Measurement => okrAbove70,
+            PortfolioProjectsWithKrsMeasurement => projectsWithKrs,
             _ => state.Progress
         };
 
         var progressScore = measurementType switch
         {
             PortfolioDeviationMeasurement => CalculateLowerIsBetterProgress(currentValue, state.Target),
-            PortfolioOnTimeMeasurement or PortfolioAverageOkrMeasurement or PortfolioCadenceMeasurement => CalculateKeyResultProgress(currentValue, state.Target),
+            PortfolioOnTimeMeasurement
+                or PortfolioAverageOkrMeasurement
+                or PortfolioCadenceMeasurement
+                or PortfolioLowRiskMeasurement
+                or PortfolioOkrAbove70Measurement
+                or PortfolioProjectsWithKrsMeasurement => CalculateKeyResultProgress(currentValue, state.Target),
             _ => state.Progress
         };
 
@@ -2521,6 +2562,42 @@ public sealed class InnovationDashboardStore
         });
 
         return ClampPercent(compliant * 100d / projects.Count);
+    }
+
+    private static int CalculateLowRiskPercentage(IReadOnlyCollection<ProjectState> projects)
+    {
+        if (projects.Count == 0)
+        {
+            return 0;
+        }
+
+        var lowRisk = projects.Count(project => project.Risk is not (RiskLevels.High or RiskLevels.Critical));
+        return ClampPercent(lowRisk * 100d / projects.Count);
+    }
+
+    private int CalculateOkrAbove70Percentage(IReadOnlyCollection<ProjectState> projects)
+    {
+        if (projects.Count == 0)
+        {
+            return 0;
+        }
+
+        var aboveThreshold = projects.Count(project => GetOkrAverage(project) >= 70);
+        return ClampPercent(aboveThreshold * 100d / projects.Count);
+    }
+
+    private static int CalculateProjectsWithKrsPercentage(IReadOnlyCollection<ProjectState> projects)
+    {
+        if (projects.Count == 0)
+        {
+            return 0;
+        }
+
+        var withKrs = projects.Count(project =>
+            project.Objectives.Count > 0 &&
+            project.Objectives.Any(objective => objective.KeyResults.Count > 0));
+
+        return ClampPercent(withKrs * 100d / projects.Count);
     }
 
     private static string GetUrgencyLabel(ProjectState project)
