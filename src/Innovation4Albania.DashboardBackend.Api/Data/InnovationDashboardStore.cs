@@ -14,6 +14,11 @@ public sealed class InnovationDashboardStore
     private static readonly CultureInfo AlbanianCulture = CultureInfo.GetCultureInfo("sq-AL");
     private static readonly JsonSerializerOptions SnapshotJsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly Regex LettersAndSpacesRegex = new(@"^[\p{L}\s]+$", RegexOptions.Compiled);
+    private const string ManualMeasurement = "manual";
+    private const string PortfolioOnTimeMeasurement = "portfolio_on_time";
+    private const string PortfolioDeviationMeasurement = "portfolio_average_deviation";
+    private const string PortfolioAverageOkrMeasurement = "portfolio_average_okr";
+    private const string PortfolioCadenceMeasurement = "portfolio_cadence_compliance";
 
     private readonly IReadOnlyList<string> _ministries =
     [
@@ -787,8 +792,12 @@ public sealed class InnovationDashboardStore
     public Task<PortfolioOkrResponse> GetPortfolioOkr(UserContext context) => ExecuteReadAsync(() =>
     {
         var visible = GetVisibleProjects(context);
-        var objectives = _portfolioObjectives.Select(ToObjectiveResponse).ToList();
-        return new PortfolioOkrResponse(BuildPortfolioMetrics(visible), objectives);
+        var metrics = BuildPortfolioMetrics(visible);
+        var cadenceCompliance = CalculateCadenceCompliance(visible, BuildUpdatesByProjectLookup());
+        var objectives = _portfolioObjectives
+            .Select(objective => ToPortfolioObjectiveResponse(objective, metrics, cadenceCompliance))
+            .ToList();
+        return new PortfolioOkrResponse(metrics, objectives);
     });
 
     public async Task<(bool IsSuccess, ObjectiveResponse? Response, string? Error)> TryCreatePortfolioObjectiveAsync(UserContext context, CreatePortfolioObjectiveRequest request)
@@ -1853,6 +1862,75 @@ public sealed class InnovationDashboardStore
         return ClampPercent(currentValue / (double)target * 100d);
     }
 
+    private static int CalculateLowerIsBetterProgress(int currentValue, int target)
+    {
+        if (target <= 0)
+        {
+            return currentValue <= 0 ? 100 : 0;
+        }
+
+        if (currentValue <= target)
+        {
+            return 100;
+        }
+
+        return ClampPercent(target / (double)Math.Max(1, currentValue) * 100d);
+    }
+
+    private static bool IsAutomaticMeasurement(string? measurementType) =>
+        measurementType is PortfolioOnTimeMeasurement
+            or PortfolioDeviationMeasurement
+            or PortfolioAverageOkrMeasurement
+            or PortfolioCadenceMeasurement;
+
+    private static string ResolveMeasurementType(string? measurementType, string title)
+    {
+        var normalized = NormalizeMeasurementType(measurementType);
+        return normalized == ManualMeasurement
+            ? InferPortfolioMeasurementType(title)
+            : normalized;
+    }
+
+    private static string ResolvePortfolioMeasurementType(KeyResultState state) =>
+        ResolveMeasurementType(state.MeasurementType, state.Title);
+
+    private static string NormalizeMeasurementType(string? measurementType)
+    {
+        var value = measurementType?.Trim();
+        return value is PortfolioOnTimeMeasurement
+            or PortfolioDeviationMeasurement
+            or PortfolioAverageOkrMeasurement
+            or PortfolioCadenceMeasurement
+            ? value
+            : ManualMeasurement;
+    }
+
+    private static string InferPortfolioMeasurementType(string title)
+    {
+        var normalized = title.Trim().ToLowerInvariant();
+        if (normalized.Contains("dorëzim") || normalized.Contains("dorezim"))
+        {
+            return PortfolioOnTimeMeasurement;
+        }
+
+        if (normalized.Contains("devijim"))
+        {
+            return PortfolioDeviationMeasurement;
+        }
+
+        if (normalized.Contains("mesatarja e okr") || normalized.Contains("okr të portofolit") || normalized.Contains("okr te portofolit"))
+        {
+            return PortfolioAverageOkrMeasurement;
+        }
+
+        if (normalized.Contains("14 dit") || normalized.Contains("përditësuar") || normalized.Contains("perditesuar"))
+        {
+            return PortfolioCadenceMeasurement;
+        }
+
+        return ManualMeasurement;
+    }
+
     private static string ResolveStatusForProgress(string status, int progress) =>
         Math.Clamp(progress, 0, 100) >= 100 ? ProjectStatuses.Completed : status;
 
@@ -1931,9 +2009,64 @@ public sealed class InnovationDashboardStore
 
     private static ObjectiveResponse ToObjectiveResponse(ObjectiveState state)
     {
-        var keyResults = state.KeyResults.Select(kr => new KeyResultResponse(kr.Id, kr.Title, kr.Progress, kr.Target, kr.Unit)).ToList();
+        var keyResults = state.KeyResults
+            .Select(kr => new KeyResultResponse(
+                kr.Id,
+                kr.Title,
+                kr.Progress,
+                kr.Target,
+                kr.Unit,
+                kr.MeasurementType,
+                kr.Progress,
+                IsAutomaticMeasurement(kr.MeasurementType)))
+            .ToList();
         var progress = keyResults.Count == 0 ? 0 : (int)Math.Round(keyResults.Average(item => item.Progress));
         return new ObjectiveResponse(state.Id, state.Title, state.Owner, progress, keyResults);
+    }
+
+    private static ObjectiveResponse ToPortfolioObjectiveResponse(
+        ObjectiveState state,
+        PortfolioMetricsResponse metrics,
+        int cadenceCompliance)
+    {
+        var keyResults = state.KeyResults
+            .Select(kr => ToPortfolioKeyResultResponse(kr, metrics, cadenceCompliance))
+            .ToList();
+        var progress = keyResults.Count == 0 ? 0 : (int)Math.Round(keyResults.Average(item => item.Progress));
+        return new ObjectiveResponse(state.Id, state.Title, state.Owner, progress, keyResults);
+    }
+
+    private static KeyResultResponse ToPortfolioKeyResultResponse(
+        KeyResultState state,
+        PortfolioMetricsResponse metrics,
+        int cadenceCompliance)
+    {
+        var measurementType = ResolvePortfolioMeasurementType(state);
+        var currentValue = measurementType switch
+        {
+            PortfolioOnTimeMeasurement => metrics.OnTimePercentage,
+            PortfolioDeviationMeasurement => metrics.DeviationAverage,
+            PortfolioAverageOkrMeasurement => metrics.AverageOkr,
+            PortfolioCadenceMeasurement => cadenceCompliance,
+            _ => state.Progress
+        };
+
+        var progressScore = measurementType switch
+        {
+            PortfolioDeviationMeasurement => CalculateLowerIsBetterProgress(currentValue, state.Target),
+            PortfolioOnTimeMeasurement or PortfolioAverageOkrMeasurement or PortfolioCadenceMeasurement => CalculateKeyResultProgress(currentValue, state.Target),
+            _ => state.Progress
+        };
+
+        return new KeyResultResponse(
+            state.Id,
+            state.Title,
+            progressScore,
+            state.Target,
+            state.Unit,
+            measurementType,
+            currentValue,
+            IsAutomaticMeasurement(measurementType));
     }
 
     private static ObjectiveState ToObjectiveState(string id, ObjectiveInput input) =>
@@ -1941,14 +2074,26 @@ public sealed class InnovationDashboardStore
             id,
             input.Title.Trim(),
             string.IsNullOrWhiteSpace(input.Owner) ? "Drejtoria e Inovacionit" : input.Owner.Trim(),
-            input.KeyResults.Select((kr, index) => new KeyResultState($"{id}-kr-{index + 1}", kr.Title.Trim(), kr.Progress, kr.Target, kr.Unit.Trim())).ToList());
+            input.KeyResults.Select((kr, index) => new KeyResultState(
+                $"{id}-kr-{index + 1}",
+                kr.Title.Trim(),
+                kr.Progress,
+                kr.Target,
+                kr.Unit.Trim(),
+                ResolveMeasurementType(kr.MeasurementType, kr.Title))).ToList());
 
     private static ObjectiveState ToObjectiveState(ObjectiveResponse response) =>
         new(
             response.Id,
             response.Title,
             response.Owner,
-            response.KeyResults.Select(kr => new KeyResultState(kr.Id, kr.Title, kr.Progress, kr.Target, kr.Unit)).ToList());
+            response.KeyResults.Select(kr => new KeyResultState(
+                kr.Id,
+                kr.Title,
+                kr.Progress,
+                kr.Target,
+                kr.Unit,
+                ResolveMeasurementType(kr.MeasurementType, kr.Title))).ToList());
 
     private static ProjectSnapshot ToProjectSnapshot(ProjectState project) =>
         new(
@@ -2350,6 +2495,32 @@ public sealed class InnovationDashboardStore
         var deviationAverage = (int)Math.Round(projects.Average(project => Math.Max(0, CalculateExpectedProgress(project.StartDate, project.EndDate) - project.Progress)));
         var attention = projects.Count(project => project.Risk is RiskLevels.High or RiskLevels.Critical || CalculateDelayDays(project) > 7);
         return new PortfolioMetricsResponse(averageOkr, onTime, deviationAverage, attention);
+    }
+
+    private static int CalculateCadenceCompliance(
+        IReadOnlyCollection<ProjectState> projects,
+        IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject)
+    {
+        if (projects.Count == 0)
+        {
+            return 0;
+        }
+
+        var compliant = projects.Count(project =>
+        {
+            var latestUpdate = GetProjectUpdates(project, updatesByProject)
+                .OrderByDescending(update => update.SubmittedAt)
+                .FirstOrDefault();
+
+            if (latestUpdate is null)
+            {
+                return false;
+            }
+
+            return (DateTimeOffset.UtcNow - latestUpdate.SubmittedAt).TotalDays <= project.UpdateCadenceDays;
+        });
+
+        return ClampPercent(compliant * 100d / projects.Count);
     }
 
     private static string GetUrgencyLabel(ProjectState project)
@@ -2771,7 +2942,7 @@ public sealed class InnovationDashboardStore
 
     private sealed record ObjectiveState(string Id, string Title, string Owner, List<KeyResultState> KeyResults);
 
-    private sealed record KeyResultState(string Id, string Title, int InitialProgress, int Target, string Unit)
+    private sealed record KeyResultState(string Id, string Title, int InitialProgress, int Target, string Unit, string MeasurementType = ManualMeasurement)
     {
         public int Progress { get; set; } = InitialProgress;
     }

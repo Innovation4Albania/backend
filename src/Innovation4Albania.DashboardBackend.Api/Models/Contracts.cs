@@ -73,7 +73,10 @@ public sealed record KeyResultResponse(
     string Title,
     int Progress,
     int Target,
-    string Unit);
+    string Unit,
+    string MeasurementType = "manual",
+    int CurrentValue = 0,
+    bool IsAutomatic = false);
 
 public sealed record ObjectiveResponse(
     string Id,
@@ -297,7 +300,8 @@ public sealed record KeyResultInput(
     string Title,
     int Progress,
     int Target,
-    string Unit);
+    string Unit,
+    string? MeasurementType = null);
 
 public sealed record WorkgroupMemberInput(
     string Name,
