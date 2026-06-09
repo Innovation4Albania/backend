@@ -33,8 +33,13 @@ public static class DashboardEndpoints
             return Results.Ok(await service.GetPerformance(context));
         });
 
-        api.MapGet("/dashboard/trend", (int? months, IDashboardService service) =>
-            Results.Ok(service.GetTrend(Math.Clamp(months.GetValueOrDefault(12), 3, 24))));
+        api.MapGet("/dashboard/trend", async (ClaimsPrincipal user, int? months, IUserContextService contextService, IDashboardService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            return Results.Ok(await service.GetTrend(context, Math.Clamp(months.GetValueOrDefault(12), 3, 24)));
+        });
 
         api.MapGet("/dashboard/ministry-distribution", async (ClaimsPrincipal user, IUserContextService contextService, IDashboardService service) =>
         {

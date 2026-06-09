@@ -268,6 +268,61 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task GetTrend_UsesHistoricalUpdatesAndVisibleProjects()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        ClearProjectsAndUpdates(store);
+        var director = StoreTestHelpers.DirectorContext();
+        var financeContext = StoreTestHelpers.MinistryRepresentativeContext("Ministria e Financave");
+        var startDate = DateTimeOffset.UtcNow.AddMonths(-4);
+        var endDate = DateTimeOffset.UtcNow.AddMonths(4);
+        var firstMonth = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-2);
+        var secondMonth = firstMonth.AddMonths(1);
+        var currentMonth = firstMonth.AddMonths(2);
+
+        var financeProject = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest(startDate, endDate) with
+            {
+                Code = "TREND-FIN",
+                Name = "Projekt Finance",
+                Ministries = ["Ministria e Financave"],
+                Progress = 10,
+            });
+        var justiceProject = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest(startDate, endDate) with
+            {
+                Code = "TREND-JUS",
+                Name = "Projekt Drejtesie",
+                Ministries = ["Ministria e Drejtësisë"],
+                Progress = 10,
+            });
+
+        var financeFirst = await store.TryCreateWeeklyUpdateAsync(
+            director,
+            new CreateWeeklyUpdateRequest(financeProject.Response!.Id, "Ekspert", 20, ProjectStatuses.Active, RiskLevels.Medium, "", "Muaji i pare"));
+        SetWeeklyUpdateSubmittedAt(store, financeFirst.Response!.Id, ToMonthDate(firstMonth, 10));
+
+        var financeSecond = await store.TryCreateWeeklyUpdateAsync(
+            director,
+            new CreateWeeklyUpdateRequest(financeProject.Response.Id, "Ekspert", 60, ProjectStatuses.Active, RiskLevels.Low, "", "Muaji i dyte"));
+        SetWeeklyUpdateSubmittedAt(store, financeSecond.Response!.Id, ToMonthDate(secondMonth, 10));
+
+        var justiceCurrent = await store.TryCreateWeeklyUpdateAsync(
+            director,
+            new CreateWeeklyUpdateRequest(justiceProject.Response!.Id, "Ekspert", 100, ProjectStatuses.Active, RiskLevels.Low, "", "Muaji aktual"));
+        SetWeeklyUpdateSubmittedAt(store, justiceCurrent.Response!.Id, ToMonthDate(currentMonth, 10));
+
+        var financeTrend = await store.GetTrend(financeContext, 3);
+        var directorTrend = await store.GetTrend(director, 3);
+
+        Assert.Equal([20, 60, 60], financeTrend.Select(point => point.Progress).ToArray());
+        Assert.Equal(80, directorTrend[^1].Progress);
+        Assert.All(financeTrend, point => Assert.InRange(point.Okr, 0, 100));
+    }
+
+    [Fact]
     public async Task TryCreateWeeklyUpdateAsync_UsesLoggedInUserNameForExpertName()
     {
         var store = StoreTestHelpers.CreateStore();
@@ -659,10 +714,41 @@ public sealed class InnovationDashboardStoreProjectMutationTests
             string.Equals(GetProperty<string>(project, "Id"), projectId, StringComparison.OrdinalIgnoreCase));
     }
 
+    private static void ClearProjectsAndUpdates(InnovationDashboardStore store)
+    {
+        GetPrivateList(store, "_projects").Clear();
+        GetPrivateList(store, "_updates").Clear();
+    }
+
+    private static IList GetPrivateList(InnovationDashboardStore store, string fieldName)
+    {
+        var field = typeof(InnovationDashboardStore).GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new MissingFieldException(nameof(InnovationDashboardStore), fieldName);
+        return (IList)field.GetValue(store)!;
+    }
+
+    private static void SetWeeklyUpdateSubmittedAt(InnovationDashboardStore store, string updateId, DateTimeOffset submittedAt)
+    {
+        var update = GetPrivateList(store, "_updates")
+            .Cast<object>()
+            .First(item => string.Equals(GetProperty<string>(item, "Id"), updateId, StringComparison.OrdinalIgnoreCase));
+        SetProperty(update, "SubmittedAt", submittedAt);
+    }
+
+    private static DateTimeOffset ToMonthDate(DateOnly month, int day) =>
+        new(month.Year, month.Month, day, 12, 0, 0, TimeSpan.Zero);
+
     private static T GetProperty<T>(object instance, string propertyName)
     {
         var property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
             ?? throw new MissingMemberException(instance.GetType().Name, propertyName);
         return (T)property.GetValue(instance)!;
+    }
+
+    private static void SetProperty<T>(object instance, string propertyName, T value)
+    {
+        var property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new MissingMemberException(instance.GetType().Name, propertyName);
+        property.SetValue(instance, value);
     }
 }

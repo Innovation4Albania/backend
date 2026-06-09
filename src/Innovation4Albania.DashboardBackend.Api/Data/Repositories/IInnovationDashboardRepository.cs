@@ -13,7 +13,7 @@ public interface IInnovationDashboardRepository
     Task<IReadOnlyList<MinistryDistributionItem>> GetMinistryDistribution(UserContext context);
     Task<ResourceCapacitySummaryResponse> GetResourceCapacitySummary(UserContext context);
     Task<IReadOnlyList<PerformanceScoreItem>> GetPerformanceScores(UserContext context);
-    IReadOnlyList<TrendPointResponse> GetTrend(int months);
+    Task<IReadOnlyList<TrendPointResponse>> GetTrend(UserContext context, int months);
     Task<IReadOnlyList<ProjectResponse>> GetProjects(UserContext context, string? status, string? query);
     Task<ProjectResponse?> GetProjectById(string id, UserContext context);
     Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryCreateProjectAsync(UserContext context, CreateProjectRequest request);

@@ -9,7 +9,7 @@ public sealed class DashboardService(IInnovationDashboardRepository repository) 
     public Task<DashboardSummaryResponse> GetSummary(UserContext context) => repository.GetDashboardSummary(context);
     public Task<IReadOnlyList<StatusDistributionItem>> GetStatusDistribution(UserContext context) => repository.GetStatusDistribution(context);
     public Task<IReadOnlyList<PerformanceScoreItem>> GetPerformance(UserContext context) => repository.GetPerformanceScores(context);
-    public IReadOnlyList<TrendPointResponse> GetTrend(int months) => repository.GetTrend(months);
+    public Task<IReadOnlyList<TrendPointResponse>> GetTrend(UserContext context, int months) => repository.GetTrend(context, months);
     public Task<IReadOnlyList<MinistryDistributionItem>> GetMinistryDistribution(UserContext context) => repository.GetMinistryDistribution(context);
     public Task<ResourceCapacitySummaryResponse> GetResourceCapacity(UserContext context) => repository.GetResourceCapacitySummary(context);
     public Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context) => repository.GetPerformanceBoard(context);

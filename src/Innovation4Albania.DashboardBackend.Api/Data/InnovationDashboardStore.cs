@@ -423,21 +423,62 @@ public sealed class InnovationDashboardStore
                 .ToList();
         });
 
-    public IReadOnlyList<TrendPointResponse> GetTrend(int months)
-    {
-        var start = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-(months - 1));
-        var points = new List<TrendPointResponse>(months);
-
-        for (var i = 0; i < months; i++)
+    public Task<IReadOnlyList<TrendPointResponse>> GetTrend(UserContext context, int months) =>
+        ExecuteReadAsync<IReadOnlyList<TrendPointResponse>>(() =>
         {
-            var month = start.AddMonths(i);
-            var progress = (int)Math.Round(32 + (i * 4.1) + (Math.Sin(i / 2d) * 7));
-            var okr = (int)Math.Round(58 + (i * 1.8) + (Math.Cos(i / 2d) * 4));
-            points.Add(new TrendPointResponse(month.ToString("MMM", AlbanianCulture), Math.Clamp(progress, 0, 100), Math.Clamp(okr, 0, 100)));
-        }
+            var start = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-(months - 1));
+            var visibleProjects = GetVisibleProjects(context);
+            var visibleProjectIds = visibleProjects.Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var updatesByProject = _updates
+                .Where(update => visibleProjectIds.Contains(update.ProjectId))
+                .GroupBy(update => update.ProjectId, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.OrderBy(update => update.SubmittedAt).ToList(),
+                    StringComparer.OrdinalIgnoreCase);
+            var points = new List<TrendPointResponse>(months);
 
-        return points;
-    }
+            for (var i = 0; i < months; i++)
+            {
+                var month = start.AddMonths(i);
+                var monthStart = new DateTimeOffset(month.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+                var monthEnd = monthStart.AddMonths(1);
+                var monthSnapshots = visibleProjects
+                    .Select(project =>
+                    {
+                        updatesByProject.TryGetValue(project.Id, out var projectUpdates);
+                        var updatesThroughMonth = projectUpdates?
+                            .Where(update => update.SubmittedAt < monthEnd)
+                            .ToList() ?? [];
+                        var latestUpdate = updatesThroughMonth
+                            .MaxBy(update => update.SubmittedAt);
+
+                        return latestUpdate is null
+                            ? null
+                            : new
+                            {
+                                latestUpdate.Progress,
+                                Okr = CalculateHistoricalOkrAverage(project, updatesThroughMonth, latestUpdate, monthEnd.AddTicks(-1))
+                            };
+                    })
+                    .Where(snapshot => snapshot is not null)
+                    .ToList();
+
+                var progress = monthSnapshots.Count == 0
+                    ? 0
+                    : (int)Math.Round(monthSnapshots.Average(snapshot => snapshot!.Progress));
+                var okr = monthSnapshots.Count == 0
+                    ? 0
+                    : (int)Math.Round(monthSnapshots.Average(snapshot => snapshot!.Okr));
+
+                points.Add(new TrendPointResponse(
+                    month.ToString("MMM", AlbanianCulture),
+                    Math.Clamp(progress, 0, 100),
+                    Math.Clamp(okr, 0, 100)));
+            }
+
+            return points;
+        });
 
     public Task<IReadOnlyList<ProjectResponse>> GetProjects(UserContext context, string? status, string? query) => ExecuteReadAsync<IReadOnlyList<ProjectResponse>>(() =>
     {
@@ -1761,6 +1802,24 @@ public sealed class InnovationDashboardStore
     private static int CalculateOkrAverage(ProjectOkr okr) =>
         ClampPercent((okr.Deadlines + okr.Quality + okr.Impact + okr.Dynamics) / 4d);
 
+    private static int CalculateHistoricalOkrAverage(
+        ProjectState project,
+        IReadOnlyList<WeeklyUpdateState> updatesThroughPoint,
+        WeeklyUpdateState latestUpdate,
+        DateTimeOffset asOf)
+    {
+        var deadline = CalculateHistoricalDeadlineOkr(project, latestUpdate, asOf);
+        var quality = CalculateQualityOkr(updatesThroughPoint);
+        var impact = CalculateHistoricalImpactOkr(project, latestUpdate.Progress, asOf);
+        var dynamics = CalculateDynamicsOkr(project, updatesThroughPoint);
+
+        return CalculateOkrAverage(new ProjectOkr(
+            ClampPercent(deadline),
+            ClampPercent(quality),
+            ClampPercent(impact),
+            ClampPercent(dynamics)));
+    }
+
     private static IReadOnlyList<WeeklyUpdateState> GetProjectUpdates(
         ProjectState project,
         IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject) =>
@@ -1796,6 +1855,18 @@ public sealed class InnovationDashboardStore
         return ClampPercent(100 - (expectedProgress - project.Progress) * 2);
     }
 
+    private static int CalculateHistoricalDeadlineOkr(ProjectState project, WeeklyUpdateState latestUpdate, DateTimeOffset asOf)
+    {
+        if (latestUpdate.Status == ProjectStatuses.Completed && latestUpdate.SubmittedAt <= project.EndDate)
+            return 100;
+
+        if (asOf > project.EndDate)
+            return 0;
+
+        var expectedProgress = CalculateExpectedProgressAt(project.StartDate, project.EndDate, asOf);
+        return ClampPercent(100 - (expectedProgress - latestUpdate.Progress) * 2);
+    }
+
     private static int CalculateQualityOkr(IReadOnlyList<WeeklyUpdateState> updates)
     {
         if (updates.Count == 0)
@@ -1828,6 +1899,25 @@ public sealed class InnovationDashboardStore
         }
 
         return ClampPercent(Math.Min(100, project.Progress / expectedProgress * 100d));
+    }
+
+    private static int CalculateHistoricalImpactOkr(ProjectState project, int progress, DateTimeOffset asOf)
+    {
+        var totalDays = Math.Max(1, (project.EndDate - project.StartDate).TotalDays);
+        var elapsedDays = (asOf - project.StartDate).TotalDays;
+
+        if (elapsedDays <= 0)
+        {
+            return 50;
+        }
+
+        var expectedProgress = Math.Clamp((elapsedDays / totalDays) * 100d, 0, 100);
+        if (expectedProgress <= 0)
+        {
+            return 50;
+        }
+
+        return ClampPercent(Math.Min(100, progress / expectedProgress * 100d));
     }
 
     private static int CalculateDynamicsOkr(ProjectState project, IReadOnlyList<WeeklyUpdateState> updates)
@@ -1968,9 +2058,12 @@ public sealed class InnovationDashboardStore
     }
 
     private static int CalculateExpectedProgress(DateTimeOffset startDate, DateTimeOffset endDate)
+        => CalculateExpectedProgressAt(startDate, endDate, DateTimeOffset.UtcNow);
+
+    private static int CalculateExpectedProgressAt(DateTimeOffset startDate, DateTimeOffset endDate, DateTimeOffset asOf)
     {
         var totalDays = Math.Max(1, (endDate - startDate).TotalDays);
-        var elapsedDays = Math.Clamp((DateTimeOffset.UtcNow - startDate).TotalDays, 0, totalDays);
+        var elapsedDays = Math.Clamp((asOf - startDate).TotalDays, 0, totalDays);
         return (int)Math.Round((elapsedDays / totalDays) * 100);
     }
 
