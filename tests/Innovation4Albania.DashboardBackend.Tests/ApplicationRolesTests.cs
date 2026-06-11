@@ -6,6 +6,7 @@ public sealed class ApplicationRolesTests
 {
     [Theory]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, true)]
     [InlineData(ApplicationRoles.Minister, true)]
     [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
     [InlineData(ApplicationRoles.Kryeminister, false)]
@@ -38,6 +39,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.Ekspert, true)]
     [InlineData(ApplicationRoles.Specialist, true)]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, true)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
     public void CanProposeProjectChanges_SubmittingRolesCanPropose(string role, bool expected)
     {
@@ -49,6 +51,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.Minister, true)]
     [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, true)]
     [InlineData(ApplicationRoles.StafMinistrie, true)]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, true)]
     [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
     [InlineData(ApplicationRoles.StafAgjencie, true)]
@@ -71,6 +74,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.Minister, false)]
     [InlineData(ApplicationRoles.MinisterEkonomiseInovacionit, false)]
     [InlineData(ApplicationRoles.StafMinistrie, false)]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, false)]
     public void CanUseInteractiveLogin_CredentialsAreTemporarilyDisabled(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.CanUseInteractiveLogin(role));
@@ -96,6 +100,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.Ekspert, false)]
     [InlineData(ApplicationRoles.Specialist, false)]
     [InlineData(ApplicationRoles.StafMinistrie, false)]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, false)]
     [InlineData(ApplicationRoles.Minister, false)]
     public void CanReadManagedUsers_AdminAndProjectCreatorsCanReadManagedUsers(string role, bool expected)
     {
@@ -117,6 +122,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.StafAgjencie, "Ekspert Innovation4Albania")]
     [InlineData(ApplicationRoles.Ekspert, "Ekspert Teknologjie")]
     [InlineData(ApplicationRoles.Specialist, "Specialist")]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, "PÃ«rfaqÃ«sues Institucioni")]
     [InlineData(ApplicationRoles.StafMinistrie, "Përfaqësues Ministrie")]
     public void ToDisplayLabel_UsesUpdatedAccessRoleLabels(string role, string expected)
     {

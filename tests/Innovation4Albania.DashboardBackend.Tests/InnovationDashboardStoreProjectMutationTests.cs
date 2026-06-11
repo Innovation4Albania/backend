@@ -60,6 +60,30 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryCreateProjectAsync_PreservesCustomWorkgroupRole()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var context = StoreTestHelpers.DirectorContext();
+        const string customRole = "Koordinator IA";
+
+        var created = await store.TryCreateProjectAsync(
+            context,
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "CUSTOM-ROLE-001",
+                TeamMembers =
+                [
+                    new WorkgroupMemberInput("Anetar Custom", customRole, "Njesi IA", 80)
+                ]
+            });
+
+        Assert.True(created.IsSuccess);
+        var member = Assert.Single(created.Response!.TeamMembers);
+        Assert.Equal(customRole, member.Role);
+        Assert.Equal(customRole, member.RoleLabel);
+    }
+
+    [Fact]
     public async Task TryUpdateProjectAsync_RecalculatesStoredOkr()
     {
         var store = StoreTestHelpers.CreateStore();

@@ -1261,7 +1261,7 @@ public sealed class InnovationDashboardStore
         {
             if (!ApplicationRoles.CanProposeProjectChanges(context.Role))
             {
-                return (false, null, "Vetëm Ekspert Innovation4Albania ose Përfaqësues Ministrie mund të propozojë ndryshime në projekt.");
+                return (false, null, "Vetëm Ekspert Innovation4Albania, Përfaqësues Ministrie ose Përfaqësues Institucioni mund të propozojë ndryshime në projekt.");
             }
 
             var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == request.ProjectId);
@@ -2302,7 +2302,7 @@ public sealed class InnovationDashboardStore
             .Select((member, index) => new WorkgroupMemberState(
                 $"team-{projectNumber}-{index + 1}",
                 member.Name.Trim(),
-                WorkgroupRoles.All.Contains(member.Role) ? member.Role : WorkgroupRoles.ProjectOfficer,
+                NormalizeWorkgroupRole(member.Role),
                 string.IsNullOrWhiteSpace(member.Unit) ? "Njësi qendrore" : member.Unit.Trim(),
                 Math.Clamp(member.AllocationPercent, 10, 100),
                 member.UserId))
@@ -2324,6 +2324,12 @@ public sealed class InnovationDashboardStore
                 index == 0 ? 80 : 50,
                 null))
             .ToList();
+    }
+
+    private static string NormalizeWorkgroupRole(string role)
+    {
+        var normalized = role.Trim();
+        return string.IsNullOrWhiteSpace(normalized) ? WorkgroupRoles.ProjectOfficer : normalized;
     }
 
     private static WorkgroupMemberResponse ToTeamMemberResponse(WorkgroupMemberState member) =>

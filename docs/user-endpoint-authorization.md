@@ -44,3 +44,4 @@ Admini mund te krijoje dhe menaxhoje llogari per rolet:
 - `ekspert`
 - `specialist`
 - `staf_ministrie`
+- `perfaqesues_institucioni`

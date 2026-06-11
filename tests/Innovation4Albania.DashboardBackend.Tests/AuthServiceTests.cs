@@ -20,6 +20,17 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public void ValidateViewLink_AllowsInstitutionRepresentativeWithKnownScope()
+    {
+        var service = CreateService();
+        var request = new LoginRequest(ApplicationRoles.PerfaqesuesInstitucioni, "Ministria e Financave", "PÃ«rfaqÃ«sues Institucioni");
+
+        var error = service.ValidateViewLink(request);
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public void ValidateViewLink_RejectsMinisterWithoutRequiredMinistry()
     {
         var service = CreateService();
@@ -68,9 +79,10 @@ public sealed class AuthServiceTests
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
     [InlineData(ApplicationRoles.Admin)]
     [InlineData(ApplicationRoles.StafMinistrie)]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni)]
     public async Task TryLoginAsync_RejectsInnovationAccountsThroughInnovation4AlbaniaOption(string accountRole)
     {
-        var ministry = accountRole == ApplicationRoles.StafMinistrie ? "Ministria e Financave" : null;
+        var ministry = accountRole is ApplicationRoles.StafMinistrie or ApplicationRoles.PerfaqesuesInstitucioni ? "Ministria e Financave" : null;
         var account = InMemoryUserRepository.Account("account-1", "innovation.user", "password123", accountRole, "Innovation User", ministry);
         var service = CreateService(users: new InMemoryUserRepository(account));
 
@@ -106,9 +118,10 @@ public sealed class AuthServiceTests
     [InlineData(ApplicationRoles.Ekspert)]
     [InlineData(ApplicationRoles.Specialist)]
     [InlineData(ApplicationRoles.StafMinistrie)]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni)]
     public async Task TryLoginAsync_RejectsInactiveAccountsForEveryManagedRole(string accountRole)
     {
-        var ministry = accountRole is ApplicationRoles.Minister or ApplicationRoles.StafMinistrie ? "Ministria e Financave" : null;
+        var ministry = accountRole is ApplicationRoles.Minister or ApplicationRoles.StafMinistrie or ApplicationRoles.PerfaqesuesInstitucioni ? "Ministria e Financave" : null;
         var account = InMemoryUserRepository.Account("account-1", "inactive.user", "password123", accountRole, "Inactive User", ministry) with
         {
             IsActive = false
@@ -191,6 +204,23 @@ public sealed class AuthServiceTests
         Assert.Equal(ApplicationRoles.StafMinistrie, result.Response.Role);
         Assert.Equal("Ministria e Financave", result.Response.Ministry);
         Assert.NotNull(await users.GetUserByUsername("rep.test"));
+    }
+
+    [Fact]
+    public async Task CreateUserAsync_AdminCreatesInstitutionRepresentativeWithScope()
+    {
+        var users = new InMemoryUserRepository();
+        var service = CreateService(users: users);
+
+        var result = await service.CreateUserAsync(
+            UserContext.From(ApplicationRoles.Admin, null),
+            new CreateUserRequest("PÃ«rfaqÃ«sues Institucioni", "institution.rep", "password123", ApplicationRoles.PerfaqesuesInstitucioni, "Ministria e Financave"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("institution.rep", result.Response!.Username);
+        Assert.Equal(ApplicationRoles.PerfaqesuesInstitucioni, result.Response.Role);
+        Assert.Equal("Ministria e Financave", result.Response.Ministry);
+        Assert.NotNull(await users.GetUserByUsername("institution.rep"));
     }
 
     [Fact]
