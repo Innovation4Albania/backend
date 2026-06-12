@@ -23,7 +23,7 @@ public sealed class AuthServiceTests
     public void ValidateViewLink_AllowsInstitutionRepresentativeWithKnownScope()
     {
         var service = CreateService();
-        var request = new LoginRequest(ApplicationRoles.PerfaqesuesInstitucioni, "Ministria e Financave", "PÃ«rfaqÃ«sues Institucioni");
+        var request = new LoginRequest(ApplicationRoles.PerfaqesuesInstitucioni, "AKSHI", "Përfaqësues Institucioni");
 
         var error = service.ValidateViewLink(request);
 
@@ -214,12 +214,12 @@ public sealed class AuthServiceTests
 
         var result = await service.CreateUserAsync(
             UserContext.From(ApplicationRoles.Admin, null),
-            new CreateUserRequest("PÃ«rfaqÃ«sues Institucioni", "institution.rep", "password123", ApplicationRoles.PerfaqesuesInstitucioni, "Ministria e Financave"));
+            new CreateUserRequest("Përfaqësues Institucioni", "institution.rep", "password123", ApplicationRoles.PerfaqesuesInstitucioni, "AKSHI"));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("institution.rep", result.Response!.Username);
         Assert.Equal(ApplicationRoles.PerfaqesuesInstitucioni, result.Response.Role);
-        Assert.Equal("Ministria e Financave", result.Response.Ministry);
+        Assert.Equal("AKSHI", result.Response.Ministry);
         Assert.NotNull(await users.GetUserByUsername("institution.rep"));
     }
 

@@ -122,7 +122,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.StafAgjencie, "Ekspert Innovation4Albania")]
     [InlineData(ApplicationRoles.Ekspert, "Ekspert Teknologjie")]
     [InlineData(ApplicationRoles.Specialist, "Specialist")]
-    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, "PÃ«rfaqÃ«sues Institucioni")]
+    [InlineData(ApplicationRoles.PerfaqesuesInstitucioni, "Përfaqësues Institucioni")]
     [InlineData(ApplicationRoles.StafMinistrie, "Përfaqësues Ministrie")]
     public void ToDisplayLabel_UsesUpdatedAccessRoleLabels(string role, string expected)
     {

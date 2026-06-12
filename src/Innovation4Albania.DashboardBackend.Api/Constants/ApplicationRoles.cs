@@ -70,7 +70,7 @@ public static class ApplicationRoles
         StafAgjencie => "Ekspert Innovation4Albania",
         Ekspert => "Ekspert Teknologjie",
         Specialist => "Specialist",
-        PerfaqesuesInstitucioni => "PÃ«rfaqÃ«sues Institucioni",
+        PerfaqesuesInstitucioni => "Përfaqësues Institucioni",
         StafMinistrie => "Përfaqësues Ministrie",
         _ => role
     };

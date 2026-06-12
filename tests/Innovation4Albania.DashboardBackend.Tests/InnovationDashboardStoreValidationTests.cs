@@ -183,6 +183,25 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_ReturnsOnlyScopedProjectsForInstitutionRepresentative()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "AKSHI-001",
+            Agency = "AKSHI"
+        };
+        var created = await store.TryCreateProjectAsync(director, request);
+        var context = UserContext.From(ApplicationRoles.PerfaqesuesInstitucioni, "AKSHI");
+
+        var projects = await store.GetProjects(context, null, null);
+
+        Assert.Single(projects);
+        Assert.Equal(created.Response!.Id, projects[0].Id);
+    }
+
+    [Fact]
     public async Task GetProjects_ReturnsOnlyWorkgroupProjectsForAgencyExpert()
     {
         var store = StoreTestHelpers.CreateStore();

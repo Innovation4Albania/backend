@@ -280,6 +280,12 @@ public sealed class InnovationDashboardStore
             return false;
         }
 
+        if (context.Role == ApplicationRoles.PerfaqesuesInstitucioni && string.IsNullOrWhiteSpace(context.Ministry))
+        {
+            error = "Ky rol kërkon vendosjen e institucionit.";
+            return false;
+        }
+
         if (ApplicationRoles.RequiresMinistry(context.Role))
         {
             if (string.IsNullOrWhiteSpace(context.Ministry))
@@ -288,7 +294,7 @@ public sealed class InnovationDashboardStore
                 return false;
             }
 
-            if (ResolveMinistry(context.Ministry) is null)
+            if (context.Role != ApplicationRoles.PerfaqesuesInstitucioni && ResolveMinistry(context.Ministry) is null)
             {
                 error = "Ministria nuk është e vlefshme.";
                 return false;
@@ -1670,6 +1676,23 @@ public sealed class InnovationDashboardStore
         if (!ApplicationRoles.RequiresMinistry(context.Role))
         {
             return _projects;
+        }
+
+        if (context.Role == ApplicationRoles.PerfaqesuesInstitucioni)
+        {
+            var institution = context.Ministry?.Trim();
+            if (string.IsNullOrWhiteSpace(institution))
+            {
+                return [];
+            }
+
+            var normalizedInstitution = NormalizeForMinistryMatch(institution);
+            return _projects
+                .Where(project =>
+                    project.Ministries.Any(ministry => NormalizeForMinistryMatch(ministry) == normalizedInstitution) ||
+                    (!string.IsNullOrWhiteSpace(project.Agency) && NormalizeForMinistryMatch(project.Agency) == normalizedInstitution) ||
+                    project.TeamMembers.Any(member => NormalizeForMinistryMatch(member.Unit) == normalizedInstitution))
+                .ToList();
         }
 
         var ministry = ResolveMinistry(context.Ministry);
