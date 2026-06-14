@@ -8,10 +8,8 @@ public static class ApplicationRoles
     public const string Admin = "admin";
     public const string DrejtorAgjencie = "drejtor_agjencie";
     public const string DrejtorInovacioniPublik = "drejtor_inovacioni_publik";
-    public const string DrejtorEkosistemiStartupeve = "drejtor_ekosistemi_startupeve";
-    public const string DrejtorProgrametMbeshtetjes = "drejtor_programet_mbeshtetjes";
-    public const string DrejtorFinancimiAlternativ = "drejtor_financimi_alternativ";
-    public const string DrejtorProjekteBe = "drejtor_projekte_be";
+    public const string DrejtorEkosistemiStartupeveLehtesuesve = "drejtor_ekosistemi_startupeve_lehtesuesve";
+    public const string DrejtorFinancimiAlternativNderkombetarizimit = "drejtor_financimi_alternativ_nderkombetarizimit";
     public const string StafAgjencie = "staf_agjencie";
     public const string Ekspert = "ekspert";
     public const string EkspertEkosistemiStartupeve = "ekspert_ekosistemi_startupeve";
@@ -30,10 +28,8 @@ public static class ApplicationRoles
         Admin,
         DrejtorAgjencie,
         DrejtorInovacioniPublik,
-        DrejtorEkosistemiStartupeve,
-        DrejtorProgrametMbeshtetjes,
-        DrejtorFinancimiAlternativ,
-        DrejtorProjekteBe,
+        DrejtorEkosistemiStartupeveLehtesuesve,
+        DrejtorFinancimiAlternativNderkombetarizimit,
         StafAgjencie,
         Ekspert,
         EkspertEkosistemiStartupeve,
@@ -53,10 +49,8 @@ public static class ApplicationRoles
         Admin,
         DrejtorAgjencie,
         DrejtorInovacioniPublik,
-        DrejtorEkosistemiStartupeve,
-        DrejtorProgrametMbeshtetjes,
-        DrejtorFinancimiAlternativ,
-        DrejtorProjekteBe,
+        DrejtorEkosistemiStartupeveLehtesuesve,
+        DrejtorFinancimiAlternativNderkombetarizimit,
         StafAgjencie,
         Ekspert,
         EkspertEkosistemiStartupeve,
@@ -80,23 +74,19 @@ public static class ApplicationRoles
     public static bool IsInnovationDirector(string role) =>
         role is DrejtorAgjencie
             or DrejtorInovacioniPublik
-            or DrejtorEkosistemiStartupeve
-            or DrejtorProgrametMbeshtetjes
-            or DrejtorFinancimiAlternativ
-            or DrejtorProjekteBe;
-    public static bool IsScopedDirector(string role) => GetScopedExpertRole(role) is not null;
-    public static string? GetScopedExpertRole(string role) => role switch
+            or DrejtorEkosistemiStartupeveLehtesuesve
+            or DrejtorFinancimiAlternativNderkombetarizimit;
+    public static bool IsScopedDirector(string role) => GetScopedExpertRoles(role) is not null;
+    public static IReadOnlyList<string>? GetScopedExpertRoles(string role) => role switch
     {
-        DrejtorEkosistemiStartupeve => EkspertEkosistemiStartupeve,
-        DrejtorProgrametMbeshtetjes => EkspertProgrametMbeshtetjes,
-        DrejtorFinancimiAlternativ => EkspertFinancimiAlternativ,
-        DrejtorProjekteBe => EkspertProjekteBe,
+        DrejtorEkosistemiStartupeveLehtesuesve => [EkspertEkosistemiStartupeve, EkspertProgrametMbeshtetjes],
+        DrejtorFinancimiAlternativNderkombetarizimit => [EkspertFinancimiAlternativ, EkspertProjekteBe],
         _ => null
     };
     public static IReadOnlyList<string> GetReadableManagedRoles(string role)
     {
-        var scopedExpertRole = GetScopedExpertRole(role);
-        return scopedExpertRole is null ? ManagedUserRoles : [scopedExpertRole];
+        var scopedExpertRoles = GetScopedExpertRoles(role);
+        return scopedExpertRoles is null ? ManagedUserRoles : scopedExpertRoles;
     }
     public static string? FixedMinistryForRole(string role) => null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie or PerfaqesuesInstitucioni;
@@ -119,10 +109,8 @@ public static class ApplicationRoles
         Admin => "Admin",
         DrejtorAgjencie => "Innovation4Albania",
         DrejtorInovacioniPublik => "Drejtor i Inovacionit Publik",
-        DrejtorEkosistemiStartupeve => "Drejtor për ekosistemin e Start-upeve",
-        DrejtorProgrametMbeshtetjes => "Drejtor për programet e mbështetjes",
-        DrejtorFinancimiAlternativ => "Drejtor për zhvillimin e financimit alternativ",
-        DrejtorProjekteBe => "Drejtor për zhvillimin e projekteve me BE-në",
+        DrejtorEkosistemiStartupeveLehtesuesve => "Drejtor i Ekosistemit të Start-up-eve dhe Lehtësuesve",
+        DrejtorFinancimiAlternativNderkombetarizimit => "Drejtor i Financimit Alternativ dhe Ndërkombëtarizimit",
         StafAgjencie => "Ekspert Innovation4Albania",
         Ekspert => "Ekspert Teknologjie",
         EkspertEkosistemiStartupeve => "Ekspert për ekosistemin e Start-upeve",

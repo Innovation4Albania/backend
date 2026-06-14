@@ -327,14 +327,31 @@ public sealed class InnovationDashboardStoreValidationTests
                     ApplicationRoles.EkspertFinancimiAlternativ)
             ]
         };
+        var supportProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "SUPPORT-DIRECTOR",
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Support Expert",
+                    WorkgroupRoles.InnovationExpert,
+                    "Drejtoria e Inovacionit",
+                    100,
+                    "support-expert-1",
+                    ApplicationRoles.EkspertProgrametMbeshtetjes)
+            ]
+        };
         var createdStartup = await store.TryCreateProjectAsync(director, startupProject);
+        var createdSupport = await store.TryCreateProjectAsync(director, supportProject);
         await store.TryCreateProjectAsync(director, fundingProject);
-        var context = UserContext.From(ApplicationRoles.DrejtorEkosistemiStartupeve, null);
+        var context = UserContext.From(ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve, null);
 
         var projects = await store.GetProjects(context, null, null);
 
-        var project = Assert.Single(projects);
-        Assert.Equal(createdStartup.Response!.Id, project.Id);
+        Assert.Equal(2, projects.Count);
+        Assert.Contains(projects, project => project.Id == createdStartup.Response!.Id);
+        Assert.Contains(projects, project => project.Id == createdSupport.Response!.Id);
+        Assert.DoesNotContain(projects, project => project.Code == "FUNDING-DIRECTOR");
     }
 
     [Fact]

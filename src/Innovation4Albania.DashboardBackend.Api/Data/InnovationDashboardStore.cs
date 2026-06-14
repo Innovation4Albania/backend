@@ -1663,11 +1663,11 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
-        var scopedExpertRole = ApplicationRoles.GetScopedExpertRole(context.Role);
-        if (scopedExpertRole is not null)
+        var scopedExpertRoles = ApplicationRoles.GetScopedExpertRoles(context.Role);
+        if (scopedExpertRoles is not null)
         {
             return _projects
-                .Where(project => HasTeamMemberWithAccountRole(project, scopedExpertRole))
+                .Where(project => HasTeamMemberWithAnyAccountRole(project, scopedExpertRoles))
                 .ToList();
         }
 
@@ -1727,13 +1727,13 @@ public sealed class InnovationDashboardStore
 
     private static bool CanAccessTeamForDirectorScope(string directorRole, IReadOnlyList<WorkgroupMemberState> teamMembers)
     {
-        var scopedExpertRole = ApplicationRoles.GetScopedExpertRole(directorRole);
-        return scopedExpertRole is null || teamMembers.Any(member =>
-            string.Equals(member.AccountRole, scopedExpertRole, StringComparison.OrdinalIgnoreCase));
+        var scopedExpertRoles = ApplicationRoles.GetScopedExpertRoles(directorRole);
+        return scopedExpertRoles is null || teamMembers.Any(member =>
+            scopedExpertRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase));
     }
 
-    private static bool HasTeamMemberWithAccountRole(ProjectState project, string accountRole) =>
-        project.TeamMembers.Any(member => string.Equals(member.AccountRole, accountRole, StringComparison.OrdinalIgnoreCase));
+    private static bool HasTeamMemberWithAnyAccountRole(ProjectState project, IReadOnlyList<string> accountRoles) =>
+        project.TeamMembers.Any(member => accountRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase));
 
     private string? ResolveMinistry(string? ministry)
     {

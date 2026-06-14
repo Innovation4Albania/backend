@@ -41,10 +41,8 @@ Admini mund te krijoje dhe menaxhoje llogari per rolet:
 - `admin`
 - `drejtor_agjencie`
 - `drejtor_inovacioni_publik`
-- `drejtor_ekosistemi_startupeve`
-- `drejtor_programet_mbeshtetjes`
-- `drejtor_financimi_alternativ`
-- `drejtor_projekte_be`
+- `drejtor_ekosistemi_startupeve_lehtesuesve`
+- `drejtor_financimi_alternativ_nderkombetarizimit`
 - `staf_agjencie`
 - `ekspert`
 - `ekspert_ekosistemi_startupeve`
