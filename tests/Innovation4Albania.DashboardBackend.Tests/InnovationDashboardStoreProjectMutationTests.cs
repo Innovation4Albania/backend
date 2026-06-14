@@ -409,6 +409,7 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.Equal(75, project!.Objectives[0].KeyResults[0].Progress);
         Assert.Equal(50, project.Objectives[0].KeyResults[1].Progress);
         Assert.Equal(62, project.Objectives[0].Progress);
+        Assert.Equal(62, project.Progress);
     }
 
     [Fact]
@@ -535,7 +536,7 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.True(first.IsSuccess);
         Assert.True(deleted.IsSuccess);
         Assert.Single(updates);
-        Assert.Equal(40, project!.Progress);
+        Assert.Equal(43, project!.Progress);
         Assert.Equal(ProjectStatuses.Active, project.Status);
         Assert.Equal(RiskLevels.Medium, project.Risk);
         Assert.Equal(45, project.Objectives[0].KeyResults[0].Progress);

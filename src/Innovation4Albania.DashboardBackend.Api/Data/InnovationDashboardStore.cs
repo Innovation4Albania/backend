@@ -1200,11 +1200,24 @@ public sealed class InnovationDashboardStore
         }
 
         var latestUpdate = projectUpdates[^1];
-        project.Progress = latestUpdate.Progress;
+        project.Progress = latestUpdate.KeyResults.Count > 0
+            ? CalculateProjectProgressFromObjectives(project)
+            : latestUpdate.Progress;
         project.CurrentPhase = CalculateCurrentPhase(project.Progress, project.TotalPhases);
-        project.Status = latestUpdate.Status;
+        project.Status = ResolveStatusForProgress(latestUpdate.Status, project.Progress);
         project.Risk = latestUpdate.Risk;
         project.LastUpdated = latestUpdate.SubmittedAt;
+    }
+
+    private static int CalculateProjectProgressFromObjectives(ProjectState project)
+    {
+        var keyResults = project.Objectives
+            .SelectMany(objective => objective.KeyResults)
+            .ToList();
+
+        return keyResults.Count == 0
+            ? project.Progress
+            : ClampPercent(keyResults.Average(keyResult => keyResult.Progress));
     }
 
     private static string? ValidateWeeklyKeyResultUpdates(
