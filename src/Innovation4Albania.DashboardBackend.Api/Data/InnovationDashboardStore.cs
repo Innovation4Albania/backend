@@ -550,7 +550,7 @@ public sealed class InnovationDashboardStore
             var projectNumber = GetNextProjectNumber();
             var now = DateTimeOffset.UtcNow;
             var teamMembers = BuildTeamMembersForRequest(projectNumber, request);
-            if (!CanAccessTeamForDirectorScope(context.Role, teamMembers))
+            if (!CanAccessTeamForDirectorScope(context, teamMembers))
             {
                 return (false, null, "Ky drejtor mund te krijoje projekte vetem me ekspertet e fushes se tij.");
             }
@@ -616,7 +616,7 @@ public sealed class InnovationDashboardStore
             }
 
             var nextTeamMembers = BuildTeamMembersForRequest(ParseProjectNumber(project.Id), request);
-            if (!CanAccessTeamForDirectorScope(context.Role, nextTeamMembers))
+            if (!CanAccessTeamForDirectorScope(context, nextTeamMembers))
             {
                 return (false, null, "Ky drejtor mund te editoje projekte vetem kur ekipi perfshin ekspertet e fushes se tij.");
             }
@@ -1663,6 +1663,13 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
+        if (context.Role == ApplicationRoles.PergjegjesSektori)
+        {
+            return _projects
+                .Where(project => HasSpecialistInSector(project, context.Ministry))
+                .ToList();
+        }
+
         var scopedExpertRoles = ApplicationRoles.GetScopedExpertRoles(context.Role);
         if (scopedExpertRoles is not null)
         {
@@ -1725,15 +1732,32 @@ public sealed class InnovationDashboardStore
             .ToList();
     }
 
-    private static bool CanAccessTeamForDirectorScope(string directorRole, IReadOnlyList<WorkgroupMemberState> teamMembers)
+    private static bool CanAccessTeamForDirectorScope(UserContext context, IReadOnlyList<WorkgroupMemberState> teamMembers)
     {
-        var scopedExpertRoles = ApplicationRoles.GetScopedExpertRoles(directorRole);
+        if (context.Role == ApplicationRoles.PergjegjesSektori)
+        {
+            return teamMembers.Any(member =>
+                string.Equals(member.AccountRole, ApplicationRoles.Specialist, StringComparison.OrdinalIgnoreCase) &&
+                IsUnitInSector(member.Unit, context.Ministry));
+        }
+
+        var scopedExpertRoles = ApplicationRoles.GetScopedExpertRoles(context.Role);
         return scopedExpertRoles is null || teamMembers.Any(member =>
             scopedExpertRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase));
     }
 
     private static bool HasTeamMemberWithAnyAccountRole(ProjectState project, IReadOnlyList<string> accountRoles) =>
         project.TeamMembers.Any(member => accountRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase));
+
+    private static bool HasSpecialistInSector(ProjectState project, string? sector) =>
+        project.TeamMembers.Any(member =>
+            string.Equals(member.AccountRole, ApplicationRoles.Specialist, StringComparison.OrdinalIgnoreCase) &&
+            IsUnitInSector(member.Unit, sector));
+
+    private static bool IsUnitInSector(string? unit, string? sector) =>
+        !string.IsNullOrWhiteSpace(unit) &&
+        !string.IsNullOrWhiteSpace(sector) &&
+        unit.Contains(sector.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private string? ResolveMinistry(string? ministry)
     {

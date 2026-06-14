@@ -139,7 +139,15 @@ public sealed class AuthService(
             return [];
         }
 
-        return await userRepository.GetManagedUsers(ApplicationRoles.GetReadableManagedRoles(context.Role));
+        var users = await userRepository.GetManagedUsers(ApplicationRoles.GetReadableManagedRoles(context.Role));
+        if (context.Role != ApplicationRoles.PergjegjesSektori)
+        {
+            return users;
+        }
+
+        return users
+            .Where(user => IsSpecialistInSector(user.Ministry, context.Ministry))
+            .ToList();
     }
 
     public async Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUserAsync(UserContext context, CreateUserRequest request)
@@ -162,6 +170,11 @@ public sealed class AuthService(
 
         var ministry = ApplicationRoles.FixedMinistryForRole(request.Role)
             ?? (ApplicationRoles.AllowsManagedUnit(request.Role) ? request.Ministry : null);
+        if (ApplicationRoles.PergjegjesSektori == request.Role && string.IsNullOrWhiteSpace(ministry))
+        {
+            return (false, null, "Ky rol kerkon zgjedhjen e sektorit.");
+        }
+
         if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
@@ -194,6 +207,11 @@ public sealed class AuthService(
 
         var ministry = ApplicationRoles.FixedMinistryForRole(request.Role)
             ?? (ApplicationRoles.AllowsManagedUnit(request.Role) ? request.Ministry : null);
+        if (ApplicationRoles.PergjegjesSektori == request.Role && string.IsNullOrWhiteSpace(ministry))
+        {
+            return (false, null, "Ky rol kerkon zgjedhjen e sektorit.");
+        }
+
         if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
@@ -416,6 +434,11 @@ public sealed class AuthService(
 
     private static ManagedUserResponse ToManagedUserResponse(StoredUser account) =>
         new(account.Id, account.Username, account.Role, ApplicationRoles.FixedMinistryForRole(account.Role) ?? account.Ministry, account.FullName, account.CreatedAt, account.IsActive);
+
+    private static bool IsSpecialistInSector(string? specialistUnit, string? sector) =>
+        !string.IsNullOrWhiteSpace(specialistUnit) &&
+        !string.IsNullOrWhiteSpace(sector) &&
+        specialistUnit.Contains(sector.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private static string? ValidateNewCredentials(string fullName, string username, string password)
     {
