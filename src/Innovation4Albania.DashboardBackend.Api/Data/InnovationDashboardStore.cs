@@ -550,6 +550,11 @@ public sealed class InnovationDashboardStore
             var projectNumber = GetNextProjectNumber();
             var now = DateTimeOffset.UtcNow;
             var teamMembers = BuildTeamMembersForRequest(projectNumber, request);
+            if (!CanAccessTeamForDirectorScope(context.Role, teamMembers))
+            {
+                return (false, null, "Ky drejtor mund te krijoje projekte vetem me ekspertet e fushes se tij.");
+            }
+
             var progress = Math.Clamp(request.Progress, 0, 100);
             var project = new ProjectState(
                 $"p{projectNumber}",
@@ -608,6 +613,12 @@ public sealed class InnovationDashboardStore
             if (HasProjectWithCode(request.Code, project.Id))
             {
                 return (false, null, "Ekziston tashme nje projekt me kete kod.");
+            }
+
+            var nextTeamMembers = BuildTeamMembersForRequest(ParseProjectNumber(project.Id), request);
+            if (!CanAccessTeamForDirectorScope(context.Role, nextTeamMembers))
+            {
+                return (false, null, "Ky drejtor mund te editoje projekte vetem kur ekipi perfshin ekspertet e fushes se tij.");
             }
 
             ApplyRequestToProjectState(project, request);
@@ -1652,6 +1663,14 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
+        var scopedExpertRole = ApplicationRoles.GetScopedExpertRole(context.Role);
+        if (scopedExpertRole is not null)
+        {
+            return _projects
+                .Where(project => HasTeamMemberWithAccountRole(project, scopedExpertRole))
+                .ToList();
+        }
+
         if (ApplicationRoles.IsAgencyContributor(context.Role))
         {
             if (string.IsNullOrWhiteSpace(context.UserId))
@@ -1705,6 +1724,16 @@ public sealed class InnovationDashboardStore
             .Where(project => project.Ministries.Contains(ministry, StringComparer.OrdinalIgnoreCase))
             .ToList();
     }
+
+    private static bool CanAccessTeamForDirectorScope(string directorRole, IReadOnlyList<WorkgroupMemberState> teamMembers)
+    {
+        var scopedExpertRole = ApplicationRoles.GetScopedExpertRole(directorRole);
+        return scopedExpertRole is null || teamMembers.Any(member =>
+            string.Equals(member.AccountRole, scopedExpertRole, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool HasTeamMemberWithAccountRole(ProjectState project, string accountRole) =>
+        project.TeamMembers.Any(member => string.Equals(member.AccountRole, accountRole, StringComparison.OrdinalIgnoreCase));
 
     private string? ResolveMinistry(string? ministry)
     {
@@ -2316,7 +2345,8 @@ public sealed class InnovationDashboardStore
             response.Role,
             response.Unit,
             response.AllocationPercent,
-            response.UserId);
+            response.UserId,
+            response.AccountRole);
 
     private static List<WorkgroupMemberState> BuildTeamMembersForRequest(int projectNumber, CreateProjectRequest request)
     {
@@ -2328,7 +2358,8 @@ public sealed class InnovationDashboardStore
                 NormalizeWorkgroupRole(member.Role),
                 string.IsNullOrWhiteSpace(member.Unit) ? "Njësi qendrore" : member.Unit.Trim(),
                 Math.Clamp(member.AllocationPercent, 10, 100),
-                member.UserId))
+                member.UserId,
+                string.IsNullOrWhiteSpace(member.AccountRole) ? null : member.AccountRole.Trim()))
             .ToList();
 
         if (structuredMembers.Count > 0)
@@ -2345,6 +2376,7 @@ public sealed class InnovationDashboardStore
                 index == 0 ? WorkgroupRoles.ProjectLead : WorkgroupRoles.ProjectOfficer,
                 "Njësi qendrore",
                 index == 0 ? 80 : 50,
+                null,
                 null))
             .ToList();
     }
@@ -2363,7 +2395,8 @@ public sealed class InnovationDashboardStore
             WorkgroupRoles.ToLabel(member.Role),
             member.Unit,
             member.AllocationPercent,
-            member.UserId);
+            member.UserId,
+            member.AccountRole);
 
     private static bool TryApplyApprovedChangeProposal(ProjectState project, ProjectChangeProposalState proposal, out string? error)
     {
@@ -3152,7 +3185,8 @@ public sealed class InnovationDashboardStore
         string Role,
         string Unit,
         int AllocationPercent,
-        string? UserId = null);
+        string? UserId = null,
+        string? AccountRole = null);
 
     private sealed record WeeklyUpdateState(
         string Id,

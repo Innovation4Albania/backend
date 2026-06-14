@@ -295,6 +295,49 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_ScopedDirectorSeesOnlyProjectsWithMatchingExpertRole()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var startupProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "STARTUP-DIRECTOR",
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Startup Expert",
+                    WorkgroupRoles.InnovationExpert,
+                    "Drejtoria e Inovacionit",
+                    100,
+                    "startup-expert-1",
+                    ApplicationRoles.EkspertEkosistemiStartupeve)
+            ]
+        };
+        var fundingProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "FUNDING-DIRECTOR",
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Funding Expert",
+                    WorkgroupRoles.InnovationExpert,
+                    "Drejtoria e Inovacionit",
+                    100,
+                    "funding-expert-1",
+                    ApplicationRoles.EkspertFinancimiAlternativ)
+            ]
+        };
+        var createdStartup = await store.TryCreateProjectAsync(director, startupProject);
+        await store.TryCreateProjectAsync(director, fundingProject);
+        var context = UserContext.From(ApplicationRoles.DrejtorEkosistemiStartupeve, null);
+
+        var projects = await store.GetProjects(context, null, null);
+
+        var project = Assert.Single(projects);
+        Assert.Equal(createdStartup.Response!.Id, project.Id);
+    }
+
+    [Fact]
     public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
     {
         var store = StoreTestHelpers.CreateStore();

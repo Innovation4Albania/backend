@@ -5,7 +5,8 @@ Ky dokument pershkruan rregullat e autorizimit per endpoint-et e llogarive te pe
 ## Parime
 
 - `admin` eshte i vetmi rol qe menaxhon llogari perdoruesish.
-- Roli `drejtor_agjencie` dhe `drejtor_inovacioni_publik` mund te lexojne listen e llogarive vetem per te zgjedhur anetare ne grupet e punes te projekteve.
+- Roli `drejtor_agjencie` dhe rolet drejtore mund te lexojne listen e llogarive vetem per te zgjedhur anetare ne grupet e punes te projekteve.
+- Drejtoret e fushave lexojne vetem ekspertet me titullin perkates dhe menaxhojne vetem projektet ku ata eksperte bejne pjese.
 - Rolet qe lexojne listen per grup pune nuk mund te krijojne, modifikojne, aktivizojne, caktivizojne, fshijne apo ndryshojne fjalekalime te llogarive.
 - Endpoint-et `me` jane per llogarine aktuale dhe nuk konsiderohen administrim global.
 
@@ -21,7 +22,7 @@ Ky dokument pershkruan rregullat e autorizimit per endpoint-et e llogarive te pe
 
 | Endpoint | Qellimi | Rolet e lejuara |
 | --- | --- | --- |
-| `GET /auth/users` | Lexon listen e llogarive te menaxhueshme. Admin e perdor per administrim; drejtoret e perdorin per zgjedhje anetaresh ne projekte. | `admin`, `drejtor_agjencie`, `drejtor_inovacioni_publik` |
+| `GET /auth/users` | Lexon listen e llogarive te menaxhueshme. Admin e perdor per administrim; drejtoret e perdorin per zgjedhje anetaresh ne projekte. | `admin`, `drejtor_agjencie`, `drejtor_inovacioni_publik`, drejtoret e fushave |
 | `POST /auth/users` | Krijon llogari te re. | `admin` |
 | `PUT /auth/users/{id}` | Modifikon emrin, username, rolin, ministrine ose password-in e nje llogarie. | `admin` |
 | `PUT /auth/users/{id}/password` | Reseton password-in e nje llogarie. | `admin` |
@@ -40,6 +41,10 @@ Admini mund te krijoje dhe menaxhoje llogari per rolet:
 - `admin`
 - `drejtor_agjencie`
 - `drejtor_inovacioni_publik`
+- `drejtor_ekosistemi_startupeve`
+- `drejtor_programet_mbeshtetjes`
+- `drejtor_financimi_alternativ`
+- `drejtor_projekte_be`
 - `staf_agjencie`
 - `ekspert`
 - `ekspert_ekosistemi_startupeve`

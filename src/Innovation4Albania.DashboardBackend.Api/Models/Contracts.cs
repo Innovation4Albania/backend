@@ -92,7 +92,8 @@ public sealed record WorkgroupMemberResponse(
     string RoleLabel,
     string Unit,
     int AllocationPercent,
-    string? UserId = null);
+    string? UserId = null,
+    string? AccountRole = null);
 
 public sealed record ResourceCapacitySummaryResponse(
     int TotalPeople,
@@ -308,7 +309,8 @@ public sealed record WorkgroupMemberInput(
     string Role,
     string Unit,
     int AllocationPercent,
-    string? UserId = null);
+    string? UserId = null,
+    string? AccountRole = null);
 
 public sealed record CreateProjectRequest(
     string Code,

@@ -49,7 +49,8 @@ public sealed class AuthService(
     private static bool CanUseLoginOptionForAccount(string requestedRole, string accountRole) =>
         string.Equals(accountRole, requestedRole, StringComparison.Ordinal) ||
         (requestedRole == ApplicationRoles.DrejtorAgjencie &&
-            (accountRole is ApplicationRoles.Admin or ApplicationRoles.DrejtorInovacioniPublik or ApplicationRoles.StafMinistrie ||
+            (accountRole is ApplicationRoles.Admin or ApplicationRoles.StafMinistrie ||
+                ApplicationRoles.IsInnovationDirector(accountRole) ||
                 ApplicationRoles.IsAgencyContributor(accountRole)));
 
     public string? ValidateViewLink(LoginRequest request)
@@ -138,7 +139,7 @@ public sealed class AuthService(
             return [];
         }
 
-        return await userRepository.GetManagedUsers(ApplicationRoles.ManagedUserRoles);
+        return await userRepository.GetManagedUsers(ApplicationRoles.GetReadableManagedRoles(context.Role));
     }
 
     public async Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUserAsync(UserContext context, CreateUserRequest request)
