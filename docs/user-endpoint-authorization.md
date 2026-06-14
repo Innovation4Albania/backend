@@ -42,6 +42,10 @@ Admini mund te krijoje dhe menaxhoje llogari per rolet:
 - `drejtor_inovacioni_publik`
 - `staf_agjencie`
 - `ekspert`
+- `ekspert_ekosistemi_startupeve`
+- `ekspert_programet_mbeshtetjes`
+- `ekspert_financimi_alternativ`
+- `ekspert_projekte_be`
 - `specialist`
 - `staf_ministrie`
 - `perfaqesues_institucioni`

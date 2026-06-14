@@ -224,6 +224,10 @@ public sealed class InnovationDashboardStoreValidationTests
     [Theory]
     [InlineData(ApplicationRoles.StafAgjencie, WorkgroupRoles.InnovationExpert)]
     [InlineData(ApplicationRoles.Ekspert, WorkgroupRoles.ProjectOfficer)]
+    [InlineData(ApplicationRoles.EkspertEkosistemiStartupeve, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.EkspertProgrametMbeshtetjes, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.EkspertFinancimiAlternativ, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.EkspertProjekteBe, WorkgroupRoles.InnovationExpert)]
     [InlineData(ApplicationRoles.Specialist, WorkgroupRoles.Specialist)]
     public async Task GetProjects_ReturnsOnlyAssignedProjectsForContributorAccounts(string role, string workgroupRole)
     {
@@ -253,6 +257,10 @@ public sealed class InnovationDashboardStoreValidationTests
     [Theory]
     [InlineData(ApplicationRoles.StafAgjencie, WorkgroupRoles.InnovationExpert)]
     [InlineData(ApplicationRoles.Ekspert, WorkgroupRoles.ProjectOfficer)]
+    [InlineData(ApplicationRoles.EkspertEkosistemiStartupeve, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.EkspertProgrametMbeshtetjes, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.EkspertFinancimiAlternativ, WorkgroupRoles.InnovationExpert)]
+    [InlineData(ApplicationRoles.EkspertProjekteBe, WorkgroupRoles.InnovationExpert)]
     [InlineData(ApplicationRoles.Specialist, WorkgroupRoles.Specialist)]
     public async Task GetProjects_DoesNotUseFullNameFallbackForContributorAccounts(string role, string workgroupRole)
     {

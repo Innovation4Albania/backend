@@ -10,6 +10,10 @@ public static class ApplicationRoles
     public const string DrejtorInovacioniPublik = "drejtor_inovacioni_publik";
     public const string StafAgjencie = "staf_agjencie";
     public const string Ekspert = "ekspert";
+    public const string EkspertEkosistemiStartupeve = "ekspert_ekosistemi_startupeve";
+    public const string EkspertProgrametMbeshtetjes = "ekspert_programet_mbeshtetjes";
+    public const string EkspertFinancimiAlternativ = "ekspert_financimi_alternativ";
+    public const string EkspertProjekteBe = "ekspert_projekte_be";
     public const string Specialist = "specialist";
     public const string StafMinistrie = "staf_ministrie";
     public const string PerfaqesuesInstitucioni = "perfaqesues_institucioni";
@@ -24,6 +28,10 @@ public static class ApplicationRoles
         DrejtorInovacioniPublik,
         StafAgjencie,
         Ekspert,
+        EkspertEkosistemiStartupeve,
+        EkspertProgrametMbeshtetjes,
+        EkspertFinancimiAlternativ,
+        EkspertProjekteBe,
         Specialist,
         StafMinistrie,
         PerfaqesuesInstitucioni
@@ -39,12 +47,23 @@ public static class ApplicationRoles
         DrejtorInovacioniPublik,
         StafAgjencie,
         Ekspert,
+        EkspertEkosistemiStartupeve,
+        EkspertProgrametMbeshtetjes,
+        EkspertFinancimiAlternativ,
+        EkspertProjekteBe,
         Specialist,
         StafMinistrie,
         PerfaqesuesInstitucioni
     ];
 
-    public static bool IsAgencyContributor(string role) => role is StafAgjencie or Ekspert or Specialist;
+    public static bool IsAgencyContributor(string role) =>
+        role is StafAgjencie
+            or Ekspert
+            or EkspertEkosistemiStartupeve
+            or EkspertProgrametMbeshtetjes
+            or EkspertFinancimiAlternativ
+            or EkspertProjekteBe
+            or Specialist;
     public static bool IsManagedUserRole(string role) => ManagedUserRoles.Contains(role);
     public static string? FixedMinistryForRole(string role) => null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie or PerfaqesuesInstitucioni;
@@ -69,6 +88,10 @@ public static class ApplicationRoles
         DrejtorInovacioniPublik => "Drejtor i Inovacionit Publik",
         StafAgjencie => "Ekspert Innovation4Albania",
         Ekspert => "Ekspert Teknologjie",
+        EkspertEkosistemiStartupeve => "Ekspert për ekosistemin e Start-upeve",
+        EkspertProgrametMbeshtetjes => "Ekspert për programet e mbështetjes",
+        EkspertFinancimiAlternativ => "Ekspert për zhvillimin e financimit alternativ",
+        EkspertProjekteBe => "Ekspert për zhvillimin e projekteve me BE-në",
         Specialist => "Specialist",
         PerfaqesuesInstitucioni => "Përfaqësues Institucioni",
         StafMinistrie => "Përfaqësues Ministrie",
