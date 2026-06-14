@@ -10,6 +10,7 @@ public static class ApplicationRoles
     public const string DrejtorInovacioniPublik = "drejtor_inovacioni_publik";
     public const string DrejtorEkosistemiStartupeveLehtesuesve = "drejtor_ekosistemi_startupeve_lehtesuesve";
     public const string DrejtorFinancimiAlternativNderkombetarizimit = "drejtor_financimi_alternativ_nderkombetarizimit";
+    public const string DrejtorTeDhenaTeknologjiPlatforma = "drejtor_te_dhena_teknologji_platforma";
     public const string PergjegjesSektori = "pergjegjes_sektori";
     public const string StafAgjencie = "staf_agjencie";
     public const string Ekspert = "ekspert";
@@ -31,6 +32,7 @@ public static class ApplicationRoles
         DrejtorInovacioniPublik,
         DrejtorEkosistemiStartupeveLehtesuesve,
         DrejtorFinancimiAlternativNderkombetarizimit,
+        DrejtorTeDhenaTeknologjiPlatforma,
         PergjegjesSektori,
         StafAgjencie,
         Ekspert,
@@ -53,6 +55,7 @@ public static class ApplicationRoles
         DrejtorInovacioniPublik,
         DrejtorEkosistemiStartupeveLehtesuesve,
         DrejtorFinancimiAlternativNderkombetarizimit,
+        DrejtorTeDhenaTeknologjiPlatforma,
         PergjegjesSektori,
         StafAgjencie,
         Ekspert,
@@ -116,6 +119,7 @@ public static class ApplicationRoles
         DrejtorInovacioniPublik => "Drejtor i Inovacionit Publik",
         DrejtorEkosistemiStartupeveLehtesuesve => "Drejtor i Ekosistemit të Start-up-eve dhe Lehtësuesve",
         DrejtorFinancimiAlternativNderkombetarizimit => "Drejtor i Financimit Alternativ dhe Ndërkombëtarizimit",
+        DrejtorTeDhenaTeknologjiPlatforma => "Drejtor për të Dhëna, Teknologji dhe Platforma",
         PergjegjesSektori => "Përgjegjës Sektori",
         StafAgjencie => "Ekspert për inovacionin publik",
         Ekspert => "Ekspert Teknologjie",
