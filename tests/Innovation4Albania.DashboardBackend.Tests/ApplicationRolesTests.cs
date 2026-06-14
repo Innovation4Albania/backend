@@ -153,7 +153,7 @@ public sealed class ApplicationRolesTests
     [InlineData(ApplicationRoles.Admin, "Admin")]
     [InlineData(ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve, "Drejtor i Ekosistemit të Start-up-eve dhe Lehtësuesve")]
     [InlineData(ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit, "Drejtor i Financimit Alternativ dhe Ndërkombëtarizimit")]
-    [InlineData(ApplicationRoles.StafAgjencie, "Ekspert Innovation4Albania")]
+    [InlineData(ApplicationRoles.StafAgjencie, "Ekspert për inovacionin publik")]
     [InlineData(ApplicationRoles.Ekspert, "Ekspert Teknologjie")]
     [InlineData(ApplicationRoles.EkspertEkosistemiStartupeve, "Ekspert për ekosistemin e Start-upeve")]
     [InlineData(ApplicationRoles.EkspertProgrametMbeshtetjes, "Ekspert për programet e mbështetjes")]

@@ -111,7 +111,7 @@ public static class ApplicationRoles
         DrejtorInovacioniPublik => "Drejtor i Inovacionit Publik",
         DrejtorEkosistemiStartupeveLehtesuesve => "Drejtor i Ekosistemit të Start-up-eve dhe Lehtësuesve",
         DrejtorFinancimiAlternativNderkombetarizimit => "Drejtor i Financimit Alternativ dhe Ndërkombëtarizimit",
-        StafAgjencie => "Ekspert Innovation4Albania",
+        StafAgjencie => "Ekspert për inovacionin publik",
         Ekspert => "Ekspert Teknologjie",
         EkspertEkosistemiStartupeve => "Ekspert për ekosistemin e Start-upeve",
         EkspertProgrametMbeshtetjes => "Ekspert për programet e mbështetjes",
