@@ -1676,6 +1676,13 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
+        if (context.Role == ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese)
+        {
+            return _projects
+                .Where(HasSupportServicesTeamMember)
+                .ToList();
+        }
+
         if (context.Role == ApplicationRoles.PergjegjesSektori)
         {
             return _projects
@@ -1754,6 +1761,11 @@ public sealed class InnovationDashboardStore
                 IsUnitInSector(member.Unit, context.Ministry));
         }
 
+        if (context.Role == ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese)
+        {
+            return teamMembers.Any(IsSupportServicesTeamMember);
+        }
+
         var scopedExpertRoles = ApplicationRoles.GetScopedExpertRoles(context.Role);
         return scopedExpertRoles is null || teamMembers.Any(member =>
             scopedExpertRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase));
@@ -1767,10 +1779,21 @@ public sealed class InnovationDashboardStore
             string.Equals(member.AccountRole, ApplicationRoles.Specialist, StringComparison.OrdinalIgnoreCase) &&
             IsUnitInSector(member.Unit, sector));
 
+    private static bool HasSupportServicesTeamMember(ProjectState project) =>
+        project.TeamMembers.Any(IsSupportServicesTeamMember);
+
+    private static bool IsSupportServicesTeamMember(WorkgroupMemberState member) =>
+        string.Equals(member.AccountRole, ApplicationRoles.PergjegjesSektori, StringComparison.OrdinalIgnoreCase) ||
+        (string.Equals(member.AccountRole, ApplicationRoles.Specialist, StringComparison.OrdinalIgnoreCase) && IsUnitInSupportSector(member.Unit));
+
     private static bool IsUnitInSector(string? unit, string? sector) =>
         !string.IsNullOrWhiteSpace(unit) &&
         !string.IsNullOrWhiteSpace(sector) &&
         unit.Contains(sector.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsUnitInSupportSector(string? unit) =>
+        IsUnitInSector(unit, "SEKTORI PER MENAXHIMIN FINANCIAR") ||
+        IsUnitInSector(unit, "SEKTORI JURIDIK DHE I SHERBIMEVE MBESHTETESE");
 
     private string? ResolveMinistry(string? ministry)
     {

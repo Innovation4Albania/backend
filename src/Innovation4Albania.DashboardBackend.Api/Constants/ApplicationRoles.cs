@@ -11,6 +11,7 @@ public static class ApplicationRoles
     public const string DrejtorEkosistemiStartupeveLehtesuesve = "drejtor_ekosistemi_startupeve_lehtesuesve";
     public const string DrejtorFinancimiAlternativNderkombetarizimit = "drejtor_financimi_alternativ_nderkombetarizimit";
     public const string DrejtorTeDhenaTeknologjiPlatforma = "drejtor_te_dhena_teknologji_platforma";
+    public const string DrejtorEkonomiseSherbimeveMbeshtetese = "drejtor_ekonomise_sherbimeve_mbeshtetese";
     public const string PergjegjesSektori = "pergjegjes_sektori";
     public const string StafAgjencie = "staf_agjencie";
     public const string Ekspert = "ekspert";
@@ -33,6 +34,7 @@ public static class ApplicationRoles
         DrejtorEkosistemiStartupeveLehtesuesve,
         DrejtorFinancimiAlternativNderkombetarizimit,
         DrejtorTeDhenaTeknologjiPlatforma,
+        DrejtorEkonomiseSherbimeveMbeshtetese,
         PergjegjesSektori,
         StafAgjencie,
         Ekspert,
@@ -56,6 +58,7 @@ public static class ApplicationRoles
         DrejtorEkosistemiStartupeveLehtesuesve,
         DrejtorFinancimiAlternativNderkombetarizimit,
         DrejtorTeDhenaTeknologjiPlatforma,
+        DrejtorEkonomiseSherbimeveMbeshtetese,
         PergjegjesSektori,
         StafAgjencie,
         Ekspert,
@@ -82,6 +85,7 @@ public static class ApplicationRoles
             or DrejtorInovacioniPublik
             or DrejtorEkosistemiStartupeveLehtesuesve
             or DrejtorFinancimiAlternativNderkombetarizimit
+            or DrejtorEkonomiseSherbimeveMbeshtetese
             or PergjegjesSektori;
     public static bool IsScopedDirector(string role) => GetScopedExpertRoles(role) is not null;
     public static IReadOnlyList<string>? GetScopedExpertRoles(string role) => role switch
@@ -93,7 +97,9 @@ public static class ApplicationRoles
     public static IReadOnlyList<string> GetReadableManagedRoles(string role)
     {
         var scopedExpertRoles = GetScopedExpertRoles(role);
-        return role is PergjegjesSektori ? [Specialist] : scopedExpertRoles is null ? ManagedUserRoles : scopedExpertRoles;
+        return role is PergjegjesSektori ? [Specialist] :
+            role is DrejtorEkonomiseSherbimeveMbeshtetese ? [Specialist, PergjegjesSektori] :
+            scopedExpertRoles is null ? ManagedUserRoles : scopedExpertRoles;
     }
     public static string? FixedMinistryForRole(string role) => null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie or PerfaqesuesInstitucioni;
@@ -120,6 +126,7 @@ public static class ApplicationRoles
         DrejtorEkosistemiStartupeveLehtesuesve => "Drejtor i Ekosistemit të Start-up-eve dhe Lehtësuesve",
         DrejtorFinancimiAlternativNderkombetarizimit => "Drejtor i Financimit Alternativ dhe Ndërkombëtarizimit",
         DrejtorTeDhenaTeknologjiPlatforma => "Drejtor për të Dhëna, Teknologji dhe Platforma",
+        DrejtorEkonomiseSherbimeveMbeshtetese => "Drejtor i Ekonomisë dhe Shërbimeve Mbështetëse",
         PergjegjesSektori => "Përgjegjës Sektori",
         StafAgjencie => "Ekspert për inovacionin publik",
         Ekspert => "Ekspert Teknologjie",

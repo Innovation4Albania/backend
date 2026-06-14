@@ -140,14 +140,21 @@ public sealed class AuthService(
         }
 
         var users = await userRepository.GetManagedUsers(ApplicationRoles.GetReadableManagedRoles(context.Role));
-        if (context.Role != ApplicationRoles.PergjegjesSektori)
+        if (context.Role == ApplicationRoles.PergjegjesSektori)
         {
-            return users;
+            return users
+                .Where(user => IsSpecialistInSector(user.Ministry, context.Ministry))
+                .ToList();
         }
 
-        return users
-            .Where(user => IsSpecialistInSector(user.Ministry, context.Ministry))
-            .ToList();
+        if (context.Role == ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese)
+        {
+            return users
+                .Where(user => user.Role == ApplicationRoles.PergjegjesSektori || IsSpecialistInSupportSector(user.Ministry))
+                .ToList();
+        }
+
+        return users;
     }
 
     public async Task<(bool IsSuccess, ManagedUserResponse? Response, string? Error)> CreateUserAsync(UserContext context, CreateUserRequest request)
@@ -439,6 +446,10 @@ public sealed class AuthService(
         !string.IsNullOrWhiteSpace(specialistUnit) &&
         !string.IsNullOrWhiteSpace(sector) &&
         specialistUnit.Contains(sector.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsSpecialistInSupportSector(string? specialistUnit) =>
+        IsSpecialistInSector(specialistUnit, "SEKTORI PER MENAXHIMIN FINANCIAR") ||
+        IsSpecialistInSector(specialistUnit, "SEKTORI JURIDIK DHE I SHERBIMEVE MBESHTETESE");
 
     private static string? ValidateNewCredentials(string fullName, string username, string password)
     {
