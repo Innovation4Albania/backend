@@ -90,6 +90,7 @@ public static class ApplicationRoles
     }
     public static string? FixedMinistryForRole(string role) => null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie or PerfaqesuesInstitucioni;
+    public static bool AllowsManagedUnit(string role) => RequiresMinistry(role) || role is Specialist;
     public static bool CanCreateProjects(string role) => IsInnovationDirector(role);
     public static bool CanManagePortfolio(string role) => IsInnovationDirector(role);
     public static bool CanSubmitUpdates(string role) => IsInnovationDirector(role) || IsAgencyContributor(role);

@@ -161,7 +161,7 @@ public sealed class AuthService(
         }
 
         var ministry = ApplicationRoles.FixedMinistryForRole(request.Role)
-            ?? (ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null);
+            ?? (ApplicationRoles.AllowsManagedUnit(request.Role) ? request.Ministry : null);
         if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
@@ -193,7 +193,7 @@ public sealed class AuthService(
         }
 
         var ministry = ApplicationRoles.FixedMinistryForRole(request.Role)
-            ?? (ApplicationRoles.RequiresMinistry(request.Role) ? request.Ministry : null);
+            ?? (ApplicationRoles.AllowsManagedUnit(request.Role) ? request.Ministry : null);
         if (ApplicationRoles.RequiresMinistry(request.Role) &&
             !dashboardRepository.IsValidContext(UserContext.From(request.Role, ministry), out var ministryError))
         {
