@@ -108,7 +108,13 @@ public sealed class AuthService(
             return [];
         }
 
-        var users = await userRepository.GetManagedUsers([normalizedRole]);
+        IReadOnlyList<string> readableRoles = normalizedRole is ApplicationRoles.Ekspert
+            ? ApplicationRoles.ManagedUserRoles
+                .Where(role => ApplicationRoles.IsAgencyContributor(role) && role is not ApplicationRoles.Specialist)
+                .ToArray()
+            : [normalizedRole];
+
+        var users = await userRepository.GetManagedUsers(readableRoles);
         return users
             .Where(user => user.IsActive)
             .Select(user => new ViewUserResponse(user.Id, user.Role, user.Ministry, user.FullName))
