@@ -1700,10 +1700,33 @@ public sealed class InnovationDashboardStore
                 .ToList();
         }
 
+        if (context.Role == ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve)
+        {
+            return _projects
+                .Where(project => HasTeamMemberInDirectorate(
+                    project,
+                    [ApplicationRoles.EkspertEkosistemiStartupeve, ApplicationRoles.EkspertProgrametMbeshtetjes],
+                    "DREJTORIA E EKOSISTEMIT TE STARTUP-EVE DHE LEHTESUESVE"))
+                .ToList();
+        }
+
+        if (context.Role == ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit)
+        {
+            return _projects
+                .Where(project => HasTeamMemberInDirectorate(
+                    project,
+                    [ApplicationRoles.EkspertFinancimiAlternativ, ApplicationRoles.EkspertProjekteBe],
+                    "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT"))
+                .ToList();
+        }
+
         if (context.Role == ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese)
         {
             return _projects
-                .Where(HasSupportServicesTeamMember)
+                .Where(project => HasTeamMemberInDirectorate(
+                    project,
+                    [ApplicationRoles.Specialist, ApplicationRoles.PergjegjesSektori],
+                    "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE"))
                 .ToList();
         }
 
@@ -1801,6 +1824,11 @@ public sealed class InnovationDashboardStore
     private static bool HasTeamMemberInDirectorate(ProjectState project, string accountRole, string directorate) =>
         project.TeamMembers.Any(member =>
             string.Equals(member.AccountRole, accountRole, StringComparison.OrdinalIgnoreCase) &&
+            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate));
+
+    private static bool HasTeamMemberInDirectorate(ProjectState project, IReadOnlyList<string> accountRoles, string directorate) =>
+        project.TeamMembers.Any(member =>
+            accountRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase) &&
             NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate));
 
     private static bool HasSpecialistInSector(ProjectState project, string? sector) =>

@@ -307,7 +307,7 @@ public sealed class InnovationDashboardStoreValidationTests
                 new WorkgroupMemberInput(
                     "Startup Expert",
                     WorkgroupRoles.InnovationExpert,
-                    "Drejtoria e Inovacionit",
+                    "DREJTORIA E EKOSISTEMIT TE STARTUP-EVE DHE LEHTESUESVE",
                     100,
                     "startup-expert-1",
                     ApplicationRoles.EkspertEkosistemiStartupeve)
@@ -321,7 +321,7 @@ public sealed class InnovationDashboardStoreValidationTests
                 new WorkgroupMemberInput(
                     "Funding Expert",
                     WorkgroupRoles.InnovationExpert,
-                    "Drejtoria e Inovacionit",
+                    "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT",
                     100,
                     "funding-expert-1",
                     ApplicationRoles.EkspertFinancimiAlternativ)
@@ -335,7 +335,7 @@ public sealed class InnovationDashboardStoreValidationTests
                 new WorkgroupMemberInput(
                     "Support Expert",
                     WorkgroupRoles.InnovationExpert,
-                    "Drejtoria e Inovacionit",
+                    "DREJTORIA E EKOSISTEMIT TE STARTUP-EVE DHE LEHTESUESVE",
                     100,
                     "support-expert-1",
                     ApplicationRoles.EkspertProgrametMbeshtetjes)
@@ -352,6 +352,84 @@ public sealed class InnovationDashboardStoreValidationTests
         Assert.Contains(projects, project => project.Id == createdStartup.Response!.Id);
         Assert.Contains(projects, project => project.Id == createdSupport.Response!.Id);
         Assert.DoesNotContain(projects, project => project.Code == "FUNDING-DIRECTOR");
+    }
+
+    [Theory]
+    [InlineData(
+        ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve,
+        ApplicationRoles.EkspertEkosistemiStartupeve,
+        "DREJTORIA E EKOSISTEMIT TE STARTUP-EVE DHE LEHTESUESVE",
+        "STARTUP-DIRECTORATE")]
+    [InlineData(
+        ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve,
+        ApplicationRoles.EkspertProgrametMbeshtetjes,
+        "DREJTORIA E EKOSISTEMIT TE STARTUP-EVE DHE LEHTESUESVE",
+        "SUPPORT-PROGRAMS-DIRECTORATE")]
+    [InlineData(
+        ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit,
+        ApplicationRoles.EkspertFinancimiAlternativ,
+        "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT",
+        "ALTERNATIVE-FINANCING-DIRECTORATE")]
+    [InlineData(
+        ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit,
+        ApplicationRoles.EkspertProjekteBe,
+        "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT",
+        "EU-PROJECTS-DIRECTORATE")]
+    [InlineData(
+        ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese,
+        ApplicationRoles.Specialist,
+        "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE",
+        "SUPPORT-SPECIALIST-DIRECTORATE")]
+    [InlineData(
+        ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese,
+        ApplicationRoles.PergjegjesSektori,
+        "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE",
+        "SUPPORT-SECTOR-LEAD-DIRECTORATE")]
+    public async Task GetProjects_ScopedDirectorSeesOnlyProjectsWithMatchingDirectorate(
+        string directorRole,
+        string memberRole,
+        string visibleUnit,
+        string visibleCode)
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var visibleProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = visibleCode,
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Directorate Member",
+                    WorkgroupRoles.InnovationExpert,
+                    visibleUnit,
+                    100,
+                    "directorate-member-1",
+                    memberRole)
+            ]
+        };
+        var otherDirectorateProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = $"{visibleCode}-OTHER-DIRECTORATE",
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Wrong Directorate Member",
+                    WorkgroupRoles.InnovationExpert,
+                    "DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE",
+                    100,
+                    "wrong-directorate-member-1",
+                    memberRole)
+            ]
+        };
+        var createdVisible = await store.TryCreateProjectAsync(director, visibleProject);
+        await store.TryCreateProjectAsync(director, otherDirectorateProject);
+        var context = UserContext.From(directorRole, null);
+
+        var projects = await store.GetProjects(context, null, null);
+
+        var project = Assert.Single(projects);
+        Assert.Equal(createdVisible.Response!.Id, project.Id);
+        Assert.Equal(visibleCode, project.Code);
     }
 
     [Theory]
