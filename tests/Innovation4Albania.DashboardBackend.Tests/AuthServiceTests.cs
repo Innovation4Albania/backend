@@ -150,14 +150,18 @@ public sealed class AuthServiceTests
     {
         var users = new InMemoryUserRepository();
         var service = CreateService(users: users);
+        const string directorate = "DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA";
 
         var result = await service.CreateUserAsync(
             UserContext.From(ApplicationRoles.Admin, null),
-            new CreateUserRequest("Ekspert Test", "expert.test", "password123", ApplicationRoles.Ekspert));
+            new CreateUserRequest("Ekspert Test", "expert.test", "password123", ApplicationRoles.Ekspert, directorate));
 
         Assert.True(result.IsSuccess);
         Assert.Equal("expert.test", result.Response!.Username);
-        Assert.NotNull(await users.GetUserByUsername("expert.test"));
+        Assert.Equal(directorate, result.Response.Ministry);
+        var stored = await users.GetUserByUsername("expert.test");
+        Assert.NotNull(stored);
+        Assert.Equal(directorate, stored!.Ministry);
     }
 
     [Theory]
@@ -273,6 +277,27 @@ public sealed class AuthServiceTests
         var updated = await users.GetUserByUsername("minister.new");
         Assert.NotNull(updated);
         Assert.True(BCrypt.Net.BCrypt.Verify("password456", updated!.PasswordHash));
+    }
+
+    [Fact]
+    public async Task UpdateUserAsync_AdminPreservesExpertDirectorate()
+    {
+        const string directorate = "DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE";
+        var account = InMemoryUserRepository.Account("expert-1", "expert.old", "password123", ApplicationRoles.Ekspert, "Ekspert Test");
+        var users = new InMemoryUserRepository(account);
+        var service = CreateService(users: users);
+
+        var result = await service.UpdateUserAsync(
+            UserContext.From(ApplicationRoles.Admin, null),
+            account.Id,
+            new UpdateManagedUserRequest("Ekspert i Perditesuar", "expert.new", null, ApplicationRoles.Ekspert, directorate));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(ApplicationRoles.Ekspert, result.Response!.Role);
+        Assert.Equal(directorate, result.Response.Ministry);
+        var updated = await users.GetUserByUsername("expert.new");
+        Assert.NotNull(updated);
+        Assert.Equal(directorate, updated!.Ministry);
     }
 
     [Fact]

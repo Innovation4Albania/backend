@@ -139,6 +139,26 @@ public sealed class ApplicationRolesTests
         Assert.Equal(expected, ApplicationRoles.CanReadManagedUsers(role));
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
+    [InlineData(ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve, true)]
+    [InlineData(ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit, true)]
+    [InlineData(ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma, true)]
+    [InlineData(ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese, true)]
+    [InlineData(ApplicationRoles.StafAgjencie, true)]
+    [InlineData(ApplicationRoles.Ekspert, true)]
+    [InlineData(ApplicationRoles.EkspertEkosistemiStartupeve, true)]
+    [InlineData(ApplicationRoles.EkspertProgrametMbeshtetjes, true)]
+    [InlineData(ApplicationRoles.EkspertFinancimiAlternativ, true)]
+    [InlineData(ApplicationRoles.EkspertProjekteBe, true)]
+    [InlineData(ApplicationRoles.Specialist, true)]
+    [InlineData(ApplicationRoles.PergjegjesSektori, true)]
+    public void AllowsManagedUnit_PreservesDirectorateForScopedAgencyAccounts(string role, bool expected)
+    {
+        Assert.Equal(expected, ApplicationRoles.AllowsManagedUnit(role));
+    }
+
     [Fact]
     public void ToDisplayLabel_PublicInnovationDirectorUsesFullDirectorateLabel()
     {

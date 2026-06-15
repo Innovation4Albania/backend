@@ -88,6 +88,12 @@ public static class ApplicationRoles
             or DrejtorEkonomiseSherbimeveMbeshtetese
             or PergjegjesSektori;
     public static bool IsScopedDirector(string role) => GetScopedExpertRoles(role) is not null;
+    public static bool IsDirectorWithManagedUnit(string role) =>
+        role is DrejtorInovacioniPublik
+            or DrejtorEkosistemiStartupeveLehtesuesve
+            or DrejtorFinancimiAlternativNderkombetarizimit
+            or DrejtorTeDhenaTeknologjiPlatforma
+            or DrejtorEkonomiseSherbimeveMbeshtetese;
     public static IReadOnlyList<string>? GetScopedExpertRoles(string role) => role switch
     {
         DrejtorEkosistemiStartupeveLehtesuesve => [EkspertEkosistemiStartupeve, EkspertProgrametMbeshtetjes],
@@ -103,7 +109,11 @@ public static class ApplicationRoles
     }
     public static string? FixedMinistryForRole(string role) => null;
     public static bool RequiresMinistry(string role) => role is Minister or StafMinistrie or PerfaqesuesInstitucioni;
-    public static bool AllowsManagedUnit(string role) => RequiresMinistry(role) || role is Specialist or PergjegjesSektori;
+    public static bool AllowsManagedUnit(string role) =>
+        RequiresMinistry(role) ||
+        IsAgencyContributor(role) ||
+        IsDirectorWithManagedUnit(role) ||
+        role is PergjegjesSektori;
     public static bool CanCreateProjects(string role) => IsInnovationDirector(role);
     public static bool CanManagePortfolio(string role) => IsInnovationDirector(role);
     public static bool CanSubmitUpdates(string role) => IsInnovationDirector(role) || IsAgencyContributor(role);
