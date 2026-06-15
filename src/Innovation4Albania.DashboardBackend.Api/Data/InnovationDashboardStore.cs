@@ -22,23 +22,26 @@ public sealed class InnovationDashboardStore
     private const string PortfolioLowRiskMeasurement = "portfolio_low_risk_percentage";
     private const string PortfolioOkrAbove70Measurement = "portfolio_okr_above_70";
     private const string PortfolioProjectsWithKrsMeasurement = "portfolio_projects_with_krs";
+    private const string AiDiellaTemplateCode = "AI-DIELLA-2030";
 
     private readonly IReadOnlyList<string> _ministries =
     [
+        "Ministria e Ekonomisë dhe Inovacionit",
+        "Ministria e Shëndetësisë dhe Mbrojtjes Sociale",
+        "Ministria e Drejtësisë",
+        "Ministria e Financave",
         "Ministria e Infrastrukturës dhe Energjisë",
+        "Ministria e Bujqësisë dhe Zhvillimit Rural",
+        "Ministria e Kulturës, Turizmit dhe Sportit",
         "Ministria e Punëve të Brendshme",
         "Ministria për Evropën dhe Punët e Jashtme",
-        "Ministria e Financave",
-        "Ministria e Kulturës dhe Turizmit",
+        "Ministria e Arsimit",
         "Ministria e Mjedisit",
-        "Ministria e Shëndetësisë dhe Mirëqenies Sociale",
-        "Ministria e Ekonomisë dhe Inovacionit",
-        "Ministria e Drejtësisë",
         "Ministria e Mbrojtjes",
-        "Ministria e Bujqësisë dhe Zhvillimit Rural",
+        "Ministria e Shtetit për Marrëdhënien me Parlamentin",
         "Ministria e Shtetit për Pushtetin Vendor",
-        "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin",
-        "Ministria për Marrëdhëniet me Parlamentin"
+        "Ministria e Shtetit dhe Kryenegociatorit",
+        "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin"
     ];
 
     private readonly List<ProjectState> _projects;
@@ -67,6 +70,7 @@ public sealed class InnovationDashboardStore
         _updates = BuildUpdates();
         _changeProposals = [];
         RecalculateAllProjectOkrs();
+        EnsureAiDiellaMinistryProjects();
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -90,11 +94,19 @@ public sealed class InnovationDashboardStore
             var snapshot = JsonSerializer.Deserialize<DashboardStoreSnapshot>(payload, SnapshotJsonOptions);
             if (snapshot is not null)
             {
+                var seededAiDiellaProjects = false;
                 await ExecuteMutationAsync(() =>
                 {
                     RestoreSnapshot(snapshot);
+                    seededAiDiellaProjects = EnsureAiDiellaMinistryProjects();
                     return Task.FromResult(true);
                 });
+
+                if (seededAiDiellaProjects)
+                {
+                    await PersistSnapshotAsync(cancellationToken);
+                }
+
                 _logger.LogInformation("Dashboard state loaded from PostgreSQL.");
             }
         }
@@ -3071,6 +3083,122 @@ public sealed class InnovationDashboardStore
             FixedDate(2026, 12, 31),
             ["Olsi Buna", "Nensi Ahmetbeja", "Basanja Shtylla", "Blerta Zenelaj", "Mustafa Llani"])
     ];
+
+    private bool EnsureAiDiellaMinistryProjects()
+    {
+        var ministryTemplates = new (string Suffix, string Ministry)[]
+        {
+            ("MEI", "Ministria e Ekonomisë dhe Inovacionit"),
+            ("MSHMS", "Ministria e Shëndetësisë dhe Mbrojtjes Sociale"),
+            ("MD", "Ministria e Drejtësisë"),
+            ("MF", "Ministria e Financave"),
+            ("MIE", "Ministria e Infrastrukturës dhe Energjisë"),
+            ("MBZHR", "Ministria e Bujqësisë dhe Zhvillimit Rural"),
+            ("MKTS", "Ministria e Kulturës, Turizmit dhe Sportit"),
+            ("MPB", "Ministria e Punëve të Brendshme"),
+            ("MEPJ", "Ministria për Evropën dhe Punët e Jashtme"),
+            ("MAS", "Ministria e Arsimit"),
+            ("MM", "Ministria e Mjedisit"),
+            ("MMB", "Ministria e Mbrojtjes"),
+            ("MSMP", "Ministria e Shtetit për Marrëdhënien me Parlamentin"),
+            ("MSPV", "Ministria e Shtetit për Pushtetin Vendor"),
+            ("MSK", "Ministria e Shtetit dhe Kryenegociatorit"),
+            ("MSAP", "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin")
+        };
+
+        var templateProject = ResolveAiDiellaBaseProject();
+        if (templateProject is null)
+        {
+            return false;
+        }
+
+        var added = false;
+        var existingCodes = _projects.Select(project => project.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var nextProjectNumber = _projects.Count == 0 ? 1 : _projects.Max(project => ParseProjectNumber(project.Id)) + 1;
+
+        foreach (var template in ministryTemplates)
+        {
+            var ministryProjectCode = $"{AiDiellaTemplateCode}-{template.Suffix}";
+            if (existingCodes.Contains(ministryProjectCode))
+            {
+                continue;
+            }
+
+            _projects.Add(BuildAiDiellaMinistryProject(templateProject, nextProjectNumber++, ministryProjectCode, template.Ministry));
+            existingCodes.Add(ministryProjectCode);
+            added = true;
+        }
+
+        if (added)
+        {
+            RecalculateAllProjectOkrs();
+        }
+
+        return added;
+    }
+
+    private ProjectState? ResolveAiDiellaBaseProject()
+    {
+        return _projects.FirstOrDefault(project =>
+            string.Equals(project.Code, AiDiellaTemplateCode, StringComparison.OrdinalIgnoreCase) ||
+            project.Name.Contains("Diella Team 2030", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static ProjectState BuildAiDiellaMinistryProject(ProjectState templateProject, int idNumber, string code, string ministry)
+    {
+        var objectives = templateProject.Objectives
+            .Select((objective, objectiveIndex) => new ObjectiveState(
+                $"obj-{idNumber}-{objectiveIndex + 1}",
+                objective.Title,
+                objective.Owner,
+                objective.KeyResults
+                    .Select((keyResult, keyResultIndex) => new KeyResultState(
+                        $"obj-{idNumber}-{objectiveIndex + 1}-kr-{keyResultIndex + 1}",
+                        keyResult.Title,
+                        0,
+                        keyResult.Target,
+                        keyResult.Unit,
+                        keyResult.MeasurementType))
+                    .ToList()))
+            .ToList();
+
+        var teamMembers = templateProject.TeamMembers
+            .Select((member, memberIndex) => new WorkgroupMemberState(
+                $"team-{idNumber}-{memberIndex + 1}",
+                member.Name,
+                member.Role,
+                member.Unit,
+                member.AllocationPercent,
+                member.UserId,
+                member.AccountRole))
+            .ToList();
+
+        return new ProjectState(
+            $"p{idNumber}",
+            code,
+            $"{templateProject.Name} - {ministry}",
+            templateProject.Description,
+            ApplicationRoles.AiDiellaProgramKey,
+            [ministry],
+            templateProject.Agency,
+            templateProject.Directorates.ToList(),
+            templateProject.Status == ProjectStatuses.Completed ? ProjectStatuses.Active : templateProject.Status,
+            templateProject.Priority,
+            templateProject.Sector,
+            templateProject.TotalPhases <= 0 ? 6 : templateProject.TotalPhases,
+            1,
+            templateProject.StartDate,
+            templateProject.EndDate,
+            0,
+            new ProjectOkr(0, 0, 0, 0),
+            RiskLevels.Medium,
+            teamMembers.Select(member => member.Name).ToList(),
+            teamMembers,
+            templateProject.Lead,
+            templateProject.UpdateCadenceDays,
+            DateTimeOffset.UtcNow,
+            objectives);
+    }
 
     private static ProjectState CreateActualProject(
         int idNumber,
