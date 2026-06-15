@@ -29,7 +29,7 @@ public static class WorkgroupRoles
         TechnicalCoordinator => "Koordinator teknik",
         DataSpecialist => "Specialist të dhënash",
         MinistryRepresentative => "Përfaqësues ministrie",
-        SectorManager => "PÃ«rgjegjÃ«s Sektori",
+        SectorManager => "Përgjegjës Sektori",
         ProjectOfficer => "Ekspert",
         InnovationExpert => "Ekspert për inovacionin publik",
         StartupEcosystemExpert => "Ekspert për ekosistemin e Start-upeve",
