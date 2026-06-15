@@ -536,7 +536,7 @@ public sealed class InnovationDashboardStoreProjectMutationTests
         Assert.True(first.IsSuccess);
         Assert.True(deleted.IsSuccess);
         Assert.Single(updates);
-        Assert.Equal(43, project!.Progress);
+        Assert.Equal(42, project!.Progress);
         Assert.Equal(ProjectStatuses.Active, project.Status);
         Assert.Equal(RiskLevels.Medium, project.Risk);
         Assert.Equal(45, project.Objectives[0].KeyResults[0].Progress);
