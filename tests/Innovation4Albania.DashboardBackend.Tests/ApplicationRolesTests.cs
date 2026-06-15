@@ -26,12 +26,12 @@ public sealed class ApplicationRolesTests
 
     [Theory]
     [InlineData(ApplicationRoles.DrejtorAgjencie, true)]
-    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
-    [InlineData(ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve, true)]
-    [InlineData(ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit, true)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, false)]
+    [InlineData(ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve, false)]
+    [InlineData(ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit, false)]
     [InlineData(ApplicationRoles.StafAgjencie, false)]
     [InlineData(ApplicationRoles.Minister, false)]
-    public void CanCreateProjects_OnlyDirectorRolesCanCreate(string role, bool expected)
+    public void CanCreateProjects_OnlyGeneralInnovationDirectorCanCreate(string role, bool expected)
     {
         Assert.Equal(expected, ApplicationRoles.CanCreateProjects(role));
     }

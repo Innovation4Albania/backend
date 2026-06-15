@@ -114,7 +114,7 @@ public static class ApplicationRoles
         IsAgencyContributor(role) ||
         IsDirectorWithManagedUnit(role) ||
         role is PergjegjesSektori;
-    public static bool CanCreateProjects(string role) => IsInnovationDirector(role);
+    public static bool CanCreateProjects(string role) => role == DrejtorAgjencie;
     public static bool CanManagePortfolio(string role) => IsInnovationDirector(role);
     public static bool CanSubmitUpdates(string role) => IsInnovationDirector(role) || IsAgencyContributor(role);
     public static bool CanProposeProjectChanges(string role) => IsAgencyContributor(role) || role is StafMinistrie or PerfaqesuesInstitucioni;
@@ -123,7 +123,7 @@ public static class ApplicationRoles
     public static bool IsViewOnlyRole(string role) => All.Contains(role);
     public static bool CanUseInteractiveLogin(string role) => false;
     public static bool CanManageUsers(string role) => role == Admin;
-    public static bool CanReadManagedUsers(string role) => CanManageUsers(role) || CanCreateProjects(role);
+    public static bool CanReadManagedUsers(string role) => CanManageUsers(role) || IsInnovationDirector(role);
 
     public static string ToDisplayLabel(string role) => role switch
     {
