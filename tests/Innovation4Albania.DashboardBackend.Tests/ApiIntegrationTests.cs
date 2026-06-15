@@ -204,6 +204,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
             "Projekt i krijuar nga suite integrimi.",
             ["Ministria e Financave"],
             "Drejtoria e Inovacionit",
+            [],
             ProjectStatuses.Active,
             ProjectPriorities.High,
             ProjectSectors.Digitalization,

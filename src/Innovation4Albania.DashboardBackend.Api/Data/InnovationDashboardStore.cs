@@ -563,6 +563,7 @@ public sealed class InnovationDashboardStore
                 request.Description.Trim(),
                 request.Ministries.Select(item => item.Trim()).Where(item => item.Length > 0).ToList(),
                 string.IsNullOrWhiteSpace(request.Agency) ? null : request.Agency.Trim(),
+                NormalizeDirectorates(request.Directorates),
                 ResolveStatusForProgress(request.Status, progress),
                 request.Priority,
                 request.Sector,
@@ -724,6 +725,13 @@ public sealed class InnovationDashboardStore
             !string.Equals(project.Id, excludedProjectId, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(project.Code.Trim(), code.Trim(), StringComparison.OrdinalIgnoreCase));
 
+    private static List<string> NormalizeDirectorates(IReadOnlyList<string>? directorates) =>
+        directorates?
+            .Select(item => item.Trim())
+            .Where(item => item.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+
     private void ApplyRequestToProjectState(ProjectState project, CreateProjectRequest request)
     {
         var projectNumber = ParseProjectNumber(project.Id);
@@ -733,6 +741,8 @@ public sealed class InnovationDashboardStore
         project.Name = request.Name.Trim();
         project.Description = request.Description.Trim();
         project.Agency = string.IsNullOrWhiteSpace(request.Agency) ? null : request.Agency.Trim();
+        project.Directorates.Clear();
+        project.Directorates.AddRange(NormalizeDirectorates(request.Directorates));
         project.Priority = request.Priority;
         project.Sector = request.Sector;
         project.TotalPhases = request.TotalPhases <= 0 ? 6 : Math.Max(1, request.TotalPhases);
@@ -2212,6 +2222,7 @@ public sealed class InnovationDashboardStore
             project.Description,
             project.Ministries.ToList(),
             project.Agency,
+            project.Directorates.ToList(),
             project.Status,
             project.Priority,
             ProjectPriorities.ToLabel(project.Priority),
@@ -2349,6 +2360,7 @@ public sealed class InnovationDashboardStore
             project.Description,
             project.Ministries.ToList(),
             project.Agency,
+            project.Directorates.ToList(),
             project.Status,
             project.Priority,
             project.Sector,
@@ -2380,6 +2392,7 @@ public sealed class InnovationDashboardStore
             response.Description,
             response.Ministries.ToList(),
             response.Agency,
+            response.Directorates?.ToList() ?? [],
             response.Status,
             response.Priority,
             response.Sector,
@@ -2883,6 +2896,7 @@ public sealed class InnovationDashboardStore
             "Projekt real demonstrues për transformimin e proceseve të shpronësimit dhe koordinimit ndërinstitucional.",
             ["Ministria e Infrastrukturës dhe Energjisë", "Ministria e Ekonomisë dhe Inovacionit"],
             "Agjencia Shtetërore për Shpronësimin",
+            [],
             ProjectStatuses.Active,
             ProjectPriorities.Critical,
             ProjectSectors.PublicServices,
@@ -3001,6 +3015,7 @@ public sealed class InnovationDashboardStore
             description,
             ministries.ToList(),
             null,
+            [],
             ProjectStatuses.Active,
             ProjectPriorities.High,
             sector,
@@ -3069,6 +3084,7 @@ public sealed class InnovationDashboardStore
             $"Projekt shembull për demonstrim të platformës për {ministry}.",
             [ministry],
             null,
+            [],
             status,
             priority,
             sector,
@@ -3130,6 +3146,7 @@ public sealed class InnovationDashboardStore
         string Description,
         IReadOnlyList<string> Ministries,
         string? Agency,
+        IReadOnlyList<string>? Directorates,
         string Status,
         string Priority,
         string Sector,
@@ -3181,6 +3198,7 @@ public sealed class InnovationDashboardStore
         string description,
         List<string> ministries,
         string? agency,
+        List<string> directorates,
         string status,
         string priority,
         string sector,
@@ -3204,6 +3222,7 @@ public sealed class InnovationDashboardStore
         public string Description { get; set; } = description;
         public List<string> Ministries { get; } = ministries;
         public string? Agency { get; set; } = agency;
+        public List<string> Directorates { get; } = directorates;
         public string Status { get; set; } = status;
         public string Priority { get; set; } = priority;
         public string Sector { get; set; } = sector;

@@ -36,6 +36,7 @@ internal static class StoreTestHelpers
             "Pershkrim test",
             ["Ministria e Financave"],
             "Agjenci test",
+            [],
             status,
             priority,
             sector,
