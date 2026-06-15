@@ -70,7 +70,6 @@ public sealed class InnovationDashboardStore
         _updates = BuildUpdates();
         _changeProposals = [];
         RecalculateAllProjectOkrs();
-        EnsureAiDiellaMinistryProjects();
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -86,6 +85,12 @@ public sealed class InnovationDashboardStore
             var payload = await _persistence.LoadSnapshotAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(payload))
             {
+                await ExecuteMutationAsync(() =>
+                {
+                    EnsureAiDiellaMinistryProjects();
+                    return Task.FromResult(true);
+                });
+
                 var seedPayload = await ExecuteReadAsync(() => JsonSerializer.Serialize(BuildSnapshot(), SnapshotJsonOptions));
                 await SaveSnapshotAsync(seedPayload, cancellationToken);
                 return;
@@ -3107,11 +3112,6 @@ public sealed class InnovationDashboardStore
         };
 
         var templateProject = ResolveAiDiellaBaseProject();
-        if (templateProject is null)
-        {
-            return false;
-        }
-
         var added = false;
         var existingCodes = _projects.Select(project => project.Code).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var nextProjectNumber = _projects.Count == 0 ? 1 : _projects.Max(project => ParseProjectNumber(project.Id)) + 1;
@@ -3129,20 +3129,51 @@ public sealed class InnovationDashboardStore
             added = true;
         }
 
-        if (added)
-        {
-            RecalculateAllProjectOkrs();
-        }
-
         return added;
     }
 
-    private ProjectState? ResolveAiDiellaBaseProject()
+    private ProjectState ResolveAiDiellaBaseProject()
     {
         return _projects.FirstOrDefault(project =>
             string.Equals(project.Code, AiDiellaTemplateCode, StringComparison.OrdinalIgnoreCase) ||
-            project.Name.Contains("Diella Team 2030", StringComparison.OrdinalIgnoreCase));
+            project.Name.Contains("Diella Team 2030", StringComparison.OrdinalIgnoreCase))
+            ?? CreateAiDiellaTemplateProject();
     }
+
+    private static ProjectState CreateAiDiellaTemplateProject() =>
+        new(
+            "template-ai-diella",
+            AiDiellaTemplateCode,
+            "Diella Team 2030 - Pilot IA për Administratën Publike",
+            "Projekt programor për zbatimin e pilotit IA në administratën publike.",
+            ApplicationRoles.AiDiellaProgramKey,
+            ["Ministria e Ekonomisë dhe Inovacionit"],
+            "Innovation4Albania",
+            ["Drejtoria e Inovacionit"],
+            ProjectStatuses.Active,
+            ProjectPriorities.High,
+            ProjectSectors.Digitalization,
+            6,
+            1,
+            FixedDate(2026, 6, 15),
+            FixedDate(2030, 12, 31),
+            0,
+            new ProjectOkr(0, 0, 0, 0),
+            RiskLevels.Medium,
+            ["Drejtoria e Inovacionit"],
+            [new WorkgroupMemberState("team-ai-diella-template-1", "Drejtoria e Inovacionit", WorkgroupRoles.ProjectLead, "Innovation4Albania", 100)],
+            "Drejtoria e Inovacionit",
+            14,
+            DateTimeOffset.UtcNow,
+            [
+                new ObjectiveState(
+                    "obj-ai-diella-template-1",
+                    "Adoptimi i IA në ministri",
+                    "Drejtoria e Inovacionit",
+                    [
+                        new KeyResultState("obj-ai-diella-template-1-kr-1", "Ministria arrin përdorim aktiv të IA sipas planit të pilotit", 0, 100, "%")
+                    ])
+            ]);
 
     private static ProjectState BuildAiDiellaMinistryProject(ProjectState templateProject, int idNumber, string code, string ministry)
     {
