@@ -202,6 +202,7 @@ public sealed class ApiIntegrationTests : IClassFixture<DashboardApiFactory>
             code,
             "Projekt integrimi HTTP",
             "Projekt i krijuar nga suite integrimi.",
+            null,
             ["Ministria e Financave"],
             "Drejtoria e Inovacionit",
             [],

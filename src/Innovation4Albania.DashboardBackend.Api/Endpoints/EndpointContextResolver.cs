@@ -11,6 +11,7 @@ internal static class EndpointContextResolver
         var role = user.FindFirstValue("role");
         var ministry = user.FindFirstValue("ministry");
         var username = user.FindFirstValue("username");
+        var programKey = user.FindFirstValue("programKey");
         var fullName = user.FindFirstValue(ClaimTypes.Name) ?? user.FindFirstValue("name");
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
 
@@ -23,7 +24,7 @@ internal static class EndpointContextResolver
             return false;
         }
 
-        if (contextService.TryCreateContext(role, ministry, username, fullName, userId, out context, out var error))
+        if (contextService.TryCreateContext(role, ministry, username, fullName, userId, programKey, out context, out var error))
         {
             errorResult = null;
             return true;

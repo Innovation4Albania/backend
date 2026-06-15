@@ -5,9 +5,9 @@ namespace Innovation4Albania.DashboardBackend.Api.Services;
 
 public sealed class UserContextService(IInnovationDashboardRepository repository) : Interfaces.IUserContextService
 {
-    public bool TryCreateContext(string role, string? ministry, string? username, string? fullName, string? userId, out UserContext context, out string? error)
+    public bool TryCreateContext(string role, string? ministry, string? username, string? fullName, string? userId, string? programKey, out UserContext context, out string? error)
     {
-        context = UserContext.From(role, ministry, username, fullName, userId);
+        context = UserContext.From(role, ministry, username, fullName, userId, programKey);
         return repository.IsValidContext(context, out error);
     }
 }

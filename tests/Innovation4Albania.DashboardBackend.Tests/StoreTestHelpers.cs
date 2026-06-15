@@ -34,6 +34,7 @@ internal static class StoreTestHelpers
             "TEST-001",
             "Projekt test",
             "Pershkrim test",
+            null,
             ["Ministria e Financave"],
             "Agjenci test",
             [],

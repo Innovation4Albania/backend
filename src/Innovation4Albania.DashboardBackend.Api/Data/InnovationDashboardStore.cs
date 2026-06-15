@@ -268,7 +268,7 @@ public sealed class InnovationDashboardStore
 
     public string? ValidateLogin(LoginRequest request)
     {
-        var context = UserContext.From(request.Role, request.Ministry);
+        var context = UserContext.From(request.Role, request.Ministry, programKey: request.ProgramKey);
         return IsValidContext(context, out var error) ? null : error;
     }
 
@@ -278,6 +278,24 @@ public sealed class InnovationDashboardStore
         {
             error = "Roli nuk është i vlefshëm.";
             return false;
+        }
+
+        if (context.Role == ApplicationRoles.ProgramViewer)
+        {
+            if (string.IsNullOrWhiteSpace(context.ProgramKey))
+            {
+                error = "Ky rol kërkon zgjedhjen e programit.";
+                return false;
+            }
+
+            if (!ApplicationRoles.ProgramKeys.Contains(context.ProgramKey, StringComparer.OrdinalIgnoreCase))
+            {
+                error = "Programi nuk është i vlefshëm.";
+                return false;
+            }
+
+            error = null;
+            return true;
         }
 
         if (context.Role == ApplicationRoles.PerfaqesuesInstitucioni && string.IsNullOrWhiteSpace(context.Ministry))
@@ -307,7 +325,7 @@ public sealed class InnovationDashboardStore
 
     public UserResponse Login(LoginRequest request)
     {
-        var context = UserContext.From(request.Role, request.Ministry);
+        var context = UserContext.From(request.Role, request.Ministry, programKey: request.ProgramKey);
         var canonicalMinistry = ApplicationRoles.FixedMinistryForRole(context.Role)
             ?? ResolveMinistry(context.Ministry)
             ?? context.Ministry;
@@ -320,7 +338,8 @@ public sealed class InnovationDashboardStore
             displayName,
             context.Role,
             canonicalMinistry,
-            ApplicationRoles.ToDisplayLabel(context.Role));
+            ApplicationRoles.ToDisplayLabel(context.Role),
+            context.ProgramKey);
     }
 
     public Task<DashboardSummaryResponse> GetDashboardSummary(UserContext context) => ExecuteReadAsync(() =>
@@ -561,6 +580,7 @@ public sealed class InnovationDashboardStore
                 request.Code.Trim(),
                 request.Name.Trim(),
                 request.Description.Trim(),
+                string.IsNullOrWhiteSpace(request.ProgramKey) ? null : request.ProgramKey.Trim(),
                 request.Ministries.Select(item => item.Trim()).Where(item => item.Length > 0).ToList(),
                 string.IsNullOrWhiteSpace(request.Agency) ? null : request.Agency.Trim(),
                 NormalizeDirectorates(request.Directorates),
@@ -740,6 +760,7 @@ public sealed class InnovationDashboardStore
         project.Code = request.Code.Trim();
         project.Name = request.Name.Trim();
         project.Description = request.Description.Trim();
+        project.ProgramKey = string.IsNullOrWhiteSpace(request.ProgramKey) ? null : request.ProgramKey.Trim();
         project.Agency = string.IsNullOrWhiteSpace(request.Agency) ? null : request.Agency.Trim();
         project.Directorates.Clear();
         project.Directorates.AddRange(NormalizeDirectorates(request.Directorates));
@@ -1686,6 +1707,19 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
+        if (context.Role == ApplicationRoles.ProgramViewer)
+        {
+            var programKey = context.ProgramKey?.Trim();
+            if (string.IsNullOrWhiteSpace(programKey))
+            {
+                return [];
+            }
+
+            return _projects
+                .Where(project => string.Equals(project.ProgramKey, programKey, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
         if (context.Role == ApplicationRoles.DrejtorInovacioniPublik)
         {
             return _projects
@@ -2267,6 +2301,7 @@ public sealed class InnovationDashboardStore
             project.Code,
             project.Name,
             project.Description,
+            project.ProgramKey,
             project.Ministries.ToList(),
             project.Agency,
             project.Directorates.ToList(),
@@ -2405,6 +2440,7 @@ public sealed class InnovationDashboardStore
             project.Code,
             project.Name,
             project.Description,
+            project.ProgramKey,
             project.Ministries.ToList(),
             project.Agency,
             project.Directorates.ToList(),
@@ -2437,6 +2473,7 @@ public sealed class InnovationDashboardStore
             response.Code,
             response.Name,
             response.Description,
+            response.ProgramKey,
             response.Ministries.ToList(),
             response.Agency,
             response.Directorates?.ToList() ?? [],
@@ -2941,6 +2978,7 @@ public sealed class InnovationDashboardStore
             "ASHSH-2024",
             "ASHSH - Agjencia Shtetërore për Shpronësimin",
             "Projekt real demonstrues për transformimin e proceseve të shpronësimit dhe koordinimit ndërinstitucional.",
+            null,
             ["Ministria e Infrastrukturës dhe Energjisë", "Ministria e Ekonomisë dhe Inovacionit"],
             "Agjencia Shtetërore për Shpronësimin",
             [],
@@ -3060,6 +3098,7 @@ public sealed class InnovationDashboardStore
             code,
             name,
             description,
+            null,
             ministries.ToList(),
             null,
             [],
@@ -3129,6 +3168,7 @@ public sealed class InnovationDashboardStore
             $"PRJ-{projectNumber:000}",
             $"Projekti {projectNumber}",
             $"Projekt shembull për demonstrim të platformës për {ministry}.",
+            null,
             [ministry],
             null,
             [],
@@ -3191,6 +3231,7 @@ public sealed class InnovationDashboardStore
         string Code,
         string Name,
         string Description,
+        string? ProgramKey,
         IReadOnlyList<string> Ministries,
         string? Agency,
         IReadOnlyList<string>? Directorates,
@@ -3243,6 +3284,7 @@ public sealed class InnovationDashboardStore
         string code,
         string name,
         string description,
+        string? programKey,
         List<string> ministries,
         string? agency,
         List<string> directorates,
@@ -3267,6 +3309,7 @@ public sealed class InnovationDashboardStore
         public string Code { get; set; } = code;
         public string Name { get; set; } = name;
         public string Description { get; set; } = description;
+        public string? ProgramKey { get; set; } = programKey;
         public List<string> Ministries { get; } = ministries;
         public string? Agency { get; set; } = agency;
         public List<string> Directorates { get; } = directorates;
@@ -3361,6 +3404,7 @@ internal static class ObjectPipeExtensions
 {
     public static TResult Pipe<TSource, TResult>(this TSource source, Func<TSource, TResult> selector) => selector(source);
 }
+
 
 
 

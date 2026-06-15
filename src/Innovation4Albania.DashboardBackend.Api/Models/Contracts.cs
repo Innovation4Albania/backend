@@ -1,16 +1,17 @@
 namespace Innovation4Albania.DashboardBackend.Api.Models;
 
-public sealed record LoginRequest(string Role, string? Ministry, string? Name, string? Username = null, string? Password = null, string? UserId = null);
+public sealed record LoginRequest(string Role, string? Ministry, string? Name, string? Username = null, string? Password = null, string? UserId = null, string? ProgramKey = null);
 
-public sealed record UserContext(string Role, string? Ministry, string? Username = null, string? FullName = null, string? UserId = null)
+public sealed record UserContext(string Role, string? Ministry, string? Username = null, string? FullName = null, string? UserId = null, string? ProgramKey = null)
 {
-    public static UserContext From(string role, string? ministry, string? username = null, string? fullName = null, string? userId = null) =>
+    public static UserContext From(string role, string? ministry, string? username = null, string? fullName = null, string? userId = null, string? programKey = null) =>
         new(
             role.Trim(),
             string.IsNullOrWhiteSpace(ministry) ? null : ministry.Trim(),
             string.IsNullOrWhiteSpace(username) ? null : username.Trim(),
             string.IsNullOrWhiteSpace(fullName) ? null : fullName.Trim(),
-            string.IsNullOrWhiteSpace(userId) ? null : userId.Trim());
+            string.IsNullOrWhiteSpace(userId) ? null : userId.Trim(),
+            string.IsNullOrWhiteSpace(programKey) ? null : programKey.Trim());
 }
 
 public sealed record UserResponse(
@@ -18,7 +19,8 @@ public sealed record UserResponse(
     string Name,
     string Role,
     string? Ministry,
-    string RoleLabel);
+    string RoleLabel,
+    string? ProgramKey = null);
 
 public sealed record AuthResponse(string Token, UserResponse User);
 
@@ -113,6 +115,7 @@ public sealed record ProjectResponse(
     string Code,
     string Name,
     string Description,
+    string? ProgramKey,
     IReadOnlyList<string> Ministries,
     string? Agency,
     IReadOnlyList<string> Directorates,
@@ -317,6 +320,7 @@ public sealed record CreateProjectRequest(
     string Code,
     string Name,
     string Description,
+    string? ProgramKey,
     IReadOnlyList<string> Ministries,
     string? Agency,
     IReadOnlyList<string>? Directorates,

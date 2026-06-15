@@ -22,6 +22,14 @@ public static class ApplicationRoles
     public const string Specialist = "specialist";
     public const string StafMinistrie = "staf_ministrie";
     public const string PerfaqesuesInstitucioni = "perfaqesues_institucioni";
+    public const string ProgramViewer = "program_viewer";
+
+    public const string AiDiellaProgramKey = "AI_DIELLA";
+
+    public static readonly IReadOnlyList<string> ProgramKeys =
+    [
+        AiDiellaProgramKey
+    ];
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -44,7 +52,8 @@ public static class ApplicationRoles
         EkspertProjekteBe,
         Specialist,
         StafMinistrie,
-        PerfaqesuesInstitucioni
+        PerfaqesuesInstitucioni,
+        ProgramViewer
     ];
 
     public static readonly IReadOnlyList<string> ManagedUserRoles =
@@ -150,6 +159,7 @@ public static class ApplicationRoles
         Specialist => "Specialist",
         PerfaqesuesInstitucioni => "Përfaqësues Institucioni",
         StafMinistrie => "Përfaqësues Ministrie",
+        ProgramViewer => "Pamje Programi",
         _ => role
     };
 }

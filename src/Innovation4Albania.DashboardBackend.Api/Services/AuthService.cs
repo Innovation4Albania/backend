@@ -55,10 +55,17 @@ public sealed class AuthService(
 
     public string? ValidateViewLink(LoginRequest request)
     {
-        var context = UserContext.From(request.Role, request.Ministry);
+        var context = UserContext.From(request.Role, request.Ministry, programKey: request.ProgramKey);
         if (!ApplicationRoles.IsViewOnlyRole(context.Role))
         {
             return "Ky rol duhet të përdorë login.";
+        }
+
+        if (context.Role == ApplicationRoles.ProgramViewer)
+        {
+            return string.IsNullOrWhiteSpace(context.ProgramKey) || !ApplicationRoles.ProgramKeys.Contains(context.ProgramKey, StringComparer.OrdinalIgnoreCase)
+                ? "Programi nuk Ã«shtÃ« i vlefshÃ«m."
+                : null;
         }
 
         return dashboardRepository.ValidateLogin(request);
@@ -134,7 +141,7 @@ public sealed class AuthService(
             return CreateToken(ToUserResponse(account), account.Username, account.SecurityStamp);
         }
 
-        var viewUser = dashboardRepository.Login(new LoginRequest(context.Role, context.Ministry, Name: null));
+        var viewUser = dashboardRepository.Login(new LoginRequest(context.Role, context.Ministry, Name: null, ProgramKey: context.ProgramKey));
         return CreateToken(viewUser, null);
     }
 
@@ -409,6 +416,11 @@ public sealed class AuthService(
         if (!string.IsNullOrWhiteSpace(username))
         {
             claims.Add(new Claim("username", username.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.ProgramKey))
+        {
+            claims.Add(new Claim("programKey", user.ProgramKey));
         }
 
         // Managed accounts carry a security stamp so deactivation / password reset can revoke

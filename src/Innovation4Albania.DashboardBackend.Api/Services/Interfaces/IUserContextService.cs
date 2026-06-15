@@ -4,5 +4,5 @@ namespace Innovation4Albania.DashboardBackend.Api.Services.Interfaces;
 
 public interface IUserContextService
 {
-    bool TryCreateContext(string role, string? ministry, string? username, string? fullName, string? userId, out UserContext context, out string? error);
+    bool TryCreateContext(string role, string? ministry, string? username, string? fullName, string? userId, string? programKey, out UserContext context, out string? error);
 }
