@@ -165,11 +165,12 @@ public sealed class AuthServiceTests
     }
 
     [Theory]
-    [InlineData(ApplicationRoles.DrejtorAgjencie)]
-    [InlineData(ApplicationRoles.DrejtorInovacioniPublik)]
-    public async Task GetManagedUsersAsync_ProjectDirectorsCanReadAccountsForProjectTeams(string directorRole)
+    [InlineData(ApplicationRoles.DrejtorAgjencie, ApplicationRoles.Ekspert)]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, ApplicationRoles.StafAgjencie)]
+    [InlineData(ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma, ApplicationRoles.Ekspert)]
+    public async Task GetManagedUsersAsync_ProjectDirectorsCanReadAccountsForProjectTeams(string directorRole, string managedRole)
     {
-        var account = InMemoryUserRepository.Account("expert-1", "expert.test", "password123", ApplicationRoles.Ekspert, "Ekspert Test");
+        var account = InMemoryUserRepository.Account("expert-1", "expert.test", "password123", managedRole, "Ekspert Test");
         var users = new InMemoryUserRepository(account);
         var service = CreateService(users: users);
 

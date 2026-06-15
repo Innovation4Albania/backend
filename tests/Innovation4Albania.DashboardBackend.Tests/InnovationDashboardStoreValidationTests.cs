@@ -354,6 +354,52 @@ public sealed class InnovationDashboardStoreValidationTests
         Assert.DoesNotContain(projects, project => project.Code == "FUNDING-DIRECTOR");
     }
 
+    [Theory]
+    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, ApplicationRoles.StafAgjencie, "PUBLIC-INNOVATION")]
+    [InlineData(ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma, ApplicationRoles.Ekspert, "TECH-DIRECTOR")]
+    public async Task GetProjects_ScopedDirectorSeesOnlyProjectsWithOwnDirectorateExperts(string directorRole, string expertRole, string visibleCode)
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var visibleProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = visibleCode,
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Scoped Expert",
+                    WorkgroupRoles.InnovationExpert,
+                    "Drejtoria e Inovacionit",
+                    100,
+                    "scoped-expert-1",
+                    expertRole)
+            ]
+        };
+        var otherProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = $"{visibleCode}-OTHER",
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Other Expert",
+                    WorkgroupRoles.InnovationExpert,
+                    "Drejtoria e Inovacionit",
+                    100,
+                    "other-expert-1",
+                    ApplicationRoles.EkspertFinancimiAlternativ)
+            ]
+        };
+        var createdVisible = await store.TryCreateProjectAsync(director, visibleProject);
+        await store.TryCreateProjectAsync(director, otherProject);
+        var context = UserContext.From(directorRole, null);
+
+        var projects = await store.GetProjects(context, null, null);
+
+        var project = Assert.Single(projects);
+        Assert.Equal(createdVisible.Response!.Id, project.Id);
+        Assert.Equal(visibleCode, project.Code);
+    }
+
     [Fact]
     public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
     {

@@ -85,6 +85,7 @@ public static class ApplicationRoles
             or DrejtorInovacioniPublik
             or DrejtorEkosistemiStartupeveLehtesuesve
             or DrejtorFinancimiAlternativNderkombetarizimit
+            or DrejtorTeDhenaTeknologjiPlatforma
             or DrejtorEkonomiseSherbimeveMbeshtetese
             or PergjegjesSektori;
     public static bool IsScopedDirector(string role) => GetScopedExpertRoles(role) is not null;
@@ -96,6 +97,8 @@ public static class ApplicationRoles
             or DrejtorEkonomiseSherbimeveMbeshtetese;
     public static IReadOnlyList<string>? GetScopedExpertRoles(string role) => role switch
     {
+        DrejtorInovacioniPublik => [StafAgjencie],
+        DrejtorTeDhenaTeknologjiPlatforma => [Ekspert],
         DrejtorEkosistemiStartupeveLehtesuesve => [EkspertEkosistemiStartupeve, EkspertProgrametMbeshtetjes],
         DrejtorFinancimiAlternativNderkombetarizimit => [EkspertFinancimiAlternativ, EkspertProjekteBe],
         _ => null
