@@ -355,9 +355,21 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Theory]
-    [InlineData(ApplicationRoles.DrejtorInovacioniPublik, ApplicationRoles.StafAgjencie, "PUBLIC-INNOVATION")]
-    [InlineData(ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma, ApplicationRoles.Ekspert, "TECH-DIRECTOR")]
-    public async Task GetProjects_ScopedDirectorSeesOnlyProjectsWithOwnDirectorateExperts(string directorRole, string expertRole, string visibleCode)
+    [InlineData(
+        ApplicationRoles.DrejtorInovacioniPublik,
+        ApplicationRoles.StafAgjencie,
+        "DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE",
+        "PUBLIC-INNOVATION")]
+    [InlineData(
+        ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma,
+        ApplicationRoles.Ekspert,
+        "DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA",
+        "TECH-DIRECTOR")]
+    public async Task GetProjects_ScopedDirectorSeesOnlyProjectsWithOwnDirectorateExperts(
+        string directorRole,
+        string expertRole,
+        string visibleUnit,
+        string visibleCode)
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
@@ -369,7 +381,7 @@ public sealed class InnovationDashboardStoreValidationTests
                 new WorkgroupMemberInput(
                     "Scoped Expert",
                     WorkgroupRoles.InnovationExpert,
-                    "Drejtoria e Inovacionit",
+                    visibleUnit,
                     100,
                     "scoped-expert-1",
                     expertRole)
@@ -383,10 +395,10 @@ public sealed class InnovationDashboardStoreValidationTests
                 new WorkgroupMemberInput(
                     "Other Expert",
                     WorkgroupRoles.InnovationExpert,
-                    "Drejtoria e Inovacionit",
+                    "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT",
                     100,
                     "other-expert-1",
-                    ApplicationRoles.EkspertFinancimiAlternativ)
+                    expertRole)
             ]
         };
         var createdVisible = await store.TryCreateProjectAsync(director, visibleProject);

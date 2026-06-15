@@ -1686,6 +1686,20 @@ public sealed class InnovationDashboardStore
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
     {
+        if (context.Role == ApplicationRoles.DrejtorInovacioniPublik)
+        {
+            return _projects
+                .Where(project => HasTeamMemberInDirectorate(project, ApplicationRoles.StafAgjencie, "DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE"))
+                .ToList();
+        }
+
+        if (context.Role == ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma)
+        {
+            return _projects
+                .Where(project => HasTeamMemberInDirectorate(project, ApplicationRoles.Ekspert, "DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA"))
+                .ToList();
+        }
+
         if (context.Role == ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese)
         {
             return _projects
@@ -1783,6 +1797,11 @@ public sealed class InnovationDashboardStore
 
     private static bool HasTeamMemberWithAnyAccountRole(ProjectState project, IReadOnlyList<string> accountRoles) =>
         project.TeamMembers.Any(member => accountRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase));
+
+    private static bool HasTeamMemberInDirectorate(ProjectState project, string accountRole, string directorate) =>
+        project.TeamMembers.Any(member =>
+            string.Equals(member.AccountRole, accountRole, StringComparison.OrdinalIgnoreCase) &&
+            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate));
 
     private static bool HasSpecialistInSector(ProjectState project, string? sector) =>
         project.TeamMembers.Any(member =>
