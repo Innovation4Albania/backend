@@ -9,6 +9,7 @@ public static class WorkgroupRoles
     public const string TechnicalCoordinator = "technical_coordinator";
     public const string DataSpecialist = "data_specialist";
     public const string MinistryRepresentative = "ministry_representative";
+    public const string SectorManager = "pergjegjes_sektori";
     public const string ProjectOfficer = "project_officer";
     public const string InnovationExpert = "innovation_expert";
     public const string StartupEcosystemExpert = "startup_ecosystem_expert";
@@ -17,7 +18,7 @@ public static class WorkgroupRoles
     public const string EuProjectsExpert = "eu_projects_expert";
     public const string Specialist = "specialist";
 
-    public static readonly IReadOnlyList<string> All = [ProjectLead, OkrOwner, BusinessAnalyst, LegalExpert, TechnicalCoordinator, DataSpecialist, MinistryRepresentative, ProjectOfficer, InnovationExpert, StartupEcosystemExpert, SupportProgramsExpert, AlternativeFinancingExpert, EuProjectsExpert, Specialist];
+    public static readonly IReadOnlyList<string> All = [ProjectLead, OkrOwner, BusinessAnalyst, LegalExpert, TechnicalCoordinator, DataSpecialist, MinistryRepresentative, SectorManager, ProjectOfficer, InnovationExpert, StartupEcosystemExpert, SupportProgramsExpert, AlternativeFinancingExpert, EuProjectsExpert, Specialist];
 
     public static string ToLabel(string value) => value switch
     {
@@ -28,6 +29,7 @@ public static class WorkgroupRoles
         TechnicalCoordinator => "Koordinator teknik",
         DataSpecialist => "Specialist të dhënash",
         MinistryRepresentative => "Përfaqësues ministrie",
+        SectorManager => "PÃ«rgjegjÃ«s Sektori",
         ProjectOfficer => "Ekspert",
         InnovationExpert => "Ekspert për inovacionin publik",
         StartupEcosystemExpert => "Ekspert për ekosistemin e Start-upeve",
