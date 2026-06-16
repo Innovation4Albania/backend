@@ -85,12 +85,6 @@ public sealed class InnovationDashboardStore
             var payload = await _persistence.LoadSnapshotAsync(cancellationToken);
             if (string.IsNullOrWhiteSpace(payload))
             {
-                await ExecuteMutationAsync(() =>
-                {
-                    EnsureAiDiellaMinistryProjects();
-                    return Task.FromResult(true);
-                });
-
                 var seedPayload = await ExecuteReadAsync(() => JsonSerializer.Serialize(BuildSnapshot(), SnapshotJsonOptions));
                 await SaveSnapshotAsync(seedPayload, cancellationToken);
                 return;
@@ -99,18 +93,11 @@ public sealed class InnovationDashboardStore
             var snapshot = JsonSerializer.Deserialize<DashboardStoreSnapshot>(payload, SnapshotJsonOptions);
             if (snapshot is not null)
             {
-                var seededAiDiellaProjects = false;
                 await ExecuteMutationAsync(() =>
                 {
                     RestoreSnapshot(snapshot);
-                    seededAiDiellaProjects = EnsureAiDiellaMinistryProjects();
                     return Task.FromResult(true);
                 });
-
-                if (seededAiDiellaProjects)
-                {
-                    await PersistSnapshotAsync(cancellationToken);
-                }
 
                 _logger.LogInformation("Dashboard state loaded from PostgreSQL.");
             }
