@@ -3177,21 +3177,7 @@ public sealed class InnovationDashboardStore
 
     private static ProjectState BuildAiDiellaMinistryProject(ProjectState templateProject, int idNumber, string code, string ministry)
     {
-        var objectives = templateProject.Objectives
-            .Select((objective, objectiveIndex) => new ObjectiveState(
-                $"obj-{idNumber}-{objectiveIndex + 1}",
-                objective.Title,
-                objective.Owner,
-                objective.KeyResults
-                    .Select((keyResult, keyResultIndex) => new KeyResultState(
-                        $"obj-{idNumber}-{objectiveIndex + 1}-kr-{keyResultIndex + 1}",
-                        keyResult.Title,
-                        0,
-                        keyResult.Target,
-                        keyResult.Unit,
-                        keyResult.MeasurementType))
-                    .ToList()))
-            .ToList();
+        var objectives = CloneObjectivesForProject(templateProject, $"p{idNumber}", null);
 
         var teamMembers = templateProject.TeamMembers
             .Select((member, memberIndex) => new WorkgroupMemberState(
@@ -3230,6 +3216,45 @@ public sealed class InnovationDashboardStore
             DateTimeOffset.UtcNow,
             objectives);
     }
+
+    private static List<ObjectiveState> CloneObjectivesForProject(ProjectState sourceProject, string projectId, IReadOnlyCollection<ObjectiveState>? existingObjectives)
+    {
+        return sourceProject.Objectives
+            .Select((objective, objectiveIndex) =>
+            {
+                var existingObjective = existingObjectives?.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Title, objective.Title, StringComparison.OrdinalIgnoreCase));
+
+                return new ObjectiveState(
+                    $"obj-{projectId}-{objectiveIndex + 1}",
+                    objective.Title,
+                    objective.Owner,
+                    objective.KeyResults
+                        .Select((keyResult, keyResultIndex) =>
+                        {
+                            var existingKeyResult = existingObjective?.KeyResults.FirstOrDefault(candidate =>
+                                string.Equals(candidate.Title, keyResult.Title, StringComparison.OrdinalIgnoreCase));
+
+                            var clonedKeyResult = new KeyResultState(
+                                $"obj-{projectId}-{objectiveIndex + 1}-kr-{keyResultIndex + 1}",
+                                keyResult.Title,
+                                0,
+                                keyResult.Target,
+                                keyResult.Unit,
+                                keyResult.MeasurementType);
+
+                            if (existingKeyResult is not null)
+                            {
+                                clonedKeyResult.Progress = existingKeyResult.Progress;
+                            }
+
+                            return clonedKeyResult;
+                        })
+                        .ToList());
+            })
+            .ToList();
+    }
+
 
     private static ProjectState CreateActualProject(
         int idNumber,
