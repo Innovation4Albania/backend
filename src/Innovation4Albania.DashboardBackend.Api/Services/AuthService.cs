@@ -64,7 +64,7 @@ public sealed class AuthService(
         if (context.Role == ApplicationRoles.ProgramViewer)
         {
             return string.IsNullOrWhiteSpace(context.ProgramKey) || !ApplicationRoles.ProgramKeys.Contains(context.ProgramKey, StringComparer.OrdinalIgnoreCase)
-                ? "Programi nuk Ã«shtÃ« i vlefshÃ«m."
+                ? "Programi nuk është i vlefshëm."
                 : null;
         }
 
@@ -497,3 +497,4 @@ public sealed class AuthService(
             ? "Fjalëkalimi duhet të ketë të paktën 8 karaktere."
             : null;
 }
+

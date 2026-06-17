@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Innovation4Albania.DashboardBackend.Api.Constants;
 using Innovation4Albania.DashboardBackend.Api.Configuration;
 using Innovation4Albania.DashboardBackend.Api.Models;
@@ -26,22 +26,22 @@ public sealed class InnovationDashboardStore
 
     private readonly IReadOnlyList<string> _ministries =
     [
-        "Ministria e EkonomisÃƒÂ« dhe Inovacionit",
-        "Ministria e ShÃƒÂ«ndetÃƒÂ«sisÃƒÂ« dhe Mbrojtjes Sociale",
-        "Ministria e DrejtÃƒÂ«sisÃƒÂ«",
+        "Ministria e Ekonomisë dhe Inovacionit",
+        "Ministria e Shëndetësisë dhe Mbrojtjes Sociale",
+        "Ministria e Drejtësisë",
         "Ministria e Financave",
-        "Ministria e InfrastrukturÃƒÂ«s dhe EnergjisÃƒÂ«",
-        "Ministria e BujqÃƒÂ«sisÃƒÂ« dhe Zhvillimit Rural",
-        "Ministria e KulturÃƒÂ«s, Turizmit dhe Sportit",
-        "Ministria e PunÃƒÂ«ve tÃƒÂ« Brendshme",
-        "Ministria pÃƒÂ«r EvropÃƒÂ«n dhe PunÃƒÂ«t e Jashtme",
+        "Ministria e Infrastrukturës dhe Energjisë",
+        "Ministria e Bujqësisë dhe Zhvillimit Rural",
+        "Ministria e Kulturës, Turizmit dhe Sportit",
+        "Ministria e Punëve të Brendshme",
+        "Ministria për Evropën dhe Punët e Jashtme",
         "Ministria e Arsimit",
         "Ministria e Mjedisit",
         "Ministria e Mbrojtjes",
-        "Ministria e Shtetit pÃƒÂ«r MarrÃƒÂ«dhÃƒÂ«nien me Parlamentin",
-        "Ministria e Shtetit pÃƒÂ«r Pushtetin Vendor",
+        "Ministria e Shtetit për Marrëdhënien me Parlamentin",
+        "Ministria e Shtetit për Pushtetin Vendor",
         "Ministria e Shtetit dhe Kryenegociatorit",
-        "Ministria e Shtetit pÃƒÂ«r AdministratÃƒÂ«n Publike dhe Antikorrupsionin"
+        "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin"
     ];
 
     private readonly List<ProjectState> _projects;
@@ -280,7 +280,7 @@ public sealed class InnovationDashboardStore
     {
         if (!ApplicationRoles.All.Contains(context.Role))
         {
-            error = "Roli nuk ÃƒÂ«shtÃƒÂ« i vlefshÃƒÂ«m.";
+            error = "Roli nuk është i vlefshëm.";
             return false;
         }
 
@@ -288,13 +288,13 @@ public sealed class InnovationDashboardStore
         {
             if (string.IsNullOrWhiteSpace(context.ProgramKey))
             {
-                error = "Ky rol kÃƒÂ«rkon zgjedhjen e programit.";
+                error = "Ky rol kërkon zgjedhjen e programit.";
                 return false;
             }
 
             if (!ApplicationRoles.ProgramKeys.Contains(context.ProgramKey, StringComparer.OrdinalIgnoreCase))
             {
-                error = "Programi nuk ÃƒÂ«shtÃƒÂ« i vlefshÃƒÂ«m.";
+                error = "Programi nuk është i vlefshëm.";
                 return false;
             }
 
@@ -304,7 +304,7 @@ public sealed class InnovationDashboardStore
 
         if (context.Role == ApplicationRoles.PerfaqesuesInstitucioni && string.IsNullOrWhiteSpace(context.Ministry))
         {
-            error = "Ky rol kÃƒÂ«rkon vendosjen e institucionit.";
+            error = "Ky rol kërkon vendosjen e institucionit.";
             return false;
         }
 
@@ -312,13 +312,13 @@ public sealed class InnovationDashboardStore
         {
             if (string.IsNullOrWhiteSpace(context.Ministry))
             {
-                error = "Ky rol kÃƒÂ«rkon zgjedhjen e njÃƒÂ« ministrie.";
+                error = "Ky rol kërkon zgjedhjen e një ministrie.";
                 return false;
             }
 
             if (context.Role != ApplicationRoles.PerfaqesuesInstitucioni && ResolveMinistry(context.Ministry) is null)
             {
-                error = "Ministria nuk ÃƒÂ«shtÃƒÂ« e vlefshme.";
+                error = "Ministria nuk është e vlefshme.";
                 return false;
             }
         }
@@ -425,7 +425,7 @@ public sealed class InnovationDashboardStore
         var crossInstitutionProjects = visible.Count(project => project.Ministries.Count > 1);
 
         var unitAllocations = members
-            .GroupBy(member => string.IsNullOrWhiteSpace(member.Unit) ? "NjÃƒÂ«si e pacaktuar" : member.Unit.Trim(), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(member => string.IsNullOrWhiteSpace(member.Unit) ? "Njësi e pacaktuar" : member.Unit.Trim(), StringComparer.OrdinalIgnoreCase)
             .Select(group => new ResourceUnitAllocationResponse(
                 group.Key,
                 group.Select(member => member.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
@@ -688,37 +688,37 @@ public sealed class InnovationDashboardStore
     {
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Code))
         {
-            error = "Kodi dhe emri i projektit janÃƒÂ« tÃƒÂ« detyrueshÃƒÂ«m.";
+            error = "Kodi dhe emri i projektit janë të detyrueshëm.";
             return false;
         }
 
         if (string.IsNullOrWhiteSpace(request.Description))
         {
-            error = "PÃƒÂ«rshkrimi i projektit ÃƒÂ«shtÃƒÂ« i detyrueshÃƒÂ«m.";
+            error = "Përshkrimi i projektit është i detyrueshëm.";
             return false;
         }
 
         if (request.Ministries.Count == 0 || request.Ministries.All(string.IsNullOrWhiteSpace))
         {
-            error = "Zgjidh tÃƒÂ« paktÃƒÂ«n njÃƒÂ« ministri pÃƒÂ«r projektin.";
+            error = "Zgjidh të paktën një ministri për projektin.";
             return false;
         }
 
         if (!string.IsNullOrWhiteSpace(request.Lead) && !LettersAndSpacesRegex.IsMatch(request.Lead.Trim()))
         {
-            error = "PÃƒÂ«rgjegjÃƒÂ«si mund tÃƒÂ« pÃƒÂ«rmbajÃƒÂ« vetÃƒÂ«m shkronja.";
+            error = "Përgjegjësi mund të përmbajë vetëm shkronja.";
             return false;
         }
 
         if (!ProjectStatuses.All.Contains(request.Status))
         {
-            error = "Statusi i zgjedhur nuk ÃƒÂ«shtÃƒÂ« i vlefshÃƒÂ«m.";
+            error = "Statusi i zgjedhur nuk është i vlefshëm.";
             return false;
         }
 
         if (!ProjectPriorities.All.Contains(request.Priority))
         {
-            error = "Prioriteti i zgjedhur nuk ÃƒÂ«shtÃƒÂ« i vlefshÃƒÂ«m.";
+            error = "Prioriteti i zgjedhur nuk është i vlefshëm.";
             return false;
         }
 
@@ -730,13 +730,13 @@ public sealed class InnovationDashboardStore
 
         if (!RiskLevels.All.Contains(request.Risk))
         {
-            error = "Niveli i riskut nuk ÃƒÂ«shtÃƒÂ« i vlefshÃƒÂ«m.";
+            error = "Niveli i riskut nuk është i vlefshëm.";
             return false;
         }
 
         if (request.EndDate < request.StartDate)
         {
-            error = "Data e mbylljes nuk mund tÃƒÂ« jetÃƒÂ« mÃƒÂ« e hershme se data e nisjes.";
+            error = "Data e mbylljes nuk mund të jetë më e hershme se data e nisjes.";
             return false;
         }
 
@@ -876,7 +876,7 @@ public sealed class InnovationDashboardStore
             new(
                 PerformanceBuckets.Completed,
                 PerformanceBuckets.ToLabel(PerformanceBuckets.Completed),
-                "Statusi: PÃƒÂ«rfunduara",
+                "Statusi: Përfunduara",
                 GetVisibleProjects(context)
                     .Where(project => project.Status == ProjectStatuses.Completed)
                     .Select(project => new PerformanceScoreItem(project.Id, project.Code, project.Name, GetOkrAverage(project), project.Progress, project.Risk))
@@ -975,13 +975,13 @@ public sealed class InnovationDashboardStore
     {
         if (string.IsNullOrWhiteSpace(request.Title) || request.KeyResults.Count == 0)
         {
-            error = "Objektivi dhe tÃƒÂ« paktÃƒÂ«n njÃƒÂ« KR janÃƒÂ« tÃƒÂ« detyrueshme.";
+            error = "Objektivi dhe të paktën një KR janë të detyrueshme.";
             return false;
         }
 
         if (request.KeyResults.All(kr => string.IsNullOrWhiteSpace(kr.Title)))
         {
-            error = "TÃƒÂ« paktÃƒÂ«n njÃƒÂ« KR duhet tÃƒÂ« ketÃƒÂ« titull.";
+            error = "Të paktën një KR duhet të ketë titull.";
             return false;
         }
 
@@ -1194,17 +1194,17 @@ public sealed class InnovationDashboardStore
             update.Id,
             update.ProjectId,
             project.Code,
-            project.Name,
-            update.SubmittedBy,
+            NormalizeUiText(project.Name),
+            NormalizeUiText(update.SubmittedBy),
             ApplicationRoles.ToDisplayLabel(update.SubmittedRole),
-            update.ExpertName,
+            NormalizeUiText(update.ExpertName),
             update.SubmittedAt,
             update.Progress,
             ProjectStatuses.ToLabel(update.Status),
             GetOkrAverage(project),
             RiskLevels.ToLabel(update.Risk),
-            update.Blockers,
-            update.Comments,
+            NormalizeUiText(update.Blockers),
+            NormalizeUiText(update.Comments),
             update.KeyResults.Select(kr => new WeeklyUpdateKeyResultInput(kr.KeyResultId, kr.CurrentValue)).ToList());
 
     private void ApplyProjectStateFromWeeklyUpdates(ProjectState project)
@@ -1326,7 +1326,7 @@ public sealed class InnovationDashboardStore
         {
             if (!ApplicationRoles.CanProposeProjectChanges(context.Role))
             {
-                return (false, null, "VetÃƒÂ«m Ekspert pÃƒÂ«r inovacionin publik, PÃƒÂ«rfaqÃƒÂ«sues Ministrie ose PÃƒÂ«rfaqÃƒÂ«sues Institucioni mund tÃƒÂ« propozojÃƒÂ« ndryshime nÃƒÂ« projekt.");
+                return (false, null, "Vetëm Ekspert për inovacionin publik, Përfaqësues Ministrie ose Përfaqësues Institucioni mund të propozojë ndryshime në projekt.");
             }
 
             var project = GetVisibleProjects(context).FirstOrDefault(item => item.Id == request.ProjectId);
@@ -1584,16 +1584,16 @@ public sealed class InnovationDashboardStore
                     .ToList();
 
                 return $"""
-            Jeni njÃƒÂ« asistent AI pÃƒÂ«r platformÃƒÂ«n Innovation4Albania.
-            PÃƒÂ«rgjigjuni GJITHMONÃƒâ€¹ nÃƒÂ« shqip. Ji konciz dhe praktik.
+            Jeni një asistent AI për platformën Innovation4Albania.
+            Përgjigjuni GJITHMONË në shqip. Ji konciz dhe praktik.
             
             KONTEKSTI:
             - Roli: {ApplicationRoles.ToDisplayLabel(context.Role)}
-            - Ministria: {context.Ministry ?? "TÃƒÂ« gjitha"}
+            - Ministria: {context.Ministry ?? "Të gjitha"}
             - Projekte totale: {visible.Count}
             - OKR mesatar: {avgOkr}%
-            - Projekte me vonesÃƒÂ«: {string.Join(", ", delayed.Select(p => p.Code))}
-            - Risk i lartÃƒÂ«/kritik: {string.Join(", ", highRisk)}
+            - Projekte me vonesë: {string.Join(", ", delayed.Select(p => p.Code))}
+            - Risk i lartë/kritik: {string.Join(", ", highRisk)}
             """;
             });
 
@@ -1631,11 +1631,11 @@ public sealed class InnovationDashboardStore
                 .GetProperty("content")
                 .GetProperty("parts")[0]
                 .GetProperty("text")
-                .GetString() ?? "Nuk u mor pÃƒÂ«rgjigje.";
+                .GetString() ?? "Nuk u mor përgjigje.";
 
             return new AiChatResponse(
                 new ChatMessageResponse($"ai-{Guid.NewGuid():N}", "assistant", answer, DateTimeOffset.UtcNow),
-                ["Kontrollo projektet me devijim mbi 10%", "Verifiko KR-tÃƒÂ« me progres nÃƒÂ«n 60%", "Planifiko pÃƒÂ«rditÃƒÂ«simet javore"]);
+                ["Kontrollo projektet me devijim mbi 10%", "Verifiko KR-të me progres nën 60%", "Planifiko përditësimet javore"]);
         }
         catch (Exception ex)
         {
@@ -1686,27 +1686,27 @@ public sealed class InnovationDashboardStore
             .ToList();
 
         var answer = new StringBuilder()
-            .Append($"Nga {visible.Count} projekte tÃƒÂ« aksesueshme, OKR mesatar ÃƒÂ«shtÃƒÂ« {avgOkr}%. ");
+            .Append($"Nga {visible.Count} projekte të aksesueshme, OKR mesatar është {avgOkr}%. ");
 
         if (highRisk.Count > 0)
         {
-            answer.Append("Prioriteti kryesor ÃƒÂ«shtÃƒÂ« ndjekja e projekteve me risk tÃƒÂ« lartÃƒÂ«: ")
+            answer.Append("Prioriteti kryesor është ndjekja e projekteve me risk të lartë: ")
                 .Append(string.Join(", ", highRisk.Select(project => project.Code)))
                 .Append(". ");
         }
 
         if (delayed.Count > 0)
         {
-            answer.Append("Projektet me vonesÃƒÂ«n mÃƒÂ« tÃƒÂ« madhe janÃƒÂ« ")
-                .Append(string.Join(", ", delayed.Select(project => $"{project.Code} ({project.DelayDays} ditÃƒÂ«)")))
+            answer.Append("Projektet me vonesën më të madhe janë ")
+                .Append(string.Join(", ", delayed.Select(project => $"{project.Code} ({project.DelayDays} ditë)")))
                 .Append(". ");
         }
 
-        answer.Append("Pa Gemini:ApiKey po kthej analizÃƒÂ« lokale bazuar nÃƒÂ« tÃƒÂ« dhÃƒÂ«nat e dashboard-it.");
+        answer.Append("Pa Gemini:ApiKey po kthej analizë lokale bazuar në të dhënat e dashboard-it.");
 
         return new AiChatResponse(
             new ChatMessageResponse($"ai-{Guid.NewGuid():N}", "assistant", answer.ToString(), DateTimeOffset.UtcNow),
-            ["Kontrollo projektet me devijim mbi 10%", "Verifiko KR-tÃƒÂ« me progres nÃƒÂ«n 60%", "Planifiko pÃƒÂ«rditÃƒÂ«simet javore"]);
+            ["Kontrollo projektet me devijim mbi 10%", "Verifiko KR-të me progres nën 60%", "Planifiko përditësimet javore"]);
     }
 
     private IReadOnlyList<ProjectState> GetVisibleProjects(UserContext context)
@@ -1906,7 +1906,7 @@ public sealed class InnovationDashboardStore
         var result = ChangeProposalStatuses.Normalize(status);
         if (!ChangeProposalStatuses.IsKnown(result))
         {
-            _logger.LogWarning("Unrecognised change proposal status '{Status}' in snapshot Ã¢â‚¬â€ storing as-is.", status);
+            _logger.LogWarning("Unrecognised change proposal status '{Status}' in snapshot - storing as-is.", status);
         }
 
         return result;
@@ -1916,12 +1916,12 @@ public sealed class InnovationDashboardStore
     {
         var fixedValue = value
             .Trim()
-            .Replace("\u00C3\u00AB", "ÃƒÂ«", StringComparison.Ordinal)
-            .Replace("\u00C3\u2039", "Ãƒâ€¹", StringComparison.Ordinal)
-            .Replace("\u00C3\u00A7", "ÃƒÂ§", StringComparison.Ordinal)
-            .Replace("\u00C3\u2021", "Ãƒâ€¡", StringComparison.Ordinal)
-            .Replace("\u00EF\u00BF\u00BD", "ÃƒÂ«", StringComparison.Ordinal)
-            .Replace("\uFFFD", "ÃƒÂ«", StringComparison.Ordinal);
+            .Replace("\u00C3\u00AB", "ë", StringComparison.Ordinal)
+            .Replace("\u00C3\u2039", "Ë", StringComparison.Ordinal)
+            .Replace("\u00C3\u00A7", "ç", StringComparison.Ordinal)
+            .Replace("\u00C3\u2021", "Ç", StringComparison.Ordinal)
+            .Replace("\u00EF\u00BF\u00BD", "ë", StringComparison.Ordinal)
+            .Replace("\uFFFD", "ë", StringComparison.Ordinal);
 
         var decomposed = fixedValue.Normalize(NormalizationForm.FormD);
         var builder = new StringBuilder(decomposed.Length);
@@ -1952,6 +1952,29 @@ public sealed class InnovationDashboardStore
         return builder.ToString().Trim();
     }
 
+    private static string NormalizeUiText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return value?.Trim() ?? string.Empty;
+        }
+
+        return value
+            .Trim()
+            .Replace("ÃƒÂ«", "ë", StringComparison.Ordinal)
+            .Replace("Ãƒâ€¹", "Ë", StringComparison.Ordinal)
+            .Replace("ÃƒÂ§", "ç", StringComparison.Ordinal)
+            .Replace("Ãƒâ€¡", "Ç", StringComparison.Ordinal)
+            .Replace("Ã«", "ë", StringComparison.Ordinal)
+            .Replace("Ã‹", "Ë", StringComparison.Ordinal)
+            .Replace("Ã§", "ç", StringComparison.Ordinal)
+            .Replace("Ã‡", "Ç", StringComparison.Ordinal)
+            .Replace("Ã¢â‚¬â€", "-", StringComparison.Ordinal);
+    }
+
+    private static List<string> NormalizeUiTextList(IEnumerable<string> values) =>
+        values.Select(NormalizeUiText).ToList();
+
     private static string GetPerformanceBucket(int score) => score switch
     {
         >= 85 => PerformanceBuckets.Excellent,
@@ -1962,20 +1985,20 @@ public sealed class InnovationDashboardStore
 
     private static string ShortMinistryName(string ministry) => ministry switch
     {
-        "Ministria e InfrastrukturÃƒÂ«s dhe EnergjisÃƒÂ«" => "M. e InfrastrukturÃƒÂ«s dhe EnergjisÃƒÂ«",
-        "Ministria e PunÃƒÂ«ve tÃƒÂ« Brendshme" => "M. e PunÃƒÂ«ve tÃƒÂ« Brendshme",
-        "Ministria pÃƒÂ«r EvropÃƒÂ«n dhe PunÃƒÂ«t e Jashtme" => "M. pÃƒÂ«r EvropÃƒÂ«n dhe PunÃƒÂ«t e Jashtme",
+        "Ministria e Infrastrukturës dhe Energjisë" => "M. e Infrastrukturës dhe Energjisë",
+        "Ministria e Punëve të Brendshme" => "M. e Punëve të Brendshme",
+        "Ministria për Evropën dhe Punët e Jashtme" => "M. për Evropën dhe Punët e Jashtme",
         "Ministria e Financave" => "M. e Financave",
-        "Ministria e KulturÃƒÂ«s dhe Turizmit" => "M. e KulturÃƒÂ«s dhe Turizmit",
+        "Ministria e Kulturës dhe Turizmit" => "M. e Kulturës dhe Turizmit",
         "Ministria e Mjedisit" => "M. e Mjedisit",
-        "Ministria e ShÃƒÂ«ndetÃƒÂ«sisÃƒÂ« dhe MirÃƒÂ«qenies Sociale" => "M. e ShÃƒÂ«ndetÃƒÂ«sisÃƒÂ« dhe MirÃƒÂ«qenies Sociale",
-        "Ministria e EkonomisÃƒÂ« dhe Inovacionit" => "M. e EkonomisÃƒÂ« dhe Inovacionit",
-        "Ministria e DrejtÃƒÂ«sisÃƒÂ«" => "M. e DrejtÃƒÂ«sisÃƒÂ«",
+        "Ministria e Shëndetësisë dhe Mirëqenies Sociale" => "M. e Shëndetësisë dhe Mirëqenies Sociale",
+        "Ministria e Ekonomisë dhe Inovacionit" => "M. e Ekonomisë dhe Inovacionit",
+        "Ministria e Drejtësisë" => "M. e Drejtësisë",
         "Ministria e Mbrojtjes" => "M. e Mbrojtjes",
-        "Ministria e BujqÃƒÂ«sisÃƒÂ« dhe Zhvillimit Rural" => "M. e BujqÃƒÂ«sisÃƒÂ« dhe Zhvillimit Rural",
-        "Ministria e Shtetit pÃƒÂ«r Pushtetin Vendor" => "M. e Shtetit pÃƒÂ«r Pushtetin Vendor",
-        "Ministria e Shtetit pÃƒÂ«r AdministratÃƒÂ«n Publike dhe Antikorrupsionin" => "M. e AdministratÃƒÂ«s Publike dhe Antikorrupsionit",
-        "Ministria pÃƒÂ«r MarrÃƒÂ«dhÃƒÂ«niet me Parlamentin" => "M. pÃƒÂ«r MarrÃƒÂ«dhÃƒÂ«niet me Parlamentin",
+        "Ministria e Bujqësisë dhe Zhvillimit Rural" => "M. e Bujqësisë dhe Zhvillimit Rural",
+        "Ministria e Shtetit për Pushtetin Vendor" => "M. e Shtetit për Pushtetin Vendor",
+        "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin" => "M. e Administratës Publike dhe Antikorrupsionit",
+        "Ministria për Marrëdhëniet me Parlamentin" => "M. për Marrëdhëniet me Parlamentin",
         _ => ministry
     };
 
@@ -2083,7 +2106,7 @@ public sealed class InnovationDashboardStore
 
         var updatesWithoutBlockers = updates.Count(update =>
             string.IsNullOrWhiteSpace(update.Blockers) ||
-            string.Equals(update.Blockers.Trim(), "AsnjÃƒÂ«", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(update.Blockers.Trim(), "Asnjë", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(update.Blockers.Trim(), "Asnje", StringComparison.OrdinalIgnoreCase));
 
         return ClampPercent(updatesWithoutBlockers * 100d / updates.Count);
@@ -2217,7 +2240,7 @@ public sealed class InnovationDashboardStore
     private static string InferPortfolioMeasurementType(string title)
     {
         var normalized = title.Trim().ToLowerInvariant();
-        if (normalized.Contains("dorÃƒÂ«zim") || normalized.Contains("dorezim"))
+        if (normalized.Contains("dorëzim") || normalized.Contains("dorezim"))
         {
             return PortfolioOnTimeMeasurement;
         }
@@ -2227,27 +2250,27 @@ public sealed class InnovationDashboardStore
             return PortfolioDeviationMeasurement;
         }
 
-        if (normalized.Contains("mesatarja e okr") || normalized.Contains("okr tÃƒÂ« portofolit") || normalized.Contains("okr te portofolit"))
+        if (normalized.Contains("mesatarja e okr") || normalized.Contains("okr të portofolit") || normalized.Contains("okr te portofolit"))
         {
             return PortfolioAverageOkrMeasurement;
         }
 
-        if (normalized.Contains("14 dit") || normalized.Contains("pÃƒÂ«rditÃƒÂ«suar") || normalized.Contains("perditesuar"))
+        if (normalized.Contains("14 dit") || normalized.Contains("përditësuar") || normalized.Contains("perditesuar"))
         {
             return PortfolioCadenceMeasurement;
         }
 
-        if (normalized.Contains("pa risk") || normalized.Contains("risk tÃƒÂ« lartÃƒÂ«") || normalized.Contains("risk te larte") || normalized.Contains("kritik"))
+        if (normalized.Contains("pa risk") || normalized.Contains("risk të lartë") || normalized.Contains("risk te larte") || normalized.Contains("kritik"))
         {
             return PortfolioLowRiskMeasurement;
         }
 
-        if ((normalized.Contains("okr mbi") || normalized.Contains("okr >= ") || normalized.Contains("okr tÃƒÂ« paktÃƒÂ«n") || normalized.Contains("okr te pakten")) && normalized.Contains("70"))
+        if ((normalized.Contains("okr mbi") || normalized.Contains("okr >= ") || normalized.Contains("okr të paktën") || normalized.Contains("okr te pakten")) && normalized.Contains("70"))
         {
             return PortfolioOkrAbove70Measurement;
         }
 
-        if (normalized.Contains("kr tÃƒÂ« pÃƒÂ«rcaktuara") || normalized.Contains("kr te percaktuara") || normalized.Contains("objektiva dhe kr"))
+        if (normalized.Contains("kr të përcaktuara") || normalized.Contains("kr te percaktuara") || normalized.Contains("objektiva dhe kr"))
         {
             return PortfolioProjectsWithKrsMeasurement;
         }
@@ -2303,12 +2326,12 @@ public sealed class InnovationDashboardStore
         return new ProjectResponse(
             project.Id,
             project.Code,
-            project.Name,
-            project.Description,
+            NormalizeUiText(project.Name),
+            NormalizeUiText(project.Description),
             project.ProgramKey,
-            project.Ministries.ToList(),
-            project.Agency,
-            project.Directorates.ToList(),
+            NormalizeUiTextList(project.Ministries),
+            NormalizeUiText(project.Agency),
+            NormalizeUiTextList(project.Directorates),
             project.Status,
             project.Priority,
             ProjectPriorities.ToLabel(project.Priority),
@@ -2325,9 +2348,9 @@ public sealed class InnovationDashboardStore
             delayDays,
             okr,
             project.Risk,
-            project.Team.ToList(),
+            NormalizeUiTextList(project.Team),
             project.TeamMembers.Select(ToTeamMemberResponse).ToList(),
-            project.Lead,
+            NormalizeUiText(project.Lead),
             project.UpdateCadenceDays,
             project.LastUpdated,
             okrAverage,
@@ -2341,16 +2364,16 @@ public sealed class InnovationDashboardStore
         var keyResults = state.KeyResults
             .Select(kr => new KeyResultResponse(
                 kr.Id,
-                kr.Title,
+                NormalizeUiText(kr.Title),
                 kr.Progress,
                 kr.Target,
-                kr.Unit,
+                NormalizeUiText(kr.Unit),
                 kr.MeasurementType,
                 kr.Progress,
                 IsAutomaticMeasurement(kr.MeasurementType)))
             .ToList();
         var progress = keyResults.Count == 0 ? 0 : (int)Math.Round(keyResults.Average(item => item.Progress));
-        return new ObjectiveResponse(state.Id, state.Title, state.Owner, progress, keyResults);
+        return new ObjectiveResponse(state.Id, NormalizeUiText(state.Title), NormalizeUiText(state.Owner), progress, keyResults);
     }
 
     private static ObjectiveResponse ToPortfolioObjectiveResponse(
@@ -2365,7 +2388,7 @@ public sealed class InnovationDashboardStore
             .Select(kr => ToPortfolioKeyResultResponse(kr, metrics, cadenceCompliance, lowRiskProjects, okrAbove70, projectsWithKrs))
             .ToList();
         var progress = keyResults.Count == 0 ? 0 : (int)Math.Round(keyResults.Average(item => item.Progress));
-        return new ObjectiveResponse(state.Id, state.Title, state.Owner, progress, keyResults);
+        return new ObjectiveResponse(state.Id, NormalizeUiText(state.Title), NormalizeUiText(state.Owner), progress, keyResults);
     }
 
     private static KeyResultResponse ToPortfolioKeyResultResponse(
@@ -2517,7 +2540,7 @@ public sealed class InnovationDashboardStore
                 $"team-{projectNumber}-{index + 1}",
                 member.Name.Trim(),
                 NormalizeWorkgroupRole(member.Role),
-                string.IsNullOrWhiteSpace(member.Unit) ? "NjÃƒÂ«si qendrore" : member.Unit.Trim(),
+                string.IsNullOrWhiteSpace(member.Unit) ? "Njësi qendrore" : member.Unit.Trim(),
                 Math.Clamp(member.AllocationPercent, 10, 100),
                 member.UserId,
                 string.IsNullOrWhiteSpace(member.AccountRole) ? null : member.AccountRole.Trim()))
@@ -2535,7 +2558,7 @@ public sealed class InnovationDashboardStore
                 $"team-{projectNumber}-{index + 1}",
                 name,
                 index == 0 ? WorkgroupRoles.ProjectLead : WorkgroupRoles.ProjectOfficer,
-                "NjÃƒÂ«si qendrore",
+                "Njësi qendrore",
                 index == 0 ? 80 : 50,
                 null,
                 null))
@@ -2551,10 +2574,10 @@ public sealed class InnovationDashboardStore
     private static WorkgroupMemberResponse ToTeamMemberResponse(WorkgroupMemberState member) =>
         new(
             member.Id,
-            member.Name,
+            NormalizeUiText(member.Name),
             member.Role,
             WorkgroupRoles.ToLabel(member.Role),
-            member.Unit,
+            NormalizeUiText(member.Unit),
             member.AllocationPercent,
             member.UserId,
             member.AccountRole);
@@ -2566,14 +2589,14 @@ public sealed class InnovationDashboardStore
             if (!DateOnly.TryParse(proposal.ProposedValue, out var proposedDate) &&
                 !DateOnly.TryParseExact(proposal.ProposedValue, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out proposedDate))
             {
-                error = "Data e propozuar nuk ÃƒÂ«shtÃƒÂ« e vlefshme.";
+                error = "Data e propozuar nuk është e vlefshme.";
                 return false;
             }
 
             var nextEndDate = new DateTimeOffset(proposedDate.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
             if (nextEndDate < project.StartDate)
             {
-                error = "Afati i ri nuk mund tÃƒÂ« jetÃƒÂ« pÃƒÂ«rpara datÃƒÂ«s sÃƒÂ« nisjes.";
+                error = "Afati i ri nuk mund të jetë përpara datës së nisjes.";
                 return false;
             }
 
@@ -2586,7 +2609,7 @@ public sealed class InnovationDashboardStore
         {
             if (string.IsNullOrWhiteSpace(proposal.ProposedValue))
             {
-                error = "PÃƒÂ«rmbajtja e propozuar nuk mund tÃƒÂ« jetÃƒÂ« bosh.";
+                error = "Përmbajtja e propozuar nuk mund të jetë bosh.";
                 return false;
             }
 
@@ -2595,7 +2618,7 @@ public sealed class InnovationDashboardStore
             return true;
         }
 
-        error = "Tipi i propozimit nuk mbÃƒÂ«shtetet.";
+        error = "Tipi i propozimit nuk mbështetet.";
         return false;
     }
 
@@ -2611,7 +2634,7 @@ public sealed class InnovationDashboardStore
             ApplicationRoles.ToDisplayLabel(proposal.SubmittedRole),
             proposal.SubmittedAt,
             proposal.Type,
-            proposal.Type == "deadline" ? "Ndryshim afati" : "Ndryshim pÃƒÂ«rmbajtjeje",
+            proposal.Type == "deadline" ? "Ndryshim afati" : "Ndryshim përmbajtjeje",
             proposal.CurrentValue,
             proposal.ProposedValue,
             proposal.Reason,
@@ -2634,7 +2657,7 @@ public sealed class InnovationDashboardStore
         new()
         {
             ["afatet"] = okr.Deadlines,
-            ["cilÃƒÆ’Ã‚Â«sia"] = okr.Quality,
+            ["cilësia"] = okr.Quality,
             ["impakti"] = okr.Impact,
             ["dinamika"] = okr.Dynamics,
         };
@@ -2647,7 +2670,7 @@ public sealed class InnovationDashboardStore
         var weakest = new Dictionary<string, int>
         {
             ["afatet"] = response.Okr.Deadlines,
-            ["cilÃƒÂ«sia"] = response.Okr.Quality,
+            ["cilësia"] = response.Okr.Quality,
             ["impakti"] = response.Okr.Impact,
             ["dinamika"] = response.Okr.Dynamics,
         }.OrderBy(item => item.Value).First();
@@ -2655,7 +2678,7 @@ public sealed class InnovationDashboardStore
         var strongest = new Dictionary<string, int>
         {
             ["afatet"] = response.Okr.Deadlines,
-            ["cilÃƒÂ«sia"] = response.Okr.Quality,
+            ["cilësia"] = response.Okr.Quality,
             ["impakti"] = response.Okr.Impact,
             ["dinamika"] = response.Okr.Dynamics,
         }.OrderByDescending(item => item.Value).First();
@@ -2668,10 +2691,10 @@ public sealed class InnovationDashboardStore
             return BuildAiInsightsFallback(project, response, weakest, strongest);
         }
 
-        var prompt = $"Je njÃƒÂ« analist i platformÃƒÂ«s Innovation4Albania.\n" +
-             $"Analizo projektin dhe kthe VETÃƒâ€¹M njÃƒÂ« JSON objekt (pa markdown, pa backticks) me kÃƒÂ«tÃƒÂ« strukturÃƒÂ«:\n" +
+        var prompt = $"Je një analist i platformës Innovation4Albania.\n" +
+             $"Analizo projektin dhe kthe VETËM një JSON objekt (pa markdown, pa backticks) me këtë strukturë:\n" +
              $"{jsonStructure}\n\n" +
-             $"TÃƒâ€¹ DHÃƒâ€¹NAT E PROJEKTIT:\n" +
+             $"TË DHËNAT E PROJEKTIT:\n" +
              $"- Emri: {project.Name}\n" +
              $"- Statusi: {ProjectStatuses.ToLabel(project.Status)}\n" +
              $"- Progresi: {project.Progress}%\n" +
@@ -2680,16 +2703,16 @@ public sealed class InnovationDashboardStore
              $"- Risku: {RiskLevels.ToLabel(project.Risk)}\n" +
              $"- OKR mesatar: {response.OkrAverage}%\n" +
              $"- Afatet OKR: {response.Okr.Deadlines}%\n" +
-             $"- CilÃƒÂ«sia OKR: {response.Okr.Quality}%\n" +
+             $"- Cilësia OKR: {response.Okr.Quality}%\n" +
              $"- Impakti OKR: {response.Okr.Impact}%\n" +
              $"- Dinamika OKR: {response.Okr.Dynamics}%\n" +
-             $"- DitÃƒÂ« tÃƒÂ« mbetura: {response.DaysRemaining}\n" +
-             $"- Vonesa (ditÃƒÂ«): {response.DelayDays}\n" +
-             $"- Fusha mÃƒÂ« e dobÃƒÂ«t: {weakest.Key} ({weakest.Value}%)\n" +
-             $"- Fusha mÃƒÂ« e fortÃƒÂ«: {strongest.Key} ({strongest.Value}%)\n\n" +
-             $"RiskScore duhet tÃƒÂ« jetÃƒÂ« 0 pÃƒÂ«r risk minimal dhe 100 pÃƒÂ«r risk ekstrem, duke peshuar riskun, devijimin, vonesat, OKR dhe afatin.\n" +
-             $"PÃƒÂ«rgjigju VETÃƒâ€¹M me JSON. GjithÃƒÂ§ka nÃƒÂ« shqip." +
-             $"IMPORTANT: Mbaj ÃƒÂ§do fushÃƒÂ« MAKSIMUM 1 fjali. JSON duhet tÃƒÂ« jetÃƒÂ« kompakt.";
+             $"- Ditë të mbetura: {response.DaysRemaining}\n" +
+             $"- Vonesa (ditë): {response.DelayDays}\n" +
+             $"- Fusha më e dobët: {weakest.Key} ({weakest.Value}%)\n" +
+             $"- Fusha më e fortë: {strongest.Key} ({strongest.Value}%)\n\n" +
+             $"RiskScore duhet të jetë 0 për risk minimal dhe 100 për risk ekstrem, duke peshuar riskun, devijimin, vonesat, OKR dhe afatin.\n" +
+             $"Përgjigju VETËM me JSON. Gjithçka në shqip." +
+             $"IMPORTANT: Mbaj çdo fushë MAKSIMUM 1 fjali. JSON duhet të jetë kompakt.";
 
         try
         {
@@ -2720,7 +2743,7 @@ public sealed class InnovationDashboardStore
 
                 _logger.LogDebug("Gemini raw insights response: {RawText}", rawText);
 
-                // Pastro markdown nÃƒÂ«se Gemini kthen ```json ... ```
+                // Pastro markdown nëse Gemini kthen ```json ... ```
                 var cleanJson = rawText
                 .Replace("```json", "")
                 .Replace("```", "")
@@ -2786,15 +2809,15 @@ public sealed class InnovationDashboardStore
 
         if (response.DeviationPercent > 10)
         {
-            concerns.Add($"Progresi aktual ÃƒÂ«shtÃƒÂ« {response.DeviationPercent}% poshtÃƒÂ« ritmit tÃƒÂ« pritur.");
-            recommendations.Add("Riplanifiko fazat qÃƒÂ« kanÃƒÂ« mbetur.");
+            concerns.Add($"Progresi aktual është {response.DeviationPercent}% poshtë ritmit të pritur.");
+            recommendations.Add("Riplanifiko fazat që kanë mbetur.");
         }
         if (response.OkrAverage >= 80)
-            positives.Add($"OKR mesatar ÃƒÂ«shtÃƒÂ« {response.OkrAverage}% Ã¢â‚¬â€ ekzekutim i qÃƒÂ«ndrueshÃƒÂ«m.");
+            positives.Add($"OKR mesatar është {response.OkrAverage}% - ekzekutim i qëndrueshëm.");
 
-        positives.Add($"Indikatori mÃƒÂ« i fortÃƒÂ« ÃƒÂ«shtÃƒÂ« {strongest.Key} me {strongest.Value}%.");
-        concerns.Add($"Fusha qÃƒÂ« kÃƒÂ«rkon ndÃƒÂ«rhyrje: {weakest.Key} me {weakest.Value}%.");
-        recommendations.Add($"Forco planin pÃƒÂ«r {weakest.Key} nÃƒÂ« ciklin e ardhshÃƒÂ«m.");
+        positives.Add($"Indikatori më i fortë është {strongest.Key} me {strongest.Value}%.");
+        concerns.Add($"Fusha që kërkon ndërhyrje: {weakest.Key} me {weakest.Value}%.");
+        recommendations.Add($"Forco planin për {weakest.Key} në ciklin e ardhshëm.");
 
         var attentionLevel = project.Risk switch
         {
@@ -2806,7 +2829,7 @@ public sealed class InnovationDashboardStore
 
         return new AiInsightResponse(
             project.Id, attentionLevel,
-            $"Projekti nÃƒÂ« statusin {ProjectStatuses.ToLabel(project.Status)} me progres {project.Progress}% dhe OKR {response.OkrAverage}%.",
+            $"Projekti në statusin {ProjectStatuses.ToLabel(project.Status)} me progres {project.Progress}% dhe OKR {response.OkrAverage}%.",
             $"Risku {RiskLevels.ToLabel(project.Risk).ToLowerInvariant()} lidhet me devijimin prej {response.DeviationPercent}%.",
             riskScore,
             BuildRiskPrediction(riskScore),
@@ -2834,10 +2857,10 @@ public sealed class InnovationDashboardStore
     private static string BuildRiskPrediction(int riskScore) =>
         riskScore switch
         {
-            <= 20 => "Modeli sugjeron vazhdimÃƒÂ«si normale me monitorim standard.",
-            <= 45 => "Modeli sugjeron monitorim tÃƒÂ« rregullt dhe kontroll tÃƒÂ« ritmit tÃƒÂ« progresit.",
-            <= 70 => "Modeli sugjeron vÃƒÂ«mendje tÃƒÂ« shtuar dhe plan rikuperimi pÃƒÂ«r faktorÃƒÂ«t mÃƒÂ« tÃƒÂ« dobÃƒÂ«t.",
-            _ => "Modeli sugjeron ndÃƒÂ«rhyrje prioritare dhe eskalim drejtues pÃƒÂ«r uljen e riskut."
+            <= 20 => "Modeli sugjeron vazhdimësi normale me monitorim standard.",
+            <= 45 => "Modeli sugjeron monitorim të rregullt dhe kontroll të ritmit të progresit.",
+            <= 70 => "Modeli sugjeron vëmendje të shtuar dhe plan rikuperimi për faktorët më të dobët.",
+            _ => "Modeli sugjeron ndërhyrje prioritare dhe eskalim drejtues për uljen e riskut."
         };
 
     private PortfolioMetricsResponse BuildPortfolioMetrics(IReadOnlyCollection<ProjectState> projects)
@@ -2921,9 +2944,9 @@ public sealed class InnovationDashboardStore
         var rank = UrgencyRank(project);
         return rank switch
         {
-            >= 4 => "UrgjencÃƒÂ« kritike",
-            3 => "UrgjencÃƒÂ« e lartÃƒÂ«",
-            2 => "PÃƒÂ«r monitorim",
+            >= 4 => "Urgjencë kritike",
+            3 => "Urgjencë e lartë",
+            2 => "Për monitorim",
             _ => "Stabile"
         };
     }
@@ -2947,7 +2970,7 @@ public sealed class InnovationDashboardStore
     private static IReadOnlyList<ProjectEventResponse> BuildProjectEvents(ProjectState project) =>
     [
         new($"start-{project.Id}", project.Id, project.StartDate, EventTypes.Kickoff, "Nisja e projektit"),
-        new($"end-{project.Id}", project.Id, project.EndDate, EventTypes.Completion, "PÃƒÂ«rfundimi i projektit")
+        new($"end-{project.Id}", project.Id, project.EndDate, EventTypes.Completion, "Përfundimi i projektit")
     ];
 
     private static DateOnly StartOfWeek(DateOnly value)
@@ -2980,11 +3003,11 @@ public sealed class InnovationDashboardStore
         new(
             "p1",
             "ASHSH-2024",
-            "ASHSH - Agjencia ShtetÃƒÂ«rore pÃƒÂ«r ShpronÃƒÂ«simin",
-            "Projekt real demonstrues pÃƒÂ«r transformimin e proceseve tÃƒÂ« shpronÃƒÂ«simit dhe koordinimit ndÃƒÂ«rinstitucional.",
+            "ASHSH - Agjencia Shtetërore për Shpronësimin",
+            "Projekt real demonstrues për transformimin e proceseve të shpronësimit dhe koordinimit ndërinstitucional.",
             null,
-            ["Ministria e InfrastrukturÃƒÂ«s dhe EnergjisÃƒÂ«", "Ministria e EkonomisÃƒÂ« dhe Inovacionit"],
-            "Agjencia ShtetÃƒÂ«rore pÃƒÂ«r ShpronÃƒÂ«simin",
+            ["Ministria e Infrastrukturës dhe Energjisë", "Ministria e Ekonomisë dhe Inovacionit"],
+            "Agjencia Shtetërore për Shpronësimin",
             [],
             ProjectStatuses.Active,
             ProjectPriorities.Critical,
@@ -3000,16 +3023,16 @@ public sealed class InnovationDashboardStore
             [
                 new WorkgroupMemberState("team-1-1", "Erblin Malkurti", WorkgroupRoles.ProjectLead, "ASHSH", 90),
                 new WorkgroupMemberState("team-1-2", "Evilsidio Tosku", WorkgroupRoles.BusinessAnalyst, "ASHSH", 70),
-                new WorkgroupMemberState("team-1-3", "Nensi Ahmetbeja", WorkgroupRoles.MinistryRepresentative, "Ministria e InfrastrukturÃƒÂ«s dhe EnergjisÃƒÂ«", 60),
-                new WorkgroupMemberState("team-1-4", "Ina Peleshka", WorkgroupRoles.OkrOwner, "Ministria e EkonomisÃƒÂ« dhe Inovacionit", 55)
+                new WorkgroupMemberState("team-1-3", "Nensi Ahmetbeja", WorkgroupRoles.MinistryRepresentative, "Ministria e Infrastrukturës dhe Energjisë", 60),
+                new WorkgroupMemberState("team-1-4", "Ina Peleshka", WorkgroupRoles.OkrOwner, "Ministria e Ekonomisë dhe Inovacionit", 55)
             ],
             "Erblin Malkurti",
             14,
             IsoOffset(-5),
             [
-                new ObjectiveState("obj-1", "PÃƒÂ«rshpejtimi i shpronÃƒÂ«simeve", "ASHSH",
+                new ObjectiveState("obj-1", "Përshpejtimi i shpronësimeve", "ASHSH",
                 [
-                    new KeyResultState("obj-1-kr-1", "Ulja e kohÃƒÂ«s mesatare tÃƒÂ« shqyrtimit", 74, 100, "%"),
+                    new KeyResultState("obj-1-kr-1", "Ulja e kohës mesatare të shqyrtimit", 74, 100, "%"),
                     new KeyResultState("obj-1-kr-2", "Digjitalizimi i dosjeve prioritare", 68, 100, "%")
                 ])
             ]),
@@ -3017,8 +3040,8 @@ public sealed class InnovationDashboardStore
             2,
             "CASHLESS-2026",
             "Cashless Albania",
-            "Rritja e pagesave elektronike nga 16% nÃƒÂ« 60% dhe pranimi i metodave elektronike nga 100% e institucioneve publike.",
-            ["Ministria e Financave", "Ministria e EkonomisÃƒÂ« dhe Inovacionit"],
+            "Rritja e pagesave elektronike nga 16% në 60% dhe pranimi i metodave elektronike nga 100% e institucioneve publike.",
+            ["Ministria e Financave", "Ministria e Ekonomisë dhe Inovacionit"],
             ProjectSectors.Governance,
             FixedDate(2026, 4, 28),
             FixedDate(2026, 12, 31),
@@ -3027,9 +3050,9 @@ public sealed class InnovationDashboardStore
         CreateActualProject(
             3,
             "ROAD-ZERO-2026",
-            "Reduktimi drejt 0 i fataliteteve nÃƒÂ« rrugÃƒÂ«",
-            "Reduktimi i fataliteteve rrugore dhe aksidenteve nÃƒÂ«pÃƒÂ«rmjet aplikimit tÃƒÂ« sistemeve inteligjente.",
-            ["Ministria e InfrastrukturÃƒÂ«s dhe EnergjisÃƒÂ«"],
+            "Reduktimi drejt 0 i fataliteteve në rrugë",
+            "Reduktimi i fataliteteve rrugore dhe aksidenteve nëpërmjet aplikimit të sistemeve inteligjente.",
+            ["Ministria e Infrastrukturës dhe Energjisë"],
             ProjectSectors.Infrastructure,
             FixedDate(2026, 4, 23),
             FixedDate(2026, 12, 31),
@@ -3037,9 +3060,9 @@ public sealed class InnovationDashboardStore
         CreateActualProject(
             4,
             "CULTURE-REVENUE-2026",
-            "Rritja e tÃƒÂ« ardhurave nÃƒÂ« objektet kulturore",
-            "Rritja e tÃƒÂ« ardhurave nÃƒÂ« objektet kulturore.",
-            ["Ministria e KulturÃƒÂ«s dhe Turizmit"],
+            "Rritja e të ardhurave në objektet kulturore",
+            "Rritja e të ardhurave në objektet kulturore.",
+            ["Ministria e Kulturës dhe Turizmit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -3047,9 +3070,9 @@ public sealed class InnovationDashboardStore
         CreateActualProject(
             5,
             "SCHOOL-FOOD-2026",
-            "Furnizimi me ushqim nÃƒÂ« shkolla",
-            "Furnizimi me ushqim nÃƒÂ« shkolla.",
-            ["Ministria e KulturÃƒÂ«s dhe Turizmit"],
+            "Furnizimi me ushqim në shkolla",
+            "Furnizimi me ushqim në shkolla.",
+            ["Ministria e Kulturës dhe Turizmit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -3057,9 +3080,9 @@ public sealed class InnovationDashboardStore
         CreateActualProject(
             6,
             "SPORT-COMMUNITY-2026",
-            "Kthimi i ambienteve sportive nÃƒÂ« qendra komunitare",
-            "Kthimi i ambienteve sportive nÃƒÂ« qendra komunitare.",
-            ["Ministria e KulturÃƒÂ«s dhe Turizmit"],
+            "Kthimi i ambienteve sportive në qendra komunitare",
+            "Kthimi i ambienteve sportive në qendra komunitare.",
+            ["Ministria e Kulturës dhe Turizmit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -3067,9 +3090,9 @@ public sealed class InnovationDashboardStore
         CreateActualProject(
             7,
             "DIGITAL-TOOLS-2026",
-            "Rritja e pÃƒÂ«rdorimit tÃƒÂ« mjeteve digjitale me 80% nÃƒÂ« turizÃƒÂ«m, bujqÃƒÂ«si dhe mjedis",
-            "Rritja e pÃƒÂ«rdorimit tÃƒÂ« mjeteve digjitale me 80% nÃƒÂ« turizÃƒÂ«m, bujqÃƒÂ«si dhe mjedis.",
-            ["Ministria e KulturÃƒÂ«s dhe Turizmit", "Ministria e BujqÃƒÂ«sisÃƒÂ« dhe Zhvillimit Rural", "Ministria e Mjedisit"],
+            "Rritja e përdorimit të mjeteve digjitale me 80% në turizëm, bujqësi dhe mjedis",
+            "Rritja e përdorimit të mjeteve digjitale me 80% në turizëm, bujqësi dhe mjedis.",
+            ["Ministria e Kulturës dhe Turizmit", "Ministria e Bujqësisë dhe Zhvillimit Rural", "Ministria e Mjedisit"],
             ProjectSectors.PublicServices,
             FixedDate(2026, 4, 22),
             FixedDate(2026, 12, 31),
@@ -3080,22 +3103,22 @@ public sealed class InnovationDashboardStore
     {
         var ministryTemplates = new (string Suffix, string Ministry)[]
         {
-            ("MEI", "Ministria e EkonomisÃƒÂ« dhe Inovacionit"),
-            ("MSHMS", "Ministria e ShÃƒÂ«ndetÃƒÂ«sisÃƒÂ« dhe Mbrojtjes Sociale"),
-            ("MD", "Ministria e DrejtÃƒÂ«sisÃƒÂ«"),
+            ("MEI", "Ministria e Ekonomisë dhe Inovacionit"),
+            ("MSHMS", "Ministria e Shëndetësisë dhe Mbrojtjes Sociale"),
+            ("MD", "Ministria e Drejtësisë"),
             ("MF", "Ministria e Financave"),
-            ("MIE", "Ministria e InfrastrukturÃƒÂ«s dhe EnergjisÃƒÂ«"),
-            ("MBZHR", "Ministria e BujqÃƒÂ«sisÃƒÂ« dhe Zhvillimit Rural"),
-            ("MKTS", "Ministria e KulturÃƒÂ«s, Turizmit dhe Sportit"),
-            ("MPB", "Ministria e PunÃƒÂ«ve tÃƒÂ« Brendshme"),
-            ("MEPJ", "Ministria pÃƒÂ«r EvropÃƒÂ«n dhe PunÃƒÂ«t e Jashtme"),
+            ("MIE", "Ministria e Infrastrukturës dhe Energjisë"),
+            ("MBZHR", "Ministria e Bujqësisë dhe Zhvillimit Rural"),
+            ("MKTS", "Ministria e Kulturës, Turizmit dhe Sportit"),
+            ("MPB", "Ministria e Punëve të Brendshme"),
+            ("MEPJ", "Ministria për Evropën dhe Punët e Jashtme"),
             ("MAS", "Ministria e Arsimit"),
             ("MM", "Ministria e Mjedisit"),
             ("MMB", "Ministria e Mbrojtjes"),
-            ("MSMP", "Ministria e Shtetit pÃƒÂ«r MarrÃƒÂ«dhÃƒÂ«nien me Parlamentin"),
-            ("MSPV", "Ministria e Shtetit pÃƒÂ«r Pushtetin Vendor"),
+            ("MSMP", "Ministria e Shtetit për Marrëdhënien me Parlamentin"),
+            ("MSPV", "Ministria e Shtetit për Pushtetin Vendor"),
             ("MSK", "Ministria e Shtetit dhe Kryenegociatorit"),
-            ("MSAP", "Ministria e Shtetit pÃƒÂ«r AdministratÃƒÂ«n Publike dhe Antikorrupsionin")
+            ("MSAP", "Ministria e Shtetit për Administratën Publike dhe Antikorrupsionin")
         };
 
         var templateProject = ResolveAiDiellaBaseProject();
@@ -3131,10 +3154,10 @@ public sealed class InnovationDashboardStore
         new(
             "template-ai-diella",
             AiDiellaTemplateCode,
-            "Diella Team 2030 - Pilot IA pÃƒÂ«r AdministratÃƒÂ«n Publike",
-            "Projekt programor pÃƒÂ«r zbatimin e pilotit IA nÃƒÂ« administratÃƒÂ«n publike.",
+            "Diella Team 2030 - Pilot IA për Administratën Publike",
+            "Projekt programor për zbatimin e pilotit IA në administratën publike.",
             ApplicationRoles.AiDiellaProgramKey,
-            ["Ministria e EkonomisÃƒÂ« dhe Inovacionit"],
+            ["Ministria e Ekonomisë dhe Inovacionit"],
             "Innovation4Albania",
             ["Drejtoria e Inovacionit"],
             ProjectStatuses.Active,
@@ -3155,10 +3178,10 @@ public sealed class InnovationDashboardStore
             [
                 new ObjectiveState(
                     "obj-ai-diella-template-1",
-                    "Adoptimi i IA nÃƒÂ« ministri",
+                    "Adoptimi i IA në ministri",
                     "Drejtoria e Inovacionit",
                     [
-                        new KeyResultState("obj-ai-diella-template-1-kr-1", "Ministria arrin pÃƒÂ«rdorim aktiv tÃƒÂ« IA sipas planit tÃƒÂ« pilotit", 0, 100, "%")
+                        new KeyResultState("obj-ai-diella-template-1-kr-1", "Ministria arrin përdorim aktiv të IA sipas planit të pilotit", 0, 100, "%")
                     ])
             ]);
 
@@ -3329,16 +3352,16 @@ public sealed class InnovationDashboardStore
         };
         var members = new List<WorkgroupMemberState>
         {
-            new($"team-{idNumber}-1", $"PÃƒÂ«rgjegjÃƒÂ«si {projectNumber}", WorkgroupRoles.ProjectLead, ministry, 80),
-            new($"team-{idNumber}-2", $"Koordinator {projectNumber}", WorkgroupRoles.TechnicalCoordinator, "NjÃƒÂ«si teknike", 60),
-            new($"team-{idNumber}-3", $"Analist {projectNumber}", WorkgroupRoles.BusinessAnalyst, "NjÃƒÂ«si projekti", 45)
+            new($"team-{idNumber}-1", $"Përgjegjësi {projectNumber}", WorkgroupRoles.ProjectLead, ministry, 80),
+            new($"team-{idNumber}-2", $"Koordinator {projectNumber}", WorkgroupRoles.TechnicalCoordinator, "Njësi teknike", 60),
+            new($"team-{idNumber}-3", $"Analist {projectNumber}", WorkgroupRoles.BusinessAnalyst, "Njësi projekti", 45)
         };
 
         return new ProjectState(
             $"p{idNumber}",
             $"PRJ-{projectNumber:000}",
             $"Projekti {projectNumber}",
-            $"Projekt shembull pÃƒÂ«r demonstrim tÃƒÂ« platformÃƒÂ«s pÃƒÂ«r {ministry}.",
+            $"Projekt shembull për demonstrim të platformës për {ministry}.",
             null,
             [ministry],
             null,
@@ -3355,7 +3378,7 @@ public sealed class InnovationDashboardStore
             risk,
             members.Select(member => member.Name).ToList(),
             members,
-            $"PÃƒÂ«rgjegjÃƒÂ«si {projectNumber}",
+            $"Përgjegjësi {projectNumber}",
             14,
             lastUpdated,
             BuildSampleObjectives($"obj-{idNumber}", $"Objektivi {projectNumber}"));
@@ -3363,23 +3386,23 @@ public sealed class InnovationDashboardStore
 
     private static List<ObjectiveState> BuildPortfolioObjectives() =>
     [
-        new("portfolio-1", "Rritja e dorÃƒÂ«zimeve nÃƒÂ« kohÃƒÂ«", "Drejtoria e Inovacionit",
+        new("portfolio-1", "Rritja e dorëzimeve në kohë", "Drejtoria e Inovacionit",
         [
-            new KeyResultState("portfolio-1-kr-1", "TÃƒÂ« arrihet 82% dorÃƒÂ«zim nÃƒÂ« kohÃƒÂ«", 76, 82, "%"),
-            new KeyResultState("portfolio-1-kr-2", "TÃƒÂ« ulen devijimet mesatare nÃƒÂ«n 8%", 61, 8, "%")
+            new KeyResultState("portfolio-1-kr-1", "Të arrihet 82% dorëzim në kohë", 76, 82, "%"),
+            new KeyResultState("portfolio-1-kr-2", "Të ulen devijimet mesatare nën 8%", 61, 8, "%")
         ]),
         new("portfolio-2", "Rritja e maturitetit OKR", "Drejtoria e Inovacionit",
         [
-            new KeyResultState("portfolio-2-kr-1", "Mesatarja e OKR tÃƒÂ« portofolit", 73, 80, "%"),
-            new KeyResultState("portfolio-2-kr-2", "Projektet me KR tÃƒÂ« pÃƒÂ«rditÃƒÂ«suar ÃƒÂ§do 14 ditÃƒÂ«", 68, 90, "%")
+            new KeyResultState("portfolio-2-kr-1", "Mesatarja e OKR të portofolit", 73, 80, "%"),
+            new KeyResultState("portfolio-2-kr-2", "Projektet me KR të përditësuar çdo 14 ditë", 68, 90, "%")
         ])
     ];
 
     private List<WeeklyUpdateState> BuildUpdates() =>
     [
-        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, "Drejtori i Inovacionit", IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritÃƒÂ« kÃƒÂ«rkon sinkronizim mÃƒÂ« tÃƒÂ« shpeshtÃƒÂ«.", "Faza 7 po ecÃƒÂ«n sipas planit, por duhen finalizuar vendimet e ndÃƒÂ«rmjetme.", []),
-        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-6), 33, ProjectStatuses.Active, RiskLevels.High, "Ka vonesÃƒÂ« nÃƒÂ« miratimin e dokumenteve pÃƒÂ«rgatitore.", "Duhet ndjekje e pÃƒÂ«rditshme me njÃƒÂ«sinÃƒÂ« pÃƒÂ«rkatÃƒÂ«se.", []),
-        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-8), 41, ProjectStatuses.Blocked, RiskLevels.High, "Bllokim nÃƒÂ« furnizim dhe mungesÃƒÂ« aprovimesh.", "KÃƒÂ«rkohet vendim drejtues pÃƒÂ«r tÃƒÂ« zhbllokuar varÃƒÂ«sitÃƒÂ«.", [])
+        new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, "Drejtori i Inovacionit", IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme.", []),
+        new("upd-2", "p3", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-6), 33, ProjectStatuses.Active, RiskLevels.High, "Ka vonesë në miratimin e dokumenteve përgatitore.", "Duhet ndjekje e përditshme me njësinë përkatëse.", []),
+        new("upd-3", "p5", "Ekspert Agjencie", ApplicationRoles.StafAgjencie, "Ekspert Agjencie", IsoOffset(-8), 41, ProjectStatuses.Blocked, RiskLevels.High, "Bllokim në furnizim dhe mungesë aprovimesh.", "Kërkohet vendim drejtues për të zhbllokuar varësitë.", [])
     ];
 
     private static List<ObjectiveState> BuildSampleObjectives(string prefix, string title) =>
@@ -3575,6 +3598,7 @@ internal static class ObjectPipeExtensions
 {
     public static TResult Pipe<TSource, TResult>(this TSource source, Func<TSource, TResult> selector) => selector(source);
 }
+
 
 
 
