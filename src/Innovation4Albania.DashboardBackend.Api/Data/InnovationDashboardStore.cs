@@ -1972,8 +1972,7 @@ public sealed class InnovationDashboardStore
 
     private static bool IsExpertPortfolioMember(WorkgroupMemberState member) =>
         !string.IsNullOrWhiteSpace(member.UserId) &&
-        (ApplicationRoles.IsAgencyContributor(member.AccountRole ?? string.Empty) ||
-         string.Equals(member.AccountRole, ApplicationRoles.PergjegjesSektori, StringComparison.OrdinalIgnoreCase));
+        ApplicationRoles.IsManagedUserRole(member.AccountRole ?? string.Empty);
 
     private static bool IsSupportServicesTeamMember(WorkgroupMemberState member) =>
         string.Equals(member.AccountRole, ApplicationRoles.PergjegjesSektori, StringComparison.OrdinalIgnoreCase) ||
