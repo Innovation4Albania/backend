@@ -443,6 +443,99 @@ public sealed class InnovationDashboardStore
             unitAllocations);
     });
 
+    public Task<IReadOnlyList<ExpertPortfolioExpertResponse>> GetExpertPortfolioExperts(UserContext context) =>
+        ExecuteReadAsync<IReadOnlyList<ExpertPortfolioExpertResponse>>(() =>
+        {
+            if (!ApplicationRoles.IsInnovationDirector(context.Role))
+            {
+                return [];
+            }
+
+            return GetVisibleProjects(context)
+                .SelectMany(project => project.TeamMembers)
+                .Where(IsExpertPortfolioMember)
+                .GroupBy(member => member.UserId!, StringComparer.OrdinalIgnoreCase)
+                .Select(group =>
+                {
+                    var member = group
+                        .OrderBy(item => NormalizeUiText(item.Name))
+                        .First();
+                    var role = member.AccountRole ?? string.Empty;
+
+                    return new ExpertPortfolioExpertResponse(
+                        member.UserId!,
+                        NormalizeUiText(member.Name),
+                        role,
+                        ApplicationRoles.ToDisplayLabel(role),
+                        NormalizeUiText(member.Unit));
+                })
+                .OrderBy(item => item.FullName)
+                .ToList();
+        });
+
+    public Task<ExpertPortfolioResponse?> GetExpertPortfolio(UserContext context, string userId) =>
+        ExecuteReadAsync<ExpertPortfolioResponse?>(() =>
+        {
+            if (!ApplicationRoles.IsInnovationDirector(context.Role) || string.IsNullOrWhiteSpace(userId))
+            {
+                return null;
+            }
+
+            var normalizedUserId = userId.Trim();
+            var visibleProjects = GetVisibleProjects(context);
+            var expert = visibleProjects
+                .SelectMany(project => project.TeamMembers)
+                .Where(IsExpertPortfolioMember)
+                .FirstOrDefault(member => string.Equals(member.UserId, normalizedUserId, StringComparison.OrdinalIgnoreCase));
+
+            if (expert is null)
+            {
+                return null;
+            }
+
+            var projects = visibleProjects
+                .Where(project => project.TeamMembers.Any(member =>
+                    string.Equals(member.UserId, normalizedUserId, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(project => project.Name)
+                .ToList();
+
+            var projectIds = projects.Select(project => project.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var normalizedExpertName = NormalizeForMinistryMatch(expert.Name);
+            var updates = _updates
+                .Where(update =>
+                    projectIds.Contains(update.ProjectId) &&
+                    NormalizeForMinistryMatch(update.ExpertName) == normalizedExpertName)
+                .OrderByDescending(update => update.SubmittedAt)
+                .ToList();
+
+            var averageOkr = projects.Count == 0 ? 0 : (int)Math.Round(projects.Average(GetOkrAverage));
+            var averageProgress = projects.Count == 0 ? 0 : (int)Math.Round(projects.Average(project => project.Progress));
+            var delayedProjects = projects.Count(project => CalculateExpectedProgress(project.StartDate, project.EndDate) > project.Progress);
+            var highRiskProjects = projects.Count(project => project.Risk is RiskLevels.High or RiskLevels.Critical);
+            var projectLookup = projects.ToDictionary(project => project.Id, StringComparer.OrdinalIgnoreCase);
+            var role = expert.AccountRole ?? string.Empty;
+
+            return new ExpertPortfolioResponse(
+                new ExpertPortfolioExpertResponse(
+                    normalizedUserId,
+                    NormalizeUiText(expert.Name),
+                    role,
+                    ApplicationRoles.ToDisplayLabel(role),
+                    NormalizeUiText(expert.Unit)),
+                new ExpertPortfolioSummaryResponse(
+                    projects.Count,
+                    averageOkr,
+                    averageProgress,
+                    delayedProjects,
+                    highRiskProjects,
+                    updates.Count),
+                projects.Select(ToResponse).ToList(),
+                updates
+                    .Where(update => projectLookup.ContainsKey(update.ProjectId))
+                    .Select(update => ToWeeklyUpdateResponse(update, projectLookup[update.ProjectId]))
+                    .ToList());
+        });
+
     public Task<IReadOnlyList<PerformanceScoreItem>> GetPerformanceScores(UserContext context) =>
         ExecuteReadAsync<IReadOnlyList<PerformanceScoreItem>>(() =>
         {
@@ -1876,6 +1969,11 @@ public sealed class InnovationDashboardStore
 
     private static bool HasSupportServicesTeamMember(ProjectState project) =>
         project.TeamMembers.Any(IsSupportServicesTeamMember);
+
+    private static bool IsExpertPortfolioMember(WorkgroupMemberState member) =>
+        !string.IsNullOrWhiteSpace(member.UserId) &&
+        (ApplicationRoles.IsAgencyContributor(member.AccountRole ?? string.Empty) ||
+         string.Equals(member.AccountRole, ApplicationRoles.PergjegjesSektori, StringComparison.OrdinalIgnoreCase));
 
     private static bool IsSupportServicesTeamMember(WorkgroupMemberState member) =>
         string.Equals(member.AccountRole, ApplicationRoles.PergjegjesSektori, StringComparison.OrdinalIgnoreCase) ||

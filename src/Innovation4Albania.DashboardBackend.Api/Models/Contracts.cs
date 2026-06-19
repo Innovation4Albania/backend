@@ -39,6 +39,27 @@ public sealed record ViewUserResponse(
     string? Ministry,
     string FullName);
 
+public sealed record ExpertPortfolioExpertResponse(
+    string UserId,
+    string FullName,
+    string Role,
+    string RoleLabel,
+    string Unit);
+
+public sealed record ExpertPortfolioSummaryResponse(
+    int TotalProjects,
+    int AverageOkr,
+    int AverageProgress,
+    int DelayedProjects,
+    int HighRiskProjects,
+    int UpdatesSubmitted);
+
+public sealed record ExpertPortfolioResponse(
+    ExpertPortfolioExpertResponse Expert,
+    ExpertPortfolioSummaryResponse Summary,
+    IReadOnlyList<ProjectResponse> Projects,
+    IReadOnlyList<WeeklyUpdateResponse> Updates);
+
 public sealed record CreateUserRequest(
     string FullName,
     string Username,

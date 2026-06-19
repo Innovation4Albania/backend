@@ -57,6 +57,39 @@ public static class DashboardEndpoints
             return Results.Ok(await service.GetResourceCapacity(context));
         });
 
+        api.MapGet("/dashboard/expert-portfolio/experts", async (ClaimsPrincipal user, IUserContextService contextService, IDashboardService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            if (!ApplicationRoles.IsInnovationDirector(context.Role))
+            {
+                return Results.Json(
+                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje të shikojë portofolin e ekspertëve."),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            return Results.Ok(await service.GetExpertPortfolioExperts(context));
+        });
+
+        api.MapGet("/dashboard/expert-portfolio/{userId}", async (string userId, ClaimsPrincipal user, IUserContextService contextService, IDashboardService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            if (!ApplicationRoles.IsInnovationDirector(context.Role))
+            {
+                return Results.Json(
+                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje të shikojë portofolin e ekspertëve."),
+                    statusCode: StatusCodes.Status403Forbidden);
+            }
+
+            var portfolio = await service.GetExpertPortfolio(context, userId);
+            return portfolio is null
+                ? Results.NotFound(new ApiErrorResponse("not_found", "Eksperti nuk u gjet në portofolin tuaj."))
+                : Results.Ok(portfolio);
+        });
+
         api.MapGet("/performance/board", async (ClaimsPrincipal user, IUserContextService contextService, IDashboardService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))

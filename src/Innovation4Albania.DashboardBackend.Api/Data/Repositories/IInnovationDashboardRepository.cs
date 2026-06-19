@@ -14,6 +14,8 @@ public interface IInnovationDashboardRepository
     Task<ResourceCapacitySummaryResponse> GetResourceCapacitySummary(UserContext context);
     Task<IReadOnlyList<PerformanceScoreItem>> GetPerformanceScores(UserContext context);
     Task<IReadOnlyList<TrendPointResponse>> GetTrend(UserContext context, int months);
+    Task<IReadOnlyList<ExpertPortfolioExpertResponse>> GetExpertPortfolioExperts(UserContext context);
+    Task<ExpertPortfolioResponse?> GetExpertPortfolio(UserContext context, string userId);
     Task<IReadOnlyList<ProjectResponse>> GetProjects(UserContext context, string? status, string? query);
     Task<ProjectResponse?> GetProjectById(string id, UserContext context);
     Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryCreateProjectAsync(UserContext context, CreateProjectRequest request);

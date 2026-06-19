@@ -14,4 +14,6 @@ public sealed class DashboardService(IInnovationDashboardRepository repository) 
     public Task<ResourceCapacitySummaryResponse> GetResourceCapacity(UserContext context) => repository.GetResourceCapacitySummary(context);
     public Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context) => repository.GetPerformanceBoard(context);
     public Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context) => repository.GetRiskDeviations(context);
+    public Task<IReadOnlyList<ExpertPortfolioExpertResponse>> GetExpertPortfolioExperts(UserContext context) => repository.GetExpertPortfolioExperts(context);
+    public Task<ExpertPortfolioResponse?> GetExpertPortfolio(UserContext context, string userId) => repository.GetExpertPortfolio(context, userId);
 }

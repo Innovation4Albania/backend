@@ -14,6 +14,8 @@ public sealed class InnovationDashboardRepository(InnovationDashboardStore store
     public Task<ResourceCapacitySummaryResponse> GetResourceCapacitySummary(UserContext context) => store.GetResourceCapacitySummary(context);
     public Task<IReadOnlyList<PerformanceScoreItem>> GetPerformanceScores(UserContext context) => store.GetPerformanceScores(context);
     public Task<IReadOnlyList<TrendPointResponse>> GetTrend(UserContext context, int months) => store.GetTrend(context, months);
+    public Task<IReadOnlyList<ExpertPortfolioExpertResponse>> GetExpertPortfolioExperts(UserContext context) => store.GetExpertPortfolioExperts(context);
+    public Task<ExpertPortfolioResponse?> GetExpertPortfolio(UserContext context, string userId) => store.GetExpertPortfolio(context, userId);
     public Task<IReadOnlyList<ProjectResponse>> GetProjects(UserContext context, string? status, string? query) => store.GetProjects(context, status, query);
     public Task<ProjectResponse?> GetProjectById(string id, UserContext context) => store.GetProjectById(id, context);
     public Task<(bool IsSuccess, ProjectResponse? Response, string? Error)> TryCreateProjectAsync(UserContext context, CreateProjectRequest request) => store.TryCreateProjectAsync(context, request);

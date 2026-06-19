@@ -12,4 +12,6 @@ public interface IDashboardService
     Task<ResourceCapacitySummaryResponse> GetResourceCapacity(UserContext context);
     Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context);
     Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context);
+    Task<IReadOnlyList<ExpertPortfolioExpertResponse>> GetExpertPortfolioExperts(UserContext context);
+    Task<ExpertPortfolioResponse?> GetExpertPortfolio(UserContext context, string userId);
 }
