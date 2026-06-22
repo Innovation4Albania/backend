@@ -8,6 +8,8 @@ public interface IDashboardService
     Task<IReadOnlyList<StatusDistributionItem>> GetStatusDistribution(UserContext context);
     Task<IReadOnlyList<PerformanceScoreItem>> GetPerformance(UserContext context);
     Task<IReadOnlyList<TrendPointResponse>> GetTrend(UserContext context, int months);
+    Task<ProgramMetricsResponse?> GetProgramMetrics(string programKey);
+    Task<(bool IsSuccess, ProgramMetricsResponse? Response, string? Error)> UpdateProgramMetrics(UserContext context, string programKey, UpdateProgramMetricsRequest request);
     Task<IReadOnlyList<MinistryDistributionItem>> GetMinistryDistribution(UserContext context);
     Task<ResourceCapacitySummaryResponse> GetResourceCapacity(UserContext context);
     Task<IReadOnlyList<PerformanceBoardColumnResponse>> GetPerformanceBoard(UserContext context);

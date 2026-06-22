@@ -57,6 +57,25 @@ public static class DashboardEndpoints
             return Results.Ok(await service.GetResourceCapacity(context));
         });
 
+        api.MapGet("/programs/{programKey}/metrics", async (string programKey, IDashboardService service) =>
+        {
+            var metrics = await service.GetProgramMetrics(programKey);
+            return metrics is null
+                ? Results.NotFound(new ApiErrorResponse("not_found", "Programi nuk u gjet."))
+                : Results.Ok(metrics);
+        });
+
+        api.MapPut("/programs/{programKey}/metrics", async (string programKey, UpdateProgramMetricsRequest request, ClaimsPrincipal user, IUserContextService contextService, IDashboardService service) =>
+        {
+            if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
+                return errorResult!;
+
+            var result = await service.UpdateProgramMetrics(context, programKey, request);
+            return result.IsSuccess
+                ? Results.Ok(result.Response)
+                : Results.BadRequest(new ApiErrorResponse("validation_error", result.Error ?? "Metrikat nuk u përditësuan dot."));
+        });
+
         api.MapGet("/dashboard/expert-portfolio/experts", async (ClaimsPrincipal user, IUserContextService contextService, IDashboardService service) =>
         {
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))

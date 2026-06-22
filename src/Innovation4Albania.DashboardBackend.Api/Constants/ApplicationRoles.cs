@@ -136,6 +136,7 @@ public static class ApplicationRoles
     public static bool CanUseInteractiveLogin(string role) => false;
     public static bool CanManageUsers(string role) => role == Admin;
     public static bool CanReadManagedUsers(string role) => CanManageUsers(role) || IsInnovationDirector(role);
+    public static bool CanManageProgramMetrics(string role) => role is Admin or DrejtorAgjencie;
 
     public static string ToDisplayLabel(string role) => role switch
     {

@@ -48,6 +48,7 @@ public sealed class InnovationDashboardStore
     private readonly List<ObjectiveState> _portfolioObjectives;
     private readonly List<WeeklyUpdateState> _updates;
     private readonly List<ProjectChangeProposalState> _changeProposals;
+    private readonly List<ProgramMetricState> _programMetrics;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<InnovationDashboardStore> _logger;
     private readonly IDashboardStorePersistence _persistence;
@@ -69,6 +70,7 @@ public sealed class InnovationDashboardStore
         _portfolioObjectives = BuildPortfolioObjectives();
         _updates = BuildUpdates();
         _changeProposals = [];
+        _programMetrics = BuildProgramMetrics();
         RecalculateAllProjectOkrs();
     }
 
@@ -214,7 +216,11 @@ public sealed class InnovationDashboardStore
                 proposal.ProposedValue,
                 proposal.Reason,
                 NormalizeProposalStatus(proposal.Status),
-                proposal.ResolutionReason)).ToList());
+                proposal.ResolutionReason)).ToList(),
+            _programMetrics.Select(metric => new ProgramMetricSnapshot(
+                metric.ProgramKey,
+                metric.Key,
+                metric.Value)).ToList());
 
     private void RestoreSnapshot(DashboardStoreSnapshot snapshot)
     {
@@ -257,6 +263,9 @@ public sealed class InnovationDashboardStore
             proposal.Reason,
             NormalizeProposalStatus(proposal.Status),
             proposal.ResolutionReason)));
+
+        _programMetrics.Clear();
+        _programMetrics.AddRange(MergeProgramMetrics(snapshot.ProgramMetrics));
 
         if (projectIdsMissingOkr.Count > 0)
         {
@@ -359,6 +368,62 @@ public sealed class InnovationDashboardStore
 
         return new DashboardSummaryResponse(visible.Count, statusCards, BuildPortfolioMetrics(visible));
     });
+
+    public Task<ProgramMetricsResponse?> GetProgramMetrics(string programKey) => ExecuteReadAsync(() =>
+    {
+        var canonicalProgramKey = ResolveProgramKey(programKey);
+        return canonicalProgramKey is null
+            ? null
+            : new ProgramMetricsResponse(canonicalProgramKey, BuildProgramMetricResponses(canonicalProgramKey));
+    });
+
+    public Task<(bool IsSuccess, ProgramMetricsResponse? Response, string? Error)> TryUpdateProgramMetricsAsync(UserContext context, string programKey, UpdateProgramMetricsRequest request) =>
+        ExecuteMutationAsync<(bool IsSuccess, ProgramMetricsResponse? Response, string? Error)>(async () =>
+        {
+            if (!ApplicationRoles.CanManageProgramMetrics(context.Role))
+            {
+                return (false, null, "Ky rol nuk mund të ndryshojë metrikat e programit.");
+            }
+
+            var canonicalProgramKey = ResolveProgramKey(programKey);
+            if (canonicalProgramKey is null)
+            {
+                return (false, null, "Programi nuk është i vlefshëm.");
+            }
+
+            var allowedKeys = BuildProgramMetrics()
+                .Where(metric => string.Equals(metric.ProgramKey, canonicalProgramKey, StringComparison.OrdinalIgnoreCase))
+                .Select(metric => metric.Key)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var input in request.Metrics)
+            {
+                if (!allowedKeys.Contains(input.Key))
+                {
+                    return (false, null, $"Metrika '{input.Key}' nuk është e vlefshme.");
+                }
+
+                if (input.Value < 0)
+                {
+                    return (false, null, "Vlerat e metrikave nuk mund të jenë negative.");
+                }
+            }
+
+            foreach (var input in request.Metrics)
+            {
+                var metric = _programMetrics.FirstOrDefault(item =>
+                    string.Equals(item.ProgramKey, canonicalProgramKey, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(item.Key, input.Key, StringComparison.OrdinalIgnoreCase));
+
+                if (metric is not null)
+                {
+                    metric.Value = input.Value;
+                }
+            }
+
+            await PersistSnapshotAsync();
+            return (true, new ProgramMetricsResponse(canonicalProgramKey, BuildProgramMetricResponses(canonicalProgramKey)), null);
+        });
 
     public Task<IReadOnlyList<StatusDistributionItem>> GetStatusDistribution(UserContext context) => ExecuteReadAsync<IReadOnlyList<StatusDistributionItem>>(() =>
     {
@@ -2974,6 +3039,38 @@ public sealed class InnovationDashboardStore
         return new PortfolioMetricsResponse(averageOkr, onTime, deviationAverage, attention);
     }
 
+    private IReadOnlyList<ProgramMetricResponse> BuildProgramMetricResponses(string programKey) =>
+        _programMetrics
+            .Where(metric => string.Equals(metric.ProgramKey, programKey, StringComparison.OrdinalIgnoreCase))
+            .Select(metric => new ProgramMetricResponse(metric.Key, metric.Label, metric.Value, metric.Tooltip))
+            .ToList();
+
+    private static List<ProgramMetricState> MergeProgramMetrics(IReadOnlyList<ProgramMetricSnapshot>? snapshots)
+    {
+        var defaults = BuildProgramMetrics();
+        if (snapshots is null || snapshots.Count == 0)
+        {
+            return defaults;
+        }
+
+        foreach (var metric in defaults)
+        {
+            var snapshot = snapshots.FirstOrDefault(item =>
+                string.Equals(item.ProgramKey, metric.ProgramKey, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(item.Key, metric.Key, StringComparison.OrdinalIgnoreCase));
+
+            if (snapshot is not null)
+            {
+                metric.Value = Math.Max(0, snapshot.Value);
+            }
+        }
+
+        return defaults;
+    }
+
+    private static string? ResolveProgramKey(string? programKey) =>
+        ApplicationRoles.ProgramKeys.FirstOrDefault(key => string.Equals(key, programKey?.Trim(), StringComparison.OrdinalIgnoreCase));
+
     private static int CalculateCadenceCompliance(
         IReadOnlyCollection<ProjectState> projects,
         IReadOnlyDictionary<string, IReadOnlyList<WeeklyUpdateState>> updatesByProject)
@@ -3495,6 +3592,15 @@ public sealed class InnovationDashboardStore
         ])
     ];
 
+    private static List<ProgramMetricState> BuildProgramMetrics() =>
+    [
+        new(ApplicationRoles.AiDiellaProgramKey, "online_training_staff", "Staf në trajnim online", 0, "Totali i stafit të ministrive që merr pjesë në trajnimin online të AI Diella."),
+        new(ApplicationRoles.AiDiellaProgramKey, "physical_training_staff", "Staf në trajnim fizik", 0, "Totali i stafit të ministrive që merr pjesë në trajnimin fizik."),
+        new(ApplicationRoles.AiDiellaProgramKey, "active_platform_access", "Akses aktiv në platformë", 0, "Totali i stafit të ministrive me akses aktiv në platformë."),
+        new(ApplicationRoles.AiDiellaProgramKey, "practical_testing_completed", "Testim praktik", 0, "Totali i stafit të ministrive që ka përfunduar testimin praktik."),
+        new(ApplicationRoles.AiDiellaProgramKey, "certificates_awarded", "Certifikata", 0, "Totali i certifikatave të fituara nga stafi i ministrive.")
+    ];
+
     private List<WeeklyUpdateState> BuildUpdates() =>
     [
         new("upd-1", "p1", "Drejtori i Inovacionit", ApplicationRoles.DrejtorAgjencie, "Drejtori i Inovacionit", IsoOffset(-2), 70, ProjectStatuses.Active, RiskLevels.Medium, "Koordinimi me dy ministritë kërkon sinkronizim më të shpeshtë.", "Faza 7 po ecën sipas planit, por duhen finalizuar vendimet e ndërmjetme.", []),
@@ -3515,7 +3621,13 @@ public sealed class InnovationDashboardStore
         IReadOnlyList<ProjectSnapshot> Projects,
         IReadOnlyList<ObjectiveResponse> PortfolioObjectives,
         IReadOnlyList<WeeklyUpdateSnapshot> Updates,
-        IReadOnlyList<ProjectChangeProposalSnapshot> ChangeProposals);
+        IReadOnlyList<ProjectChangeProposalSnapshot> ChangeProposals,
+        IReadOnlyList<ProgramMetricSnapshot>? ProgramMetrics = null);
+
+    private sealed record ProgramMetricSnapshot(
+        string ProgramKey,
+        string Key,
+        int Value);
 
     private sealed record ProjectSnapshot(
         string Id,
@@ -3663,6 +3775,15 @@ public sealed class InnovationDashboardStore
         List<WeeklyUpdateKeyResultState> KeyResults);
 
     private sealed record WeeklyUpdateKeyResultState(string KeyResultId, int CurrentValue);
+
+    private sealed class ProgramMetricState(string programKey, string key, string label, int value, string tooltip)
+    {
+        public string ProgramKey { get; } = programKey;
+        public string Key { get; } = key;
+        public string Label { get; } = label;
+        public int Value { get; set; } = value;
+        public string Tooltip { get; } = tooltip;
+    }
 
     private sealed class ProjectChangeProposalState(
         string Id,

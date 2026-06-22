@@ -190,6 +190,23 @@ public sealed record DashboardSummaryResponse(
     IReadOnlyList<StatusCardResponse> StatusCards,
     PortfolioMetricsResponse Portfolio);
 
+public sealed record ProgramMetricResponse(
+    string Key,
+    string Label,
+    int Value,
+    string Tooltip);
+
+public sealed record ProgramMetricsResponse(
+    string ProgramKey,
+    IReadOnlyList<ProgramMetricResponse> Metrics);
+
+public sealed record UpdateProgramMetricRequest(
+    string Key,
+    int Value);
+
+public sealed record UpdateProgramMetricsRequest(
+    IReadOnlyList<UpdateProgramMetricRequest> Metrics);
+
 public sealed record StatusDistributionItem(string Status, string Label, int Value, string Color);
 
 public sealed record MinistryDistributionItem(string Ministry, int Value, string Color);
