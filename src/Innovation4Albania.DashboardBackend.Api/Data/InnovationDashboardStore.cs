@@ -545,12 +545,18 @@ public sealed class InnovationDashboardStore
     public Task<ExpertPortfolioResponse?> GetExpertPortfolio(UserContext context, string userId) =>
         ExecuteReadAsync<ExpertPortfolioResponse?>(() =>
         {
-            if (!ApplicationRoles.IsInnovationDirector(context.Role) || string.IsNullOrWhiteSpace(userId))
+            if ((!ApplicationRoles.IsInnovationDirector(context.Role) && !ApplicationRoles.IsAgencyContributor(context.Role)) || string.IsNullOrWhiteSpace(userId))
             {
                 return null;
             }
 
             var normalizedUserId = userId.Trim();
+            if (ApplicationRoles.IsAgencyContributor(context.Role) &&
+                !string.Equals(context.UserId, normalizedUserId, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
             var visibleProjects = GetVisibleProjects(context);
             var expert = visibleProjects
                 .SelectMany(project => project.TeamMembers)
