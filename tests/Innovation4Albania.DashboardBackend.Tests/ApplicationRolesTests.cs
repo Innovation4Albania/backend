@@ -140,6 +140,17 @@ public sealed class ApplicationRolesTests
     }
 
     [Theory]
+    [InlineData(ApplicationRoles.StafAgjencie, true)]
+    [InlineData(ApplicationRoles.Ekspert, true)]
+    [InlineData(ApplicationRoles.Specialist, true)]
+    [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
+    [InlineData(ApplicationRoles.Admin, false)]
+    public void CanManageProgramMetrics_OnlyAgencyContributorsCanManageManualProgramMetrics(string role, bool expected)
+    {
+        Assert.Equal(expected, ApplicationRoles.CanManageProgramMetrics(role));
+    }
+
+    [Theory]
     [InlineData(ApplicationRoles.DrejtorAgjencie, false)]
     [InlineData(ApplicationRoles.DrejtorInovacioniPublik, true)]
     [InlineData(ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve, true)]

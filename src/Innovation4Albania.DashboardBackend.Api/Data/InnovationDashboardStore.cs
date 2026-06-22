@@ -380,15 +380,15 @@ public sealed class InnovationDashboardStore
     public Task<(bool IsSuccess, ProgramMetricsResponse? Response, string? Error)> TryUpdateProgramMetricsAsync(UserContext context, string programKey, UpdateProgramMetricsRequest request) =>
         ExecuteMutationAsync<(bool IsSuccess, ProgramMetricsResponse? Response, string? Error)>(async () =>
         {
-            if (!ApplicationRoles.CanManageProgramMetrics(context.Role))
-            {
-                return (false, null, "Ky rol nuk mund të ndryshojë metrikat e programit.");
-            }
-
             var canonicalProgramKey = ResolveProgramKey(programKey);
             if (canonicalProgramKey is null)
             {
                 return (false, null, "Programi nuk është i vlefshëm.");
+            }
+
+            if (!CanUpdateProgramMetrics(context, canonicalProgramKey))
+            {
+                return (false, null, "Ky rol nuk mund të ndryshojë metrikat e programit.");
             }
 
             var allowedKeys = BuildProgramMetrics()
@@ -424,6 +424,10 @@ public sealed class InnovationDashboardStore
             await PersistSnapshotAsync();
             return (true, new ProgramMetricsResponse(canonicalProgramKey, BuildProgramMetricResponses(canonicalProgramKey)), null);
         });
+
+    private bool CanUpdateProgramMetrics(UserContext context, string programKey) =>
+        ApplicationRoles.CanManageProgramMetrics(context.Role) &&
+        GetVisibleProjects(context).Any(project => string.Equals(project.ProgramKey, programKey, StringComparison.OrdinalIgnoreCase));
 
     public Task<IReadOnlyList<StatusDistributionItem>> GetStatusDistribution(UserContext context) => ExecuteReadAsync<IReadOnlyList<StatusDistributionItem>>(() =>
     {
