@@ -39,14 +39,22 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
-    public void TryValidateProjectRequest_RejectsMissingMinistries()
+    public void TryValidateProjectRequest_AllowsMissingMinistries()
     {
         var request = StoreTestHelpers.ValidProjectRequest() with { Ministries = [] };
 
         var (isValid, error) = InvokeTryValidateProjectRequest(request);
 
-        Assert.False(isValid);
-        Assert.Contains("ministri", error);
+        Assert.True(isValid);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void GetMinistries_IncludesPrimeMinisterOffice()
+    {
+        var store = StoreTestHelpers.CreateStore();
+
+        Assert.Contains("Kryeministria", store.GetMinistries());
     }
 
     [Fact]

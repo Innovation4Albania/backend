@@ -26,6 +26,7 @@ public sealed class InnovationDashboardStore
 
     private readonly IReadOnlyList<string> _ministries =
     [
+        "Kryeministria",
         "Ministria e Ekonomisë dhe Inovacionit",
         "Ministria e Shëndetësisë dhe Mbrojtjes Sociale",
         "Ministria e Drejtësisë",
@@ -863,12 +864,6 @@ public sealed class InnovationDashboardStore
         if (string.IsNullOrWhiteSpace(request.Description))
         {
             error = "Përshkrimi i projektit është i detyrueshëm.";
-            return false;
-        }
-
-        if (request.Ministries.Count == 0 || request.Ministries.All(string.IsNullOrWhiteSpace))
-        {
-            error = "Zgjidh të paktën një ministri për projektin.";
             return false;
         }
 
