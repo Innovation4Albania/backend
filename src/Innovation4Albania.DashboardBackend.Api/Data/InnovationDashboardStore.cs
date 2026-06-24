@@ -2024,13 +2024,15 @@ public sealed class InnovationDashboardStore
 
     private static bool HasTeamMemberInDirectorate(ProjectState project, string accountRole, string directorate) =>
         project.TeamMembers.Any(member =>
-            string.Equals(member.AccountRole, accountRole, StringComparison.OrdinalIgnoreCase) &&
-            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate));
+            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate) &&
+            (string.IsNullOrWhiteSpace(member.AccountRole) ||
+             string.Equals(member.AccountRole, accountRole, StringComparison.OrdinalIgnoreCase)));
 
     private static bool HasTeamMemberInDirectorate(ProjectState project, IReadOnlyList<string> accountRoles, string directorate) =>
         project.TeamMembers.Any(member =>
-            accountRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase) &&
-            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate));
+            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate) &&
+            (string.IsNullOrWhiteSpace(member.AccountRole) ||
+             accountRoles.Contains(member.AccountRole, StringComparer.OrdinalIgnoreCase)));
 
     private static bool HasSpecialistInSector(ProjectState project, string? sector) =>
         project.TeamMembers.Any(member =>

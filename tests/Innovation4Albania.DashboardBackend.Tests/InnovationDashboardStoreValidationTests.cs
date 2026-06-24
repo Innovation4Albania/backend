@@ -499,6 +499,45 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_ScopedDirectorSeesHistoricalProjectWithMatchingDirectorate()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var historicalProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "HISTORICAL-DIRECTORATE",
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Historical Expert",
+                    WorkgroupRoles.InnovationExpert,
+                    "DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA",
+                    100)
+            ]
+        };
+        var otherProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "HISTORICAL-OTHER-DIRECTORATE",
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Other Historical Expert",
+                    WorkgroupRoles.InnovationExpert,
+                    "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT",
+                    100)
+            ]
+        };
+
+        var createdHistorical = await store.TryCreateProjectAsync(director, historicalProject);
+        await store.TryCreateProjectAsync(director, otherProject);
+
+        var projects = await store.GetProjects(UserContext.From(ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma, null), null, null);
+
+        var project = Assert.Single(projects);
+        Assert.Equal(createdHistorical.Response!.Id, project.Id);
+    }
+
+    [Fact]
     public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
     {
         var store = StoreTestHelpers.CreateStore();
