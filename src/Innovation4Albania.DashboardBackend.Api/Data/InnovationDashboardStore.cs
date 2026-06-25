@@ -3604,7 +3604,7 @@ public sealed class InnovationDashboardStore
         new(ApplicationRoles.AiDiellaProgramKey, "online_training_staff", "Staf në trajnim online", 0, "Totali i stafit të ministrive që merr pjesë në trajnimin online të AI Diella."),
         new(ApplicationRoles.AiDiellaProgramKey, "physical_training_staff", "Staf në trajnim fizik", 0, "Totali i stafit të ministrive që merr pjesë në trajnimin fizik."),
         new(ApplicationRoles.AiDiellaProgramKey, "active_platform_access", "Akses aktiv në platformë", 0, "Totali i stafit të ministrive me akses aktiv në platformë."),
-        new(ApplicationRoles.AiDiellaProgramKey, "practical_testing_completed", "Testim praktik", 0, "Totali i stafit të ministrive që ka përfunduar testimin praktik."),
+        new(ApplicationRoles.AiDiellaProgramKey, "practical_testing_completed", "Staf i trajnuar në Akademi", 0, "Totali i stafit të ministrive që është trajnuar në Akademi."),
         new(ApplicationRoles.AiDiellaProgramKey, "certificates_awarded", "Certifikata", 0, "Totali i certifikatave të fituara nga stafi i ministrive.")
     ];
 
@@ -3823,14 +3823,3 @@ internal static class ObjectPipeExtensions
 {
     public static TResult Pipe<TSource, TResult>(this TSource source, Func<TSource, TResult> selector) => selector(source);
 }
-
-
-
-
-
-
-
-
-
-
-
