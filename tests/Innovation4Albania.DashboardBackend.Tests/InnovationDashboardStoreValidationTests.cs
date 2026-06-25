@@ -303,6 +303,34 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_ScopedDirectorSeesProjectWithMatchingProjectDirectorate()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var visibleProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "DIRECTORATE-FIELD-VISIBLE",
+            Directorates = ["DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE"],
+            TeamMembers = [new WorkgroupMemberInput("External Member", WorkgroupRoles.ProjectOfficer, "Njësi tjetër", 100)]
+        };
+        var hiddenProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "DIRECTORATE-FIELD-HIDDEN",
+            Directorates = ["DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT"],
+            TeamMembers = [new WorkgroupMemberInput("Innovation Member", WorkgroupRoles.ProjectOfficer, "DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE", 100)]
+        };
+
+        var createdVisible = await store.TryCreateProjectAsync(director, visibleProject);
+        await store.TryCreateProjectAsync(director, hiddenProject);
+
+        var projects = await store.GetProjects(UserContext.From(ApplicationRoles.DrejtorInovacioniPublik, null), null, null);
+
+        var project = Assert.Single(projects);
+        Assert.Equal(createdVisible.Response!.Id, project.Id);
+        Assert.Equal("DIRECTORATE-FIELD-VISIBLE", project.Code);
+    }
+
+    [Fact]
     public async Task GetProjects_ScopedDirectorSeesOnlyProjectsWithMatchingExpertRole()
     {
         var store = StoreTestHelpers.CreateStore();

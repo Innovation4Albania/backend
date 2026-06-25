@@ -1887,54 +1887,19 @@ public sealed class InnovationDashboardStore
                 .ToList();
         }
 
-        if (context.Role == ApplicationRoles.DrejtorInovacioniPublik)
+        var scopedDirectorate = GetDirectorateForDirectorRole(context.Role);
+        if (!string.IsNullOrWhiteSpace(scopedDirectorate))
         {
             return _projects
-                .Where(project => HasTeamMemberInDirectorate(project, ApplicationRoles.StafAgjencie, "DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE"))
-                .ToList();
-        }
-
-        if (context.Role == ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma)
-        {
-            return _projects
-                .Where(project => HasTeamMemberInDirectorate(project, ApplicationRoles.Ekspert, "DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA"))
-                .ToList();
-        }
-
-        if (context.Role == ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve)
-        {
-            return _projects
-                .Where(project => HasTeamMemberInDirectorate(
-                    project,
-                    [ApplicationRoles.EkspertEkosistemiStartupeve, ApplicationRoles.EkspertProgrametMbeshtetjes],
-                    "DREJTORIA E EKOSISTEMIT TE STARTUP-EVE DHE LEHTESUESVE"))
-                .ToList();
-        }
-
-        if (context.Role == ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit)
-        {
-            return _projects
-                .Where(project => HasTeamMemberInDirectorate(
-                    project,
-                    [ApplicationRoles.EkspertFinancimiAlternativ, ApplicationRoles.EkspertProjekteBe],
-                    "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT"))
-                .ToList();
-        }
-
-        if (context.Role == ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese)
-        {
-            return _projects
-                .Where(project => HasTeamMemberInDirectorate(
-                    project,
-                    [ApplicationRoles.Specialist, ApplicationRoles.PergjegjesSektori],
-                    "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE"))
+                .Where(project => ProjectBelongsToDirectorate(project, scopedDirectorate))
                 .ToList();
         }
 
         if (context.Role == ApplicationRoles.PergjegjesSektori)
         {
             return _projects
-                .Where(project => HasSpecialistInSector(project, context.Ministry))
+                .Where(project => ProjectBelongsToDirectorate(project, "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE") &&
+                                  (project.Directorates.Count > 0 || HasSpecialistInSector(project, context.Ministry)))
                 .ToList();
         }
 
@@ -2022,17 +1987,23 @@ public sealed class InnovationDashboardStore
     private static bool HasTeamMemberWithAnyAccountRole(ProjectState project, IReadOnlyList<string> accountRoles) =>
         project.TeamMembers.Any(member => accountRoles.Contains(member.AccountRole ?? string.Empty, StringComparer.OrdinalIgnoreCase));
 
-    private static bool HasTeamMemberInDirectorate(ProjectState project, string accountRole, string directorate) =>
-        project.TeamMembers.Any(member =>
-            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate) &&
-            (string.IsNullOrWhiteSpace(member.AccountRole) ||
-             string.Equals(member.AccountRole, accountRole, StringComparison.OrdinalIgnoreCase)));
+    private static string? GetDirectorateForDirectorRole(string role) => role switch
+    {
+        ApplicationRoles.DrejtorInovacioniPublik => "DREJTORIA E INOVACIONIT PER ADMINISTRATEN PUBLIKE",
+        ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma => "DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA",
+        ApplicationRoles.DrejtorEkosistemiStartupeveLehtesuesve => "DREJTORIA E EKOSISTEMIT TE STARTUP-EVE DHE LEHTESUESVE",
+        ApplicationRoles.DrejtorFinancimiAlternativNderkombetarizimit => "DREJTORIA E FINANCIMIT ALTERNATIV DHE NDERKOMBETARIZIMIT",
+        ApplicationRoles.DrejtorEkonomiseSherbimeveMbeshtetese => "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE",
+        _ => null
+    };
 
-    private static bool HasTeamMemberInDirectorate(ProjectState project, IReadOnlyList<string> accountRoles, string directorate) =>
-        project.TeamMembers.Any(member =>
-            NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate) &&
-            (string.IsNullOrWhiteSpace(member.AccountRole) ||
-             accountRoles.Contains(member.AccountRole, StringComparer.OrdinalIgnoreCase)));
+    private static bool ProjectBelongsToDirectorate(ProjectState project, string directorate) =>
+        project.Directorates.Count > 0
+            ? project.Directorates.Any(item => NormalizeForMinistryMatch(item) == NormalizeForMinistryMatch(directorate))
+            : HasTeamMemberUnitInDirectorate(project, directorate);
+
+    private static bool HasTeamMemberUnitInDirectorate(ProjectState project, string directorate) =>
+        project.TeamMembers.Any(member => NormalizeForMinistryMatch(member.Unit) == NormalizeForMinistryMatch(directorate));
 
     private static bool HasSpecialistInSector(ProjectState project, string? sector) =>
         project.TeamMembers.Any(member =>
