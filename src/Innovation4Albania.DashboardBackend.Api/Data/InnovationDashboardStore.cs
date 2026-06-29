@@ -1899,7 +1899,7 @@ public sealed class InnovationDashboardStore
         {
             return _projects
                 .Where(project => ProjectBelongsToDirectorate(project, "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE") &&
-                                  (project.Directorates.Count > 0 || HasSpecialistInSector(project, context.Ministry)))
+                                  HasSectorTeamAccess(project, context))
                 .ToList();
         }
 
@@ -2010,6 +2010,12 @@ public sealed class InnovationDashboardStore
             string.Equals(member.AccountRole, ApplicationRoles.Specialist, StringComparison.OrdinalIgnoreCase) &&
             IsUnitInSector(member.Unit, sector));
 
+    private static bool HasSectorTeamAccess(ProjectState project, UserContext context) =>
+        project.TeamMembers.Any(member =>
+            HasMatchingSectorLead(member, context) ||
+            (string.Equals(member.AccountRole, ApplicationRoles.Specialist, StringComparison.OrdinalIgnoreCase) &&
+             IsUnitInSector(member.Unit, context.Ministry)));
+
     private static bool HasSupportServicesTeamMember(ProjectState project) =>
         project.TeamMembers.Any(IsSupportServicesTeamMember);
 
@@ -2020,6 +2026,12 @@ public sealed class InnovationDashboardStore
     private static bool IsSupportServicesTeamMember(WorkgroupMemberState member) =>
         string.Equals(member.AccountRole, ApplicationRoles.PergjegjesSektori, StringComparison.OrdinalIgnoreCase) ||
         (string.Equals(member.AccountRole, ApplicationRoles.Specialist, StringComparison.OrdinalIgnoreCase) && IsUnitInSupportSector(member.Unit));
+
+    private static bool HasMatchingSectorLead(WorkgroupMemberState member, UserContext context) =>
+        string.Equals(member.AccountRole, ApplicationRoles.PergjegjesSektori, StringComparison.OrdinalIgnoreCase) &&
+        ((!string.IsNullOrWhiteSpace(context.UserId) &&
+          string.Equals(member.UserId, context.UserId, StringComparison.OrdinalIgnoreCase)) ||
+         IsUnitInSector(member.Unit, context.Ministry));
 
     private static bool IsUnitInSector(string? unit, string? sector) =>
         !string.IsNullOrWhiteSpace(unit) &&

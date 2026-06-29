@@ -566,6 +566,87 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_SectorLeadSeesOnlyProjectsForOwnSector()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        const string financeSector = "SEKTORI PER MENAXHIMIN FINANCIAR";
+        const string legalSector = "SEKTORI JURIDIK DHE I SHERBIMEVE MBESHTETESE";
+
+        var financeProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "SUPPORT-FINANCE-SECTOR",
+            Directorates = ["DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE"],
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Finance Lead",
+                    WorkgroupRoles.ProjectOfficer,
+                    financeSector,
+                    100,
+                    "finance-lead-1",
+                    ApplicationRoles.PergjegjesSektori),
+                new WorkgroupMemberInput(
+                    "Finance Specialist",
+                    WorkgroupRoles.Specialist,
+                    financeSector,
+                    100,
+                    "finance-specialist-1",
+                    ApplicationRoles.Specialist)
+            ]
+        };
+        var legalProject = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "SUPPORT-LEGAL-SECTOR",
+            Directorates = ["DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE"],
+            TeamMembers =
+            [
+                new WorkgroupMemberInput(
+                    "Legal Lead",
+                    WorkgroupRoles.ProjectOfficer,
+                    legalSector,
+                    100,
+                    "legal-lead-1",
+                    ApplicationRoles.PergjegjesSektori),
+                new WorkgroupMemberInput(
+                    "Legal Specialist",
+                    WorkgroupRoles.Specialist,
+                    legalSector,
+                    100,
+                    "legal-specialist-1",
+                    ApplicationRoles.Specialist)
+            ]
+        };
+
+        var createdFinance = await store.TryCreateProjectAsync(director, financeProject);
+        var createdLegal = await store.TryCreateProjectAsync(director, legalProject);
+
+        var financeContext = UserContext.From(
+            ApplicationRoles.PergjegjesSektori,
+            financeSector,
+            "finance.lead",
+            "Finance Lead",
+            "finance-lead-1");
+        var legalContext = UserContext.From(
+            ApplicationRoles.PergjegjesSektori,
+            legalSector,
+            "legal.lead",
+            "Legal Lead",
+            "legal-lead-1");
+
+        var financeProjects = await store.GetProjects(financeContext, null, null);
+        var legalProjects = await store.GetProjects(legalContext, null, null);
+
+        var visibleForFinance = Assert.Single(financeProjects);
+        Assert.Equal(createdFinance.Response!.Id, visibleForFinance.Id);
+        Assert.DoesNotContain(financeProjects, project => project.Id == createdLegal.Response!.Id);
+
+        var visibleForLegal = Assert.Single(legalProjects);
+        Assert.Equal(createdLegal.Response!.Id, visibleForLegal.Id);
+        Assert.DoesNotContain(legalProjects, project => project.Id == createdFinance.Response!.Id);
+    }
+
+    [Fact]
     public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
     {
         var store = StoreTestHelpers.CreateStore();
