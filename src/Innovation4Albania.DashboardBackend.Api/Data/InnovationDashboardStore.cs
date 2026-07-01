@@ -707,7 +707,7 @@ public sealed class InnovationDashboardStore
             .OrderByDescending(project => project.DelayDays > 0)
             .ThenByDescending(project => project.DeviationPercent)
             .ThenBy(project => project.Name)
-            .Select(ToResponse)
+            .Select(project => ToResponse(project))
             .ToList();
     });
 
@@ -817,7 +817,6 @@ public sealed class InnovationDashboardStore
 
             ApplyRequestToProjectState(project, request);
             project.LastUpdated = DateTimeOffset.UtcNow;
-            project.InitialLastUpdated = project.LastUpdated;
             RecalculateProjectOkr(project, BuildUpdatesByProjectLookup());
 
             var response = ToResponse(project);
@@ -1159,6 +1158,7 @@ public sealed class InnovationDashboardStore
 
     public Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context) =>
         ExecuteReadAsync<IReadOnlyList<RiskDeviationResponse>>(() => GetVisibleProjects(context)
+            .Where(project => project.Status is not (ProjectStatuses.Completed or ProjectStatuses.Cancelled))
             .OrderByDescending(project => UrgencyRank(project))
             .ThenBy(project => project.DaysRemaining)
             .Select(project => new RiskDeviationResponse(
@@ -2451,18 +2451,31 @@ public sealed class InnovationDashboardStore
 
     private static int CalculateDelayDays(ProjectState project)
     {
-        var deviation = project.ExpectedProgress - project.Progress;
-        return deviation <= 0 ? 0 : (int)Math.Round(deviation * 0.8);
+        var deviationPercent = Math.Max(0, project.ExpectedProgress - project.Progress);
+        if (deviationPercent == 0)
+        {
+            return 0;
+        }
+
+        var totalDays = Math.Max(1, (project.EndDate - project.StartDate).TotalDays);
+        return (int)Math.Round(totalDays * (deviationPercent / 100d));
     }
 
-    private static bool IsOverdue(ProjectState project)
+    private DateTimeOffset GetLastWeeklyUpdateAt(ProjectState project) =>
+        _updates
+            .Where(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(update => update.SubmittedAt)
+            .Select(update => update.SubmittedAt)
+            .FirstOrDefault(project.InitialLastUpdated);
+
+    private bool IsOverdue(ProjectState project)
     {
         if (project.Status is ProjectStatuses.Completed or ProjectStatuses.Cancelled)
         {
             return false;
         }
 
-        return (DateTimeOffset.UtcNow - project.LastUpdated).TotalDays > project.UpdateCadenceDays;
+        return (DateTimeOffset.UtcNow - GetLastWeeklyUpdateAt(project)).TotalDays > project.UpdateCadenceDays;
     }
 
     private ProjectResponse ToResponse(ProjectState project)

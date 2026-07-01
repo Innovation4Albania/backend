@@ -79,6 +79,46 @@ public sealed class InnovationDashboardStoreCalculationTests
         Assert.All(distribution, item => Assert.Contains("Financ", item.Ministry, StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task ToResponse_UsesInitialOrWeeklyUpdateTimestampForOverdueInsteadOfLastMutation()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var created = await store.TryCreateProjectAsync(director, StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "OVERDUE-CALC-001",
+        });
+        var project = GetProjectState(store, created.Response!.Id);
+
+        SetProperty(project, "InitialLastUpdated", DateTimeOffset.UtcNow.AddDays(-20));
+        SetProperty(project, "LastUpdated", DateTimeOffset.UtcNow);
+
+        var response = InvokeToResponse(store, project);
+
+        Assert.True(response.IsOverdue);
+    }
+
+    [Fact]
+    public async Task ToResponse_CalculatesDelayDaysFromProjectDurationAndDeviation()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var start = DateTimeOffset.UtcNow.AddDays(-50);
+        var end = DateTimeOffset.UtcNow.AddDays(50);
+        var created = await store.TryCreateProjectAsync(director, StoreTestHelpers.ValidProjectRequest(start, end) with
+        {
+            Code = "DELAY-CALC-001",
+            Progress = 10,
+        });
+        var project = GetProjectState(store, created.Response!.Id);
+        var expectedProgress = InvokeCalculateExpectedProgress(start, end);
+        var expectedDelayDays = (int)Math.Round(Math.Max(1, (end - start).TotalDays) * (Math.Max(0, expectedProgress - 10) / 100d));
+
+        var response = InvokeToResponse(store, project);
+
+        Assert.Equal(expectedDelayDays, response.DelayDays);
+    }
+
     private static int InvokeCalculateExpectedProgress(DateTimeOffset start, DateTimeOffset end)
     {
         var method = typeof(InnovationDashboardStore).GetMethod("CalculateExpectedProgress", BindingFlags.NonPublic | BindingFlags.Static)
@@ -133,5 +173,12 @@ public sealed class InnovationDashboardStoreCalculationTests
         var property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
             ?? throw new MissingMemberException(instance.GetType().Name, propertyName);
         return (T)property.GetValue(instance)!;
+    }
+
+    private static void SetProperty<T>(object instance, string propertyName, T value)
+    {
+        var property = instance.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
+            ?? throw new MissingMemberException(instance.GetType().Name, propertyName);
+        property.SetValue(instance, value);
     }
 }

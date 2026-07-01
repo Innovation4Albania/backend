@@ -647,6 +647,32 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetRiskDeviations_ExcludesCompletedProjects()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+
+        var completedProject = StoreTestHelpers.ValidProjectRequest(status: ProjectStatuses.Completed, risk: RiskLevels.Critical) with
+        {
+            Code = "RISK-COMPLETED-001",
+            Progress = 100,
+        };
+        var activeProject = StoreTestHelpers.ValidProjectRequest(risk: RiskLevels.High) with
+        {
+            Code = "RISK-ACTIVE-001",
+            Progress = 20,
+        };
+
+        var createdCompleted = await store.TryCreateProjectAsync(director, completedProject);
+        var createdActive = await store.TryCreateProjectAsync(director, activeProject);
+
+        var items = await store.GetRiskDeviations(StoreTestHelpers.DirectorContext());
+
+        Assert.Contains(items, item => item.ProjectId == createdActive.Response!.Id);
+        Assert.DoesNotContain(items, item => item.ProjectId == createdCompleted.Response!.Id);
+    }
+
+    [Fact]
     public async Task GetProjectById_HidesProjectOutsideAgencyExpertsWorkgroup()
     {
         var store = StoreTestHelpers.CreateStore();
