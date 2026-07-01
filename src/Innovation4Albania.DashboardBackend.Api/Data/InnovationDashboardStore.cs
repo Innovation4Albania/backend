@@ -1158,7 +1158,7 @@ public sealed class InnovationDashboardStore
 
     public Task<IReadOnlyList<RiskDeviationResponse>> GetRiskDeviations(UserContext context) =>
         ExecuteReadAsync<IReadOnlyList<RiskDeviationResponse>>(() => GetVisibleProjects(context)
-            .Where(project => project.Status is not (ProjectStatuses.Completed or ProjectStatuses.Cancelled))
+            .Where(project => project.Status is not (ProjectStatuses.Planning or ProjectStatuses.Completed or ProjectStatuses.Cancelled))
             .OrderByDescending(project => UrgencyRank(project))
             .ThenBy(project => project.DaysRemaining)
             .Select(project => new RiskDeviationResponse(

@@ -647,7 +647,7 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
-    public async Task GetRiskDeviations_ExcludesCompletedProjects()
+    public async Task GetRiskDeviations_ExcludesCompletedAndPlanningProjects()
     {
         var store = StoreTestHelpers.CreateStore();
         var director = StoreTestHelpers.DirectorContext();
@@ -662,14 +662,21 @@ public sealed class InnovationDashboardStoreValidationTests
             Code = "RISK-ACTIVE-001",
             Progress = 20,
         };
+        var planningProject = StoreTestHelpers.ValidProjectRequest(status: ProjectStatuses.Planning, risk: RiskLevels.High) with
+        {
+            Code = "RISK-PLANNING-001",
+            Progress = 0,
+        };
 
         var createdCompleted = await store.TryCreateProjectAsync(director, completedProject);
         var createdActive = await store.TryCreateProjectAsync(director, activeProject);
+        var createdPlanning = await store.TryCreateProjectAsync(director, planningProject);
 
         var items = await store.GetRiskDeviations(StoreTestHelpers.DirectorContext());
 
         Assert.Contains(items, item => item.ProjectId == createdActive.Response!.Id);
         Assert.DoesNotContain(items, item => item.ProjectId == createdCompleted.Response!.Id);
+        Assert.DoesNotContain(items, item => item.ProjectId == createdPlanning.Response!.Id);
     }
 
     [Fact]
