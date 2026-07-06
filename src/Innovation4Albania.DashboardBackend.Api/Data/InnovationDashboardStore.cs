@@ -3138,6 +3138,16 @@ public sealed class InnovationDashboardStore
 
     private static string GetUrgencyLabel(ProjectState project)
     {
+        if (project.Status == ProjectStatuses.Completed)
+        {
+            return "Përfunduar";
+        }
+
+        if (project.Status == ProjectStatuses.Cancelled)
+        {
+            return "Anuluar";
+        }
+
         var rank = UrgencyRank(project);
         return rank switch
         {

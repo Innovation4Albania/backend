@@ -119,6 +119,18 @@ public sealed class InnovationDashboardStoreCalculationTests
         Assert.Equal(expectedDelayDays, response.DelayDays);
     }
 
+    [Fact]
+    public void GetUrgencyLabel_ReturnsCompletedForCompletedProjects()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var project = GetProjectState(store, "p1");
+        SetProperty(project, "Status", ProjectStatuses.Completed);
+
+        var urgency = InvokeGetUrgencyLabel(project);
+
+        Assert.Equal("Përfunduar", urgency);
+    }
+
     private static int InvokeCalculateExpectedProgress(DateTimeOffset start, DateTimeOffset end)
     {
         var method = typeof(InnovationDashboardStore).GetMethod("CalculateExpectedProgress", BindingFlags.NonPublic | BindingFlags.Static)
@@ -148,6 +160,13 @@ public sealed class InnovationDashboardStoreCalculationTests
         var method = typeof(InnovationDashboardStore).GetMethod("CalculateRiskScore", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingMethodException(nameof(InnovationDashboardStore), "CalculateRiskScore");
         return (int)method.Invoke(null, [project, response])!;
+    }
+
+    private static string InvokeGetUrgencyLabel(object project)
+    {
+        var method = typeof(InnovationDashboardStore).GetMethod("GetUrgencyLabel", BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(nameof(InnovationDashboardStore), "GetUrgencyLabel");
+        return (string)method.Invoke(null, [project])!;
     }
 
     private static int CalculateExpectedRiskScore(object project, ProjectResponse response)
