@@ -647,6 +647,54 @@ public sealed class InnovationDashboardStoreValidationTests
     }
 
     [Fact]
+    public async Task GetProjects_HidesProgramProjectsFromDirectorsButKeepsThemVisibleForProgramViewerTeamAndMinistry()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var assignedExpert = StoreTestHelpers.StaffContext("ai.diella", "Eksperti Diella", "staff-diella");
+        var ministryContext = StoreTestHelpers.MinistryRepresentativeContext("Ministria e Financave");
+        var programViewer = UserContext.From(ApplicationRoles.ProgramViewer, null, programKey: ApplicationRoles.AiDiellaProgramKey);
+        var scopedDirector = UserContext.From(ApplicationRoles.DrejtorTeDhenaTeknologjiPlatforma, null);
+
+        var programProject = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "AI-DIELLA-VIS-001",
+                ProgramKey = ApplicationRoles.AiDiellaProgramKey,
+                Directorates = ["DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA"],
+                TeamMembers =
+                [
+                    new WorkgroupMemberInput("Eksperti Diella", WorkgroupRoles.InnovationExpert, "Agjenci", 100, "staff-diella", ApplicationRoles.StafAgjencie)
+                ]
+            });
+        var standardProject = await store.TryCreateProjectAsync(
+            director,
+            StoreTestHelpers.ValidProjectRequest() with
+            {
+                Code = "STANDARD-VIS-001",
+                Directorates = ["DREJTORIA PER TE DHENA, TEKNOLOGJI DHE PLATFORMA"]
+            });
+
+        var directorProjects = await store.GetProjects(director, null, null);
+        var scopedDirectorProjects = await store.GetProjects(scopedDirector, null, null);
+        var expertProjects = await store.GetProjects(assignedExpert, null, null);
+        var ministryProjects = await store.GetProjects(ministryContext, null, null);
+        var programViewerProjects = await store.GetProjects(programViewer, null, null);
+
+        Assert.DoesNotContain(directorProjects, project => project.Id == programProject.Response!.Id);
+        Assert.Contains(directorProjects, project => project.Id == standardProject.Response!.Id);
+
+        Assert.DoesNotContain(scopedDirectorProjects, project => project.Id == programProject.Response!.Id);
+        Assert.Contains(scopedDirectorProjects, project => project.Id == standardProject.Response!.Id);
+
+        Assert.Contains(expertProjects, project => project.Id == programProject.Response!.Id);
+        Assert.Contains(ministryProjects, project => project.Id == programProject.Response!.Id);
+        Assert.Contains(programViewerProjects, project => project.Id == programProject.Response!.Id);
+        Assert.DoesNotContain(programViewerProjects, project => project.Id == standardProject.Response!.Id);
+    }
+
+    [Fact]
     public async Task GetRiskDeviations_ExcludesCompletedAndPlanningProjects()
     {
         var store = StoreTestHelpers.CreateStore();

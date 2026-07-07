@@ -1891,14 +1891,15 @@ public sealed class InnovationDashboardStore
         if (!string.IsNullOrWhiteSpace(scopedDirectorate))
         {
             return _projects
-                .Where(project => ProjectBelongsToDirectorate(project, scopedDirectorate))
+                .Where(project => !IsProgramProject(project) && ProjectBelongsToDirectorate(project, scopedDirectorate))
                 .ToList();
         }
 
         if (context.Role == ApplicationRoles.PergjegjesSektori)
         {
             return _projects
-                .Where(project => ProjectBelongsToDirectorate(project, "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE") &&
+                .Where(project => !IsProgramProject(project) &&
+                                  ProjectBelongsToDirectorate(project, "DREJTORIA EKONOMIKE DHE E SHERBIMEVE MBESHTETESE") &&
                                   HasSectorTeamAccess(project, context))
                 .ToList();
         }
@@ -1934,7 +1935,9 @@ public sealed class InnovationDashboardStore
 
         if (!ApplicationRoles.RequiresMinistry(context.Role))
         {
-            return _projects;
+            return context.Role == ApplicationRoles.DrejtorAgjencie
+                ? _projects.Where(project => !IsProgramProject(project)).ToList()
+                : _projects;
         }
 
         if (context.Role == ApplicationRoles.PerfaqesuesInstitucioni)
@@ -1964,6 +1967,8 @@ public sealed class InnovationDashboardStore
             .Where(project => project.Ministries.Contains(ministry, StringComparer.OrdinalIgnoreCase))
             .ToList();
     }
+
+    private static bool IsProgramProject(ProjectState project) => !string.IsNullOrWhiteSpace(project.ProgramKey);
 
     private static bool CanAccessTeamForDirectorScope(UserContext context, IReadOnlyList<WorkgroupMemberState> teamMembers)
     {
