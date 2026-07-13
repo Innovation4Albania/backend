@@ -60,6 +60,76 @@ public sealed class InnovationDashboardStoreProjectMutationTests
     }
 
     [Fact]
+    public async Task TryUpdateProjectAsync_AllowsAiDiellaTeamMember()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "AI-DIELLA-EDIT-001",
+            ProgramKey = ApplicationRoles.AiDiellaProgramKey,
+            TeamMembers =
+            [
+                new WorkgroupMemberInput("Ekspert AI", WorkgroupRoles.InnovationExpert, "Ekip AI Diella", 100, "expert-ai-1", ApplicationRoles.StafAgjencie)
+            ]
+        };
+        var created = await store.TryCreateProjectAsync(director, request);
+        var expert = UserContext.From(ApplicationRoles.StafAgjencie, null, "expert.ai", "Ekspert AI", "expert-ai-1");
+
+        var updated = await store.TryUpdateProjectAsync(expert, created.Response!.Id, request with { Name = "AI Diella i perditesuar" });
+
+        Assert.True(updated.IsSuccess);
+        Assert.Null(updated.Error);
+        Assert.Equal("AI Diella i perditesuar", updated.Response!.Name);
+    }
+
+    [Fact]
+    public async Task TryUpdateProjectAsync_RejectsAiDiellaContributorOutsideTeam()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "AI-DIELLA-EDIT-002",
+            ProgramKey = ApplicationRoles.AiDiellaProgramKey,
+            TeamMembers =
+            [
+                new WorkgroupMemberInput("Ekspert AI", WorkgroupRoles.InnovationExpert, "Ekip AI Diella", 100, "expert-ai-1", ApplicationRoles.StafAgjencie)
+            ]
+        };
+        var created = await store.TryCreateProjectAsync(director, request);
+        var otherExpert = UserContext.From(ApplicationRoles.StafAgjencie, null, "other.ai", "Ekspert Tjeter", "expert-ai-2");
+
+        var updated = await store.TryUpdateProjectAsync(otherExpert, created.Response!.Id, request with { Name = "Ndryshim i paautorizuar" });
+
+        Assert.False(updated.IsSuccess);
+        Assert.Equal("Projekti nuk u gjet.", updated.Error);
+    }
+
+    [Fact]
+    public async Task TryDeleteProjectAsync_AllowsAiDiellaTeamMember()
+    {
+        var store = StoreTestHelpers.CreateStore();
+        var director = StoreTestHelpers.DirectorContext();
+        var request = StoreTestHelpers.ValidProjectRequest() with
+        {
+            Code = "AI-DIELLA-DELETE-001",
+            ProgramKey = ApplicationRoles.AiDiellaProgramKey,
+            TeamMembers =
+            [
+                new WorkgroupMemberInput("Ekspert AI", WorkgroupRoles.InnovationExpert, "Ekip AI Diella", 100, "expert-ai-1", ApplicationRoles.StafAgjencie)
+            ]
+        };
+        var created = await store.TryCreateProjectAsync(director, request);
+        var expert = UserContext.From(ApplicationRoles.StafAgjencie, null, "expert.ai", "Ekspert AI", "expert-ai-1");
+
+        var deleted = await store.TryDeleteProjectAsync(expert, created.Response!.Id);
+
+        Assert.True(deleted.IsSuccess);
+        Assert.Null(deleted.Error);
+    }
+
+    [Fact]
     public async Task TryCreateProjectAsync_PreservesCustomWorkgroupRole()
     {
         var store = StoreTestHelpers.CreateStore();

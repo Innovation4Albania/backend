@@ -786,11 +786,6 @@ public sealed class InnovationDashboardStore
     {
         return await ExecuteMutationAsync<(bool IsSuccess, ProjectResponse? Response, string? Error)>(async () =>
         {
-            if (!ApplicationRoles.CanCreateProjects(context.Role))
-            {
-                return (false, null, "Vetem Drejtori i Agjencise dhe Drejtori i Inovacionit Publik mund te editojne projekte.");
-            }
-
             var project = GetVisibleProjects(context)
                 .FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
 
@@ -799,9 +794,20 @@ public sealed class InnovationDashboardStore
                 return (false, null, "Projekti nuk u gjet.");
             }
 
+            if (!CanManageProject(context, project))
+            {
+                return (false, null, "Nuk keni te drejte te editoni kete projekt.");
+            }
+
             if (!TryValidateProjectRequest(request, out var error))
             {
                 return (false, null, error);
+            }
+
+            if (CanManageAiDiellaProject(context, project) &&
+                !string.Equals(request.ProgramKey, ApplicationRoles.AiDiellaProgramKey, StringComparison.OrdinalIgnoreCase))
+            {
+                return (false, null, "Projektet e programit AI Diella duhet te mbeten pjese e programit AI Diella.");
             }
 
             if (HasProjectWithCode(request.Code, project.Id))
@@ -830,17 +836,17 @@ public sealed class InnovationDashboardStore
     {
         return await ExecuteMutationAsync<(bool IsSuccess, string? Error)>(async () =>
         {
-            if (!ApplicationRoles.CanCreateProjects(context.Role))
-            {
-                return (false, "Vetem Drejtori i Agjencise dhe Drejtori i Inovacionit Publik mund te fshijne projekte.");
-            }
-
             var project = GetVisibleProjects(context)
                 .FirstOrDefault(item => string.Equals(item.Id, id, StringComparison.OrdinalIgnoreCase));
 
             if (project is null)
             {
                 return (false, "Projekti nuk u gjet.");
+            }
+
+            if (!CanManageProject(context, project))
+            {
+                return (false, "Nuk keni te drejte te fshini kete projekt.");
             }
 
             _updates.RemoveAll(update => string.Equals(update.ProjectId, project.Id, StringComparison.OrdinalIgnoreCase));
@@ -1969,6 +1975,15 @@ public sealed class InnovationDashboardStore
     }
 
     private static bool IsProgramProject(ProjectState project) => !string.IsNullOrWhiteSpace(project.ProgramKey);
+
+    private static bool CanManageProject(UserContext context, ProjectState project) =>
+        ApplicationRoles.CanCreateProjects(context.Role) || CanManageAiDiellaProject(context, project);
+
+    private static bool CanManageAiDiellaProject(UserContext context, ProjectState project) =>
+        ApplicationRoles.IsAgencyContributor(context.Role) &&
+        string.Equals(project.ProgramKey, ApplicationRoles.AiDiellaProgramKey, StringComparison.OrdinalIgnoreCase) &&
+        !string.IsNullOrWhiteSpace(context.UserId) &&
+        project.TeamMembers.Any(member => string.Equals(member.UserId, context.UserId, StringComparison.OrdinalIgnoreCase));
 
     private static bool CanAccessTeamForDirectorScope(UserContext context, IReadOnlyList<WorkgroupMemberState> teamMembers)
     {
