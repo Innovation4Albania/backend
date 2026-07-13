@@ -62,13 +62,6 @@ public static class ProjectEndpoints
                 return errorResult!;
             }
 
-            if (!ApplicationRoles.CanCreateProjects(context.Role))
-            {
-                return Results.Json(
-                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje të editojë projekte."),
-                    statusCode: StatusCodes.Status403Forbidden);
-            }
-
             var result = await service.TryUpdateProjectAsync(context, id, request);
             if (result.IsSuccess)
             {
@@ -85,13 +78,6 @@ public static class ProjectEndpoints
             if (!EndpointContextResolver.TryResolve(user, contextService, out var context, out var errorResult))
             {
                 return errorResult!;
-            }
-
-            if (!ApplicationRoles.CanCreateProjects(context.Role))
-            {
-                return Results.Json(
-                    new ApiErrorResponse("forbidden", "Ky rol nuk ka leje të fshijë projekte."),
-                    statusCode: StatusCodes.Status403Forbidden);
             }
 
             var result = await service.TryDeleteProjectAsync(context, id);
